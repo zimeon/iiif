@@ -85,6 +85,22 @@ class TestAll(unittest.TestCase):
         r.region=None
         r.parse_region()
         self.assertTrue(r.region_full)
+        r.region='pct:10,10,50,50'
+        r.parse_region()
+        self.assertFalse(r.region_full)
+        self.assertTrue(r.region_pct)
+        self.assertEqual(r.region_xywh, [10.0,10.0,50.0,50.0])
+        r.region='pct:0,0,100,100'
+        r.parse_region()
+        self.assertFalse(r.region_full)
+        self.assertTrue(r.region_pct)
+        self.assertEqual(r.region_xywh, [0.0,0.0,100.0,100.0])
+        # bad ones
+        r.region='pct:0,0,50,1000'
+        self.assertRaises( I3fError, r.parse_region )
+        r.region='pct:-10,0,50,100'
+        self.assertRaises( I3fError, r.parse_region )
+
 
     def test02_parse_size(self):
         print "parse_size tests..."
