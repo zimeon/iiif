@@ -189,10 +189,10 @@ class I3fRequest:
                     value=float(str_value)
                 except ValueError:
                     raise I3fError(code=400,parameter="region",
-                                   text="Bad floating point value in region (%s)."%str_value)
+                                   text="Bad floating point value for percentage in region (%s)."%str_value)
                 if (value>100.0):
                     raise I3fError(code=400,parameter="region",
-                                   text="Floating point value over 100% in region (%s)."%str_value)
+                                   text="Percentage over value over 100.0 in region (%s)."%str_value)
             else:
                 try:
                     value=int(str_value)
@@ -278,7 +278,7 @@ class I3fRequest:
             h = self._parse_non_negative_int(hstr,'h')
         except ValueError as e:
             raise I3fError(code=400,parameter=param,
-                           text="Illegal parameter value (%s)." % (e) )
+                           text="Illegal parameter value (%s)." % str(e) )
         if (w is None and h is None):
             raise I3fError(code=400,parameter=param,
                            text="Must specify at least one of w,h.")
