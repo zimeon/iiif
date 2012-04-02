@@ -5,6 +5,7 @@
 import re
 import os
 import os.path
+import glob
 import subprocess
 
 from error import I3fError
@@ -56,11 +57,14 @@ class I3fManipulatorNetpbm(I3fManipulator):
         cls.ppmtopgm  = os.path.join( cls.pnmdir , 'ppmtopgm' )
         cls.pnmtotiff = os.path.join( cls.pnmdir , 'pnmtotiff' )
         cls.pnmtojpeg = os.path.join( cls.pnmdir , 'pnmtojpeg' )
+        cls.pamditherbw = os.path.join( cls.pnmdir , 'pamditherbw' )
         # Need djatoka to get jp2 output
         cls.djatoka_comp = '/Users/simeon/packages/adore-djatoka-1.1/bin/compress.sh'
 
     def do_first(self):
-        outfile = os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.pnm')
+        pid = os.getpid()
+        self.basename = os.path.join(self.tmpdir,'i3f_netpbm_'+str(pid))
+        outfile = self.basename+'.pnm'
         # Convert source file to pnm
         filetype = self.file_type(self.srcfile)
         if (filetype == 'png'):
@@ -74,8 +78,8 @@ class I3fManipulatorNetpbm(I3fManipulator):
         self.tmpfile = outfile
 
     def do_region(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.reg')
+        infile = self.tmpfile
+        outfile = self.basename+'.reg'
         # Get size
         (self.width,self.height)=self.image_size(infile)
         # Region
@@ -95,8 +99,8 @@ class I3fManipulatorNetpbm(I3fManipulator):
     def do_size(self):
         # Size
         # simeon@ice ~>cat m1.pnm | pnmscale -width 50 > m2.pnm
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.siz')
+        infile = self.tmpfile
+        outfile = self.basename+'.siz'
         (w,h)=self.size_to_apply()
         if (w is None):
             #print "size: no scaling"
@@ -110,8 +114,8 @@ class I3fManipulatorNetpbm(I3fManipulator):
             self.tmpfile=outfile
 
     def do_rotation(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.rot')
+        infile = self.tmpfile
+        outfile = self.basename+'.rot'
         # Rotate
         #simeon@ice ~>cat m2.pnm | pnmrotate 123.456 > m3.pnm
         #pnmrotate: angle must be between -90 and 90 and it is CCW not CW
@@ -123,8 +127,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
             if (rot>=270.0):
                 rot-=360.0
             #print "rotation: by %f degrees clockwise" % (rot)
-#            if (self.shell_call('cat '+infile+' | '+self.pnmrotate+' -background white '+str(-rot)+'  > '+outfile)):
-            if (self.shell_call('cat '+infile+' | '+self.pnmrotate+' '+str(-rot)+'  > '+outfile)):
+            if (self.shell_call('cat '+infile+' | '+self.pnmrotate+' -background=#FFF '+str(-rot)+'  > '+outfile)):
                 raise I3fError(text="got nonzero output from pnmrotate")
             self.tmpfile=outfile
         else:
@@ -136,13 +139,18 @@ class I3fManipulatorNetpbm(I3fManipulator):
             self.tmpfile=outfile
 
     def do_color(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.col')
+        infile = self.tmpfile
+        outfile = self.basename+'.col'
         # Color (bit-depth):
         color=self.color_to_apply()
         if (color == 'grey'):
             #print "color: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
+                raise I3fError(text="got nonzero output from ppmtopgm")
+            self.tmpfile=outfile
+        elif (color == 'bitonal'):
+            #print "color: grey"
+            if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' | '+self.pamditherbw+' > '+outfile)):
                 raise I3fError(text="got nonzero output from ppmtopgm")
             self.tmpfile=outfile
         elif (color == 'color'):
@@ -153,9 +161,9 @@ class I3fManipulatorNetpbm(I3fManipulator):
                            text="Unknown color parameter value requested")
 
     def do_format(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.out')
-        outfile_jp2=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.jp2')
+        infile = self.tmpfile
+        outfile = self.basename+'.out'
+        outfile_jp2 = self.basename+'.jp2'
         # Now convert finished pnm file to output format
         #simeon@ice ~>cat m3.pnm | pnmtojpeg  > m4.jpg
         #simeon@ice ~>cat m3.pnm | pnmtotiff > m4.jpg
@@ -223,3 +231,8 @@ class I3fManipulatorNetpbm(I3fManipulator):
     def shell_call(self,shellcmd):
         """Shell call with necessary setup first"""
         return(subprocess.call(self.shellsetup+shellcmd,shell=True))
+
+    def cleanup(self):
+        """Clean up any temporary files"""
+        for file in glob.glob(self.basename+'*'):
+            os.unlink(file)
