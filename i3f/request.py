@@ -151,7 +151,6 @@ class I3fRequest:
         self.parse_size()
         self.parse_rotation()
         self.parse_color()
-        self.parse_size()
         self.parse_format()
 
     def parse_region(self):
@@ -226,7 +225,7 @@ class I3fRequest:
               # scale to w by h
         Returns (None,None) if no scaling is required.
         """
-        self.size_pct=False
+        self.size_pct=None
         self.size_bang=False
         if (self.size is None):
             self.size_pct=100.0
