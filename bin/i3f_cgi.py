@@ -174,7 +174,7 @@ class I3fRequestHandler(CGI_responder):
         return(open(outfile,'r'),mime_type)
                
 I3fRequestHandler.loadProfile( 'unmodified', '/full/pct:100/0/color' )
-I3fRequestHandler.loadProfile( 'thumb', '/full/32,32/0/color' )
+I3fRequestHandler.loadProfile( 'thumb', '/full/!32,32/0/color' )
 
 #print "Content-type: text/plain\r\n\r"
 #print "hello"
