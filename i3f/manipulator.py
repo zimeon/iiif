@@ -72,7 +72,7 @@ class I3fManipulator(object):
     def do_size(self):
         """ Scale extracted region in manipulation pipeline
         """
-        if (self.i3f.size_pct != 100.0):
+        if (size.i3f.size_pct is None or self.i3f.size_pct != 100.0):
             raise I3fError(code=501,parameter="size",
                            text="Dummy manipulator supports only size=pct:100.")
 
@@ -150,7 +150,7 @@ class I3fManipulator(object):
         Formats are: w, ,h w,h pct:p !w,h
 
         Expected use:
-          (w,h) = i3f.size_to_apply(region_w,region_h)
+          (w,h) = self.size_to_apply(region_w,region_h)
           if (q is None):
               # full image
           else:
@@ -165,23 +165,24 @@ class I3fManipulator(object):
             (mw,mh)=self.i3f.size_wh
             # Pick smaller fraction and then work from that...
             frac = min ( (float(mw)/float(self.width)), (float(mh)/float(self.height)) )
-            print "size=!w,h: mw=%d mh=%d -> frac=%f" % (mw,mh,frac)
+            #print "size=!w,h: mw=%d mh=%d -> frac=%f" % (mw,mh,frac)
             # FIXME - could put in some other function here like factors of two, but
             # FIXME - for now just pick largest image within requested dimensions
             w = int(self.width * frac + 0.5)
             h = int(self.height * frac + 0.5)
         else:
-            # Must now be "w,h", "w," or ",h"
+            # Must now be "w,h", "w," or ",h". If both are specified then this will the size,
+            # otherwise find other to keep aspect ratio
             (w,h)=self.i3f.size_wh
             if (w is None):
                 w = int(self.width * h / self.height + 0.5)
             elif (h is None):
                 h = int(self.height * w / self.width + 0.5)
-            print "size=w,h: w=%d h=%d" % (w,h)
+            #print "size=w,h: w=%d h=%d" % (w,h)
         # Now have w,h, sanity check and return
         if ( w==0 or h==0 ):
             raise I3fError(code=400,parameter='size',
-                           text="Size parameter would result in zero size result image.")
+                           text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
 # FIXME - this isn't actually forbidden by v0.1 of the spec
 #        if ( w>self.width or h>self.height ):
 #            raise I3fError(code=400,parameter='size',
@@ -210,3 +211,11 @@ class I3fManipulator(object):
         if (self.i3f.color is None):
             return('color')
         return(self.i3f.color)
+
+    def cleanup(self):
+        """Clean up after manipulation
+
+        Call after any output file from the manipulation process has been read. Intended
+        to handle any clean up of temporary files or such. This method empty.
+        """
+        return()
