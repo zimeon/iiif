@@ -71,7 +71,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
             #print "doing png->pnm"
             #print self.pngtopnm+' '+self.srcfile+' > '+outfile
             if (self.shell_call(self.pngtopnm+' '+self.srcfile+' > '+outfile)):
-                raise I3fError(text="got nonzero output from pngtopnm")
+                raise I3fError(text="Oops... got nonzero output from pngtopnm.")
         else:
             raise I3fError(code='501',
                            text='bad input file format')
@@ -91,7 +91,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
         else:
             #print "region: (%d,%d,%d,%d)" % (x,y,w,h)
             if (self.shell_call('cat '+infile+' | '+self.pnmcut+' '+str(x)+' '+str(y)+' '+str(w)+' '+str(h)+'  > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmcut")
+                raise I3fError(text="Oops... got nonzero output from pnmcut.")
             self.width=w
             self.height=h
             self.tmpfile = outfile
@@ -108,7 +108,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
         else:
             #print "size: scaling to (%d,%d)" % (w,h)
             if (self.shell_call('cat '+infile+' | '+self.pnmscale+' -width '+str(w)+' -height '+str(h)+'  > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmscale")
+                raise I3fError(text="Oops... got nonzero output from pnmscale.")
             width=w
             height=h
             self.tmpfile=outfile
@@ -128,14 +128,14 @@ class I3fManipulatorNetpbm(I3fManipulator):
                 rot-=360.0
             #print "rotation: by %f degrees clockwise" % (rot)
             if (self.shell_call('cat '+infile+' | '+self.pnmrotate+' -background=#FFF '+str(-rot)+'  > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmrotate")
+                raise I3fError(text="Oops... got nonzero output from pnmrotate.")
             self.tmpfile=outfile
         else:
             # Between 90 and 270 = flip and then -90 to 90
             rot-=180.0
             #print "rotation: by %f degrees clockwise" % (rot)
             if (self.shell_call('cat '+infile+' | '+self.pnmflip+' -rotate180 | '+self.pnmrotate+' '+str(-rot)+'  > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmrotate")
+                raise I3fError(text="Oops... got nonzero output from pnmrotate.")
             self.tmpfile=outfile
 
     def do_color(self):
@@ -146,19 +146,19 @@ class I3fManipulatorNetpbm(I3fManipulator):
         if (color == 'grey'):
             #print "color: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
-                raise I3fError(text="got nonzero output from ppmtopgm")
+                raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
         elif (color == 'bitonal'):
             #print "color: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' | '+self.pamditherbw+' > '+outfile)):
-                raise I3fError(text="got nonzero output from ppmtopgm")
+                raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
         elif (color == 'color'):
             #print "color: color"
             self.tmpfile=infile
         else: 
             raise I3fError(code=400,parameter='color',
-                           text="Unknown color parameter value requested")
+                           text="Unknown color parameter value requested.")
 
     def do_format(self):
         infile = self.tmpfile
@@ -175,23 +175,23 @@ class I3fManipulatorNetpbm(I3fManipulator):
         if (fmt == 'png'):
             #print "format: png"
             if (self.shell_call(self.pnmtopng+' '+infile+' > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmtopng")
+                raise I3fError(text="Oops... got nonzero output from pnmtopng.")
             mime_type="image/png"
         elif (fmt == 'tiff' or fmt == 'jp2'):
             #print "format: tiff/jp2"
             if (self.shell_call(self.pnmtotiff+' '+infile+' > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmtotiff")
+                raise I3fError(text="Oops... got nonzero output from pnmtotiff.")
             mime_type="image/tiff"
             if (fmt == 'jp2'):
                 # use djatoka after tiff
                 if (self.shell_call(DJATOKA_COMP+' -i '+outfile+' -o '+outfile_jp2)):
-                    raise I3fError(text="got nonzero output from DJATOKA_COMP")
+                    raise I3fError(text="Oops... got nonzero output from DJATOKA_COMP.")
                 mime_type="image/jp2"
                 outfile=tmpfile_jp2
         elif (fmt == 'jpg'):
             #print "format: jpg"
             if (self.shell_call(self.pnmtojpeg+' '+infile+' > '+outfile)):
-                raise I3fError(text="got nonzero output from pnmtojpeg")
+                raise I3fError(text="Oops... got nonzero output from pnmtojpeg.")
             mime_type="image/jpeg"
         else:
             raise I3fError(code=415, parameter='format',
@@ -221,7 +221,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
         pout.close()
         m=re.search(', (\d+) by (\d+) ',pnmfileout);
         if (m is None):
-            raise I3fError(text="Bad output from pnmfile when trying to get size")
+            raise I3fError(text="Bad output from pnmfile when trying to get size.")
         w=int(m.group(1))
         h=int(m.group(2))
         #print "pnmfile output = %s" % (pnmfileout)
