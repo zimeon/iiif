@@ -151,7 +151,6 @@ class I3fRequest:
         self.parse_size()
         self.parse_rotation()
         self.parse_color()
-        self.parse_size()
         self.parse_format()
 
     def parse_region(self):
@@ -189,10 +188,10 @@ class I3fRequest:
                     value=float(str_value)
                 except ValueError:
                     raise I3fError(code=400,parameter="region",
-                                   text="Bad floating point value in region (%s)."%str_value)
+                                   text="Bad floating point value for percentage in region (%s)."%str_value)
                 if (value>100.0):
                     raise I3fError(code=400,parameter="region",
-                                   text="Floating point value over 100% in region (%s)."%str_value)
+                                   text="Percentage over value over 100.0 in region (%s)."%str_value)
             else:
                 try:
                     value=int(str_value)
@@ -226,7 +225,7 @@ class I3fRequest:
               # scale to w by h
         Returns (None,None) if no scaling is required.
         """
-        self.size_pct=False
+        self.size_pct=None
         self.size_bang=False
         if (self.size is None):
             self.size_pct=100.0
@@ -278,7 +277,7 @@ class I3fRequest:
             h = self._parse_non_negative_int(hstr,'h')
         except ValueError as e:
             raise I3fError(code=400,parameter=param,
-                           text="Illegal parameter value (%s)." % (e) )
+                           text="Illegal parameter value (%s)." % str(e) )
         if (w is None and h is None):
             raise I3fError(code=400,parameter=param,
                            text="Must specify at least one of w,h.")

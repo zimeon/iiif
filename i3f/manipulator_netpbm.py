@@ -5,6 +5,7 @@
 import re
 import os
 import os.path
+import glob
 import subprocess
 
 from error import I3fError
@@ -29,18 +30,23 @@ class I3fManipulatorNetpbm(I3fManipulator):
             self.find_binaries()
 
     @classmethod
-    def find_binaries(cls):
+    def find_binaries(cls,tmpdir=None,shellsetup=None,filecmd=None,pnmdir=None):
         """Set instance vars for directory and binar locations
 
         FIXME - should accept params to set things other than defaults
         """
-        cls.tmpdir = '/tmp'
-        cls.filecmd = '/usr/bin/file'
-        cls.pnmdir = '/usr/bin'
-        for dir in ('/usr/local/bin','/sw/bin'):
-            if (os.path.isfile(os.path.join(dir,'pngtopnm'))):
-                cls.pnmdir=dir
-        #reclessly assume everything else under cls.pnmdir
+        cls.tmpdir = ( '/tmp' if (tmpdir is None) else tmpdir)
+        # Shell setup command (e.g set library path)
+        cls.shellsetup = ( '' if (shellsetup is None) else shellsetup)
+        cls.filecmd = ( '/usr/bin/file' if (filecmd is None) else filecmd)
+        if (pnmdir is None):
+            cls.pnmdir = '/usr/bin'
+            for dir in ('/usr/local/bin','/sw/bin'):
+                if (os.path.isfile(os.path.join(dir,'pngtopnm'))):
+                    cls.pnmdir=dir
+        else:
+            cls.pnmdir=pnmdir
+        # Recklessly assume everything else under cls.pnmdir
         cls.pngtopnm  = os.path.join( cls.pnmdir , 'pngtopnm' )
         cls.pnmfile   = os.path.join( cls.pnmdir , 'pnmfile' )
         cls.pnmcut    = os.path.join( cls.pnmdir , 'pnmcut' )
@@ -51,105 +57,113 @@ class I3fManipulatorNetpbm(I3fManipulator):
         cls.ppmtopgm  = os.path.join( cls.pnmdir , 'ppmtopgm' )
         cls.pnmtotiff = os.path.join( cls.pnmdir , 'pnmtotiff' )
         cls.pnmtojpeg = os.path.join( cls.pnmdir , 'pnmtojpeg' )
+        cls.pamditherbw = os.path.join( cls.pnmdir , 'pamditherbw' )
         # Need djatoka to get jp2 output
         cls.djatoka_comp = '/Users/simeon/packages/adore-djatoka-1.1/bin/compress.sh'
 
     def do_first(self):
-        outfile = os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.pnm')
+        pid = os.getpid()
+        self.basename = os.path.join(self.tmpdir,'i3f_netpbm_'+str(pid))
+        outfile = self.basename+'.pnm'
         # Convert source file to pnm
         filetype = self.file_type(self.srcfile)
         if (filetype == 'png'):
-            print "doing png->pnm"
-            print self.pngtopnm+' '+self.srcfile+' > '+outfile
-            if (subprocess.call(self.pngtopnm+' '+self.srcfile+' > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pngtopnm")
+            #print "doing png->pnm"
+            #print self.pngtopnm+' '+self.srcfile+' > '+outfile
+            if (self.shell_call(self.pngtopnm+' '+self.srcfile+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pngtopnm.")
         else:
             raise I3fError(code='501',
                            text='bad input file format')
         self.tmpfile = outfile
 
     def do_region(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.reg')
+        infile = self.tmpfile
+        outfile = self.basename+'.reg'
         # Get size
         (self.width,self.height)=self.image_size(infile)
         # Region
         #simeon@ice ~>cat m.pnm | pnmcut 10 10 100 200 > m1.pnm
         (x,y,w,h)=self.region_to_apply()
         if (x is None):
-            print "region: full"
+            #print "region: full"
             self.tmpfile = infile
         else:
-            print "region: (%d,%d,%d,%d)" % (x,y,w,h)
-            if (subprocess.call('cat '+infile+' | '+self.pnmcut+' '+str(x)+' '+str(y)+' '+str(w)+' '+str(h)+'  > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmcut")
+            #print "region: (%d,%d,%d,%d)" % (x,y,w,h)
+            if (self.shell_call('cat '+infile+' | '+self.pnmcut+' '+str(x)+' '+str(y)+' '+str(w)+' '+str(h)+'  > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmcut.")
             self.width=w
             self.height=h
+            self.tmpfile = outfile
 
     def do_size(self):
         # Size
         # simeon@ice ~>cat m1.pnm | pnmscale -width 50 > m2.pnm
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.siz')
+        infile = self.tmpfile
+        outfile = self.basename+'.siz'
         (w,h)=self.size_to_apply()
         if (w is None):
-            print "size: no scaling"
+            #print "size: no scaling"
             self.tmpfile=infile
         else:
-            print "size: scaling to (%d,%d)" % (w,h)
-            if (subprocess.call('cat '+infile+' | '+self.pnmscale+' -width '+str(w)+' -height '+str(h)+'  > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmscale")
+            #print "size: scaling to (%d,%d)" % (w,h)
+            if (self.shell_call('cat '+infile+' | '+self.pnmscale+' -width '+str(w)+' -height '+str(h)+'  > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmscale.")
             width=w
             height=h
             self.tmpfile=outfile
 
     def do_rotation(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.rot')
+        infile = self.tmpfile
+        outfile = self.basename+'.rot'
         # Rotate
         #simeon@ice ~>cat m2.pnm | pnmrotate 123.456 > m3.pnm
         #pnmrotate: angle must be between -90 and 90 and it is CCW not CW
         rot=self.rotation_to_apply()
         if (rot==0.0):
-            print "rotation: no rotation"
+            #print "rotation: no rotation"
             self.tmpfile=infile
         elif (rot<=90.0 or rot>=270.0):
             if (rot>=270.0):
                 rot-=360.0
-            print "rotation: by %f degrees clockwise" % (rot)
-#            if (subprocess.call('cat '+infile+' | '+self.pnmrotate+' -background white '+str(-rot)+'  > '+outfile, shell=True)):
-            if (subprocess.call('cat '+infile+' | '+self.pnmrotate+' '+str(-rot)+'  > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmrotate")
+            #print "rotation: by %f degrees clockwise" % (rot)
+            if (self.shell_call('cat '+infile+' | '+self.pnmrotate+' -background=#FFF '+str(-rot)+'  > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmrotate.")
             self.tmpfile=outfile
         else:
             # Between 90 and 270 = flip and then -90 to 90
             rot-=180.0
-            print "rotation: by %f degrees clockwise" % (rot)
-            if (subprocess.call('cat '+infile+' | '+self.pnmflip+' -rotate180 | '+self.pnmrotate+' '+str(-rot)+'  > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmrotate")
+            #print "rotation: by %f degrees clockwise" % (rot)
+            if (self.shell_call('cat '+infile+' | '+self.pnmflip+' -rotate180 | '+self.pnmrotate+' '+str(-rot)+'  > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmrotate.")
             self.tmpfile=outfile
 
     def do_color(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.col')
+        infile = self.tmpfile
+        outfile = self.basename+'.col'
         # Color (bit-depth):
         color=self.color_to_apply()
         if (color == 'grey'):
-            print "color: grey"
-            if (subprocess.call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from ppmtopgm")
+            #print "color: grey"
+            if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
+            self.tmpfile=outfile
+        elif (color == 'bitonal'):
+            #print "color: grey"
+            if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' | '+self.pamditherbw+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
         elif (color == 'color'):
-            print "color: color"
+            #print "color: color"
             self.tmpfile=infile
         else: 
             raise I3fError(code=400,parameter='color',
-                           text="Unknown color parameter value requested")
+                           text="Unknown color parameter value requested.")
 
     def do_format(self):
-        infile=self.tmpfile
-        outfile=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.out')
-        outfile_jp2=os.path.join(self.tmpdir,os.path.basename(self.srcfile)+'.jp2')
+        infile = self.tmpfile
+        outfile = self.basename+'.out'
+        outfile_jp2 = self.basename+'.jp2'
         # Now convert finished pnm file to output format
         #simeon@ice ~>cat m3.pnm | pnmtojpeg  > m4.jpg
         #simeon@ice ~>cat m3.pnm | pnmtotiff > m4.jpg
@@ -159,25 +173,25 @@ class I3fManipulatorNetpbm(I3fManipulator):
         #simeon@ice ~>cat m3.pnm | pnmtopng  > m4.png
         fmt = ( 'png' if (self.i3f.format is None) else self.i3f.format)
         if (fmt == 'png'):
-            print "format: png"
-            if (subprocess.call(self.pnmtopng+' '+infile+' > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmtopng")
+            #print "format: png"
+            if (self.shell_call(self.pnmtopng+' '+infile+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmtopng.")
             mime_type="image/png"
         elif (fmt == 'tiff' or fmt == 'jp2'):
-            print "format: tiff/jp2"
-            if (subprocess.call(self.pnmtotiff+' '+infile+' > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmtotiff")
+            #print "format: tiff/jp2"
+            if (self.shell_call(self.pnmtotiff+' '+infile+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmtotiff.")
             mime_type="image/tiff"
             if (fmt == 'jp2'):
                 # use djatoka after tiff
-                if (subprocess.call(DJATOKA_COMP+' -i '+outfile+' -o '+outfile_jp2, shell=True)):
-                    raise I3fError(text="got nonzero output from DJATOKA_COMP")
+                if (self.shell_call(DJATOKA_COMP+' -i '+outfile+' -o '+outfile_jp2)):
+                    raise I3fError(text="Oops... got nonzero output from DJATOKA_COMP.")
                 mime_type="image/jp2"
                 outfile=tmpfile_jp2
         elif (fmt == 'jpg'):
-            print "format: jpg"
-            if (subprocess.call(self.pnmtojpeg+' '+infile+' > '+outfile, shell=True)):
-                raise I3fError(text="got nonzero output from pnmtojpeg")
+            #print "format: jpg"
+            if (self.shell_call(self.pnmtojpeg+' '+infile+' > '+outfile)):
+                raise I3fError(text="Oops... got nonzero output from pnmtojpeg.")
             mime_type="image/jpeg"
         else:
             raise I3fError(code=415, parameter='format',
@@ -186,10 +200,11 @@ class I3fManipulatorNetpbm(I3fManipulator):
         self.mime_type=mime_type
 
     def file_type(self,file):
+        return('png')
         pout = os.popen(self.filecmd+' '+file,'r')
         fileout=pout.read(200)
         pout.close()
-        print "file output = " + fileout
+        #print "file output = " + fileout
         if (re.search('PNG image data',fileout)):
             return('png')
         # failed
@@ -201,13 +216,23 @@ class I3fManipulatorNetpbm(I3fManipulator):
         simeon@homebox src>pnmfile /tmp/214-2.png
         /tmp/214-2.png:PPM raw, 100 by 100  maxval 255
         """
-        pout = os.popen(self.pnmfile+' '+pnmfile,'r')
+        pout = os.popen(self.shellsetup+self.pnmfile+' '+pnmfile,'r')
         pnmfileout=pout.read(200)
         pout.close()
         m=re.search(', (\d+) by (\d+) ',pnmfileout);
+        if (m is None):
+            raise I3fError(text="Bad output from pnmfile when trying to get size.")
         w=int(m.group(1))
         h=int(m.group(2))
         #print "pnmfile output = %s" % (pnmfileout)
-        print "image size = %d,%d" % (w,h)
+        #print "image size = %d,%d" % (w,h)
         return(w,h)
 
+    def shell_call(self,shellcmd):
+        """Shell call with necessary setup first"""
+        return(subprocess.call(self.shellsetup+shellcmd,shell=True))
+
+    def cleanup(self):
+        """Clean up any temporary files"""
+        for file in glob.glob(self.basename+'*'):
+            os.unlink(file)
