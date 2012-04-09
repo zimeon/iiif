@@ -28,7 +28,7 @@ class I3fManipulator(object):
 
         Link: <http://i3f.example.org/compliance/level/0>;rel="compliesTo"
 
-        This dummy manipulator doesn't comply to any of the levels defined
+        This null manipulator doesn't comply to any of the levels defined
         in the i3f specification so it is set to None.
         """
         self.file = None;
@@ -55,52 +55,15 @@ class I3fManipulator(object):
     def do_first(self):
         """Simplest possible manipulator that can only handle no modification
 
-        Parse out the request and respond with an error unless it
-        specified an unmodified image. Returns None for the mime type.
+        Set width and height to -1 (unknown)
         """
         self.width=-1  #don't know width of height
         self.height=-1 
 
-    def do_region(self):
-        """ Extract specified region in manipulation pipeline
-        """
-        (x,y,w,h)=self.region_to_apply()
-        if (x is not None):
-            raise I3fError(code=501,parameter="region",
-                           text="Dummy manipulator supports only region=/full/.")
-
-    def do_size(self):
-        """ Scale extracted region in manipulation pipeline
-        """
-        if (self.i3f.size_pct != 100.0):
-            raise I3fError(code=501,parameter="size",
-                           text="Dummy manipulator supports only size=pct:100.")
-
-    def do_rotation(self):
-        """ Rotate extracted/scaled region in manipulation pipeline
-        """
-        if (self.i3f.rotation_to_apply() != 0.0):
-            raise I3fError(code=501,parameter="rotation",
-                           text="Dummy manipulator supports only rotation=(0|360).")
-
-    def do_color(self):
-        """ Change bit-depth in manipulation pipeline
-        """
-        if (self.i3f.color_to_apply() != 'color'):
-            raise I3fError(code=501,parameter="color",
-                           text="Dummy manipulator supports only color=color.")
-
-    def do_format(self):
-        """ Change format of result from manipulation pipeline
-        """
-        if (self.i3f.format is not None):
-            raise I3fError(code=415,parameter="format",
-                           text="Dummy manipulator does not support specification of output format.")
-        self.outfile=self.srcfile
-        self.mime_type=None
-
     def do_last(self):
         """ Hook in pipeline at end of processing
+
+        Does nothing.
         """
         return
 
@@ -120,6 +83,10 @@ class I3fManipulator(object):
         """
         if (self.i3f.region_full):
             return(None,None,None,None)
+        # Cannot do anything else unless we know size (in self.width and self.height)
+        if (self.width<=0 or self.height<=0):
+            raise I3fError(code=501,parameter='region',
+                           text="Region parameters require knowledge of image size which is not implemented.")
         pct = self.i3f.region_pct
         (x,y,w,h)=self.i3f.region_xywh
         # Convert pct to real
