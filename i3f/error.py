@@ -12,7 +12,7 @@ import StringIO
 from xml.etree.ElementTree import ElementTree, Element
 
 # Namespace used in XML error response
-I3F_NS = "http://namespace.i3f.somewhere.org"
+I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
 
 class I3fError:
 
