@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <info xmlns="http://library.stanford.edu/iiif/image-api/ns/"
-      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      xsi:schemaLocation="http://library.stanford.edu/iiif/image-api/ns/
-                          http://library.stanford.edu/iiif/image-api/image-api.xsd">
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <identifier>1E34750D-38DB-4825-A38A-B60A345E591C</identifier>
   <width>6000</width>
   <!-- height is mandatory -->

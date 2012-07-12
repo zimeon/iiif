@@ -6,9 +6,9 @@
 
   <xs:annotation>
     <xs:documentation>
-WSX schema to validate information and error documents for the 
+W3C XML Schema to validate information and error documents for the 
 IIIF Image API (http://library.stanford.edu/iiif/image-api/).
-Simeon Warner - 2012-07-05
+Simeon Warner - 2012-07-12
     </xs:documentation>
   </xs:annotation>
 
