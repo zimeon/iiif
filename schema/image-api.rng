@@ -10,7 +10,8 @@
 Relax-NG schema to validate information and error documents for the 
 IIIF Image API (http://library.stanford.edu/iiif/image-api/). 
 Converted to Relax-NG W3C XML Schema using http://debeissat.nicolas.free.fr/
-Simeon Warner - 2012-07-12
+2012-07-12 - First version (Simeon Warner)
+2012-08-01 - Added profile element (Simeon Warner)
     
   </a:documentation>
 
@@ -70,6 +71,11 @@ Two possible root elements for IIIF documents: info or error.
     <rng:optional>
       <rng:element name="qualities">
         <rng:ref name="iiif-qualities-type"/>
+      </rng:element>
+    </rng:optional>
+    <rng:optional>
+      <rng:element name="profile">
+        <rng:data type="anyURI"/>
       </rng:element>
     </rng:optional>
   </rng:define>

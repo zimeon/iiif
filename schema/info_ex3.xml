@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<info xmlns="http://library.stanford.edu/iiif/image-api/ns/"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <identifier>1E34750D-38DB-4825-A38A-B60A345E591C</identifier>
+  <width>6000</width>
+  <height>4000</height>
+  <scale_factors>
+    <scale_factor>1</scale_factor>
+    <scale_factor>2</scale_factor>
+    <scale_factor>4</scale_factor>
+  </scale_factors>
+  <tile_width>1024</tile_width>
+  <tile_height>1024</tile_height>
+  <formats>
+    <format>jpg</format>
+    <format>png</format>
+  </formats>
+  <qualities>
+    <quality>native</quality>
+    <quality>grey</quality>
+  </qualities>
+  <profile>http://library.stanford.edu/iiif/image-api/compliance.html#level1</profile>
+</info>

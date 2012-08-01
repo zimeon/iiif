@@ -8,7 +8,8 @@
     <xs:documentation>
 W3C XML Schema to validate information and error documents for the 
 IIIF Image API (http://library.stanford.edu/iiif/image-api/).
-Simeon Warner - 2012-07-12
+2012-07-12 - First version (Simeon Warner)
+2012-08-01 - Added profile element (Simeon Warner)
     </xs:documentation>
   </xs:annotation>
 
@@ -30,6 +31,7 @@ Two possible root elements for IIIF documents: info or error.
       <xs:element name="tile_height" type="xs:integer" minOccurs="0"/>
       <xs:element name="formats" type="iiif-formats-type" minOccurs="0"/>
       <xs:element name="qualities" type="iiif-qualities-type" minOccurs="0"/>
+      <xs:element name="profile" type="xs:anyURI" minOccurs="0"/>
     </xs:sequence>
   </xs:complexType>
 
