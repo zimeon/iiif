@@ -14,9 +14,9 @@ class I3fRequest:
     """ Implement IIIF request URL syntax
     
     There are two URL forms defined in section 2:
-    http[s]://server/[prefix/]identifier/region/size/rotation/color[.format]
+    http[s]://server/[prefix/]identifier/region/size/rotation/quality[.format]
     or
-    http[s]://server/[prefix/]identifier/profile[.format]
+    http[s]://server/[prefix/]identifier/info.format
 
     The attribites of objects of this class follow the names here except that
     baseurl is used for "http[s]://server/[prefix/]". If baseurl is not set 
@@ -42,9 +42,9 @@ class I3fRequest:
         self.region = None
         self.size = None
         self.rotation = None
-        self.color = None
+        self.quality = None
         self.format = None
-        self.profile = None
+        self.info = None
 
     def set(self, **params):
         # FIXME - maybe make this safe an allow only setting valid attributes
@@ -63,36 +63,40 @@ class I3fRequest:
         return( urllib.quote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
 
     def url(self, **params):
-        """ Build a URL path according to the IIIF API parameterized or named-profile form
+        """ Build a URL path according to the IIIF API parameterized or 
+            info form
 
-        The parameterized form is assumed unless a profile parameter is specified.
+        The parameterized form is assumed unless a the info parameter is 
+        specified.
         """
         self.set(**params)
         path = self.baseurl +\
             self.quote(self.identifier) + "/"
-        if (self.profile):
-            # named profile form
-            path += self.quote(self.profile)
+        if (self.info):
+            # info request
+            path += "info"
+            format = self.format if self.format else "json"
         else:
             # set defaults if not given
-            region=self.region if self.region else "all"
-            size=self.size if self.size else "pct:100"
-            rotation=self.rotation if self.rotation else "0"
-            color=self.color if self.color else "color"
+            region = self.region if self.region else "full"
+            size = self.size if self.size else "full"
+            rotation = self.rotation if self.rotation else "0"
+            quality = self.quality if self.quality else "native"
             # parameterized form
             path += self.quote(region) + "/" +\
                     self.quote(size) + "/" +\
                     self.quote(rotation) + "/" +\
-                    self.quote(color)
-        if (self.format):
-            path += "." + self.format
+                    self.quote(quality)
+            format = self.format
+        if (format):
+            path += "." + format
         return(path)
 
     def parse_url(self, url):
         """ Parse an IIIF API URL path and each component
         
         Will parse a URL or URL path that accords with either the
-        parametrized or named profile API forms. Will raise an
+        parametrized or info request forms. Will raise an
         I3fError on failure. A wrapper for the split_url()
         and parse_parameters() methods.
         """
@@ -104,8 +108,8 @@ class I3fRequest:
         """ Perform the initial parsing of an IIIF API URL path into components
 
         Will parse a URL or URL path that accords with either the
-        parametrized or named profile API forms. Will raise an I3fError
-        on failure.
+        parametrized or info API forms. Will raise an I3fError on 
+        failure.
         """
         # clear data first
         self.clear()
@@ -132,10 +136,15 @@ class I3fRequest:
             self.region = urllib.unquote(segs[1])
             self.size  = urllib.unquote(segs[2])
             self.rotation = urllib.unquote(segs[3])
-            self.color = urllib.unquote(segs[4])
+            self.quality = urllib.unquote(segs[4])
+            self.info = False
         elif (len(segs) == 2):
             self.identifier = urllib.unquote(segs[0])
-            self.profile = urllib.unquote(segs[1])
+            if (urllib.unquote(segs[1]) != "info"):
+                raise(I3fError(code=400,text="Badly formed information request, must be info.json or info.xml"))
+            if (self.format not in ("json","xml")):
+                raise(I3fError(code=400,text="Bad information request format, must be json or xml"))
+            self.info = True
         else:
             raise(I3fError(code=400,text="Bad number of path segments (%d) in URL."%(len(segs))))
         return(self)
@@ -150,7 +159,7 @@ class I3fRequest:
         self.parse_region()
         self.parse_size()
         self.parse_rotation()
-        self.parse_color()
+        self.parse_quality()
         self.parse_format()
 
     def parse_region(self):
@@ -211,6 +220,7 @@ class I3fRequest:
     def parse_size(self):
         """Parse the size component of the path
 
+        /full/ -> self.size_full = True
         /w,/ -> self.size_wh = (w,None)
         /,h/ -> self.size_wh = (None,h)
         /w,h/ -> self.size_wh = (w,h)
@@ -227,9 +237,10 @@ class I3fRequest:
         """
         self.size_pct=None
         self.size_bang=False
-        if (self.size is None):
-            self.size_pct=100.0
+        if (self.size is None or self.size=='full'):
+            self.size_full=True
             return
+        self.size_full=False
         pct_match = re.match('pct:(.*)$',self.size)
         if (pct_match is not None):
             pct_str=pct_match.group(1)
@@ -320,43 +331,42 @@ class I3fRequest:
             # The spec admits 360 as valid, but change to 0
             self.rotation_deg=0.0
 
-    def parse_color(self):
-        """ Check color paramater
+    def parse_quality(self):
+        """ Check quality paramater
 
-        Sets self.color_val based on simple substitution of 'color' for default. 
+        Sets self.quality_val based on simple substitution of 'native' for default. 
         Checks for the three valid values else throws and I3fError.
         """
-        if (self.color is None):
-            self.color_val='color'
-        elif (self.color!='color' and self.color!='bitonal' and self.color!='grey'):
-            raise I3fError(code=400,parameter="color",
-                           text="The color parameter must be 'color', 'bitonal' or 'grey', got '%s'."%(self.color))
+        if (self.quality is None):
+            self.quality_val='native'
+        elif (self.quality not in ['native','color','bitonal','grey']):
+            raise I3fError(code=400,parameter="quality",
+                           text="The quality parameter must be 'native', 'color', 'bitonal' or 'grey', got '%s'."%(self.quality))
         else:
-            self.color_val=self.color
+            self.quality_val=self.quality
 
     def parse_format(self):
-        """ Value of color parameter to use in processing request
+        """ Value of quality parameter to use in processing request
 
-        Sets self.color_val based on simple substitution of 'color' for default. 
+        Sets self.quality_val based on simple substitution of 'native' for default. 
         Checks for the three 
         """
 
     def __str__(self):
         """ Pretty print this object in human readable form
         
-        Distinguishes parametrerized and named-profile requests to
+        Distinguishes parametrerized and info requests to
         show only appropriate parameters in each case.
         """
         #s =  "baseurl=" + str(self.baseurl) + "\n"
         s = "identifier=" + str(self.identifier) + "\n"
-        if (self.profile is None):
-            s += "PARAMETERIZED request:\n";
+        if (self.info):
+            s += "INFO request \n";
+            s += "format=" + str(self.format) + "\n"
+        else:
             s += "region=" + str(self.region) + "\n"
             s += "size=" + str(self.size) + "\n"
             s += "rotation=" + str(self.rotation) + "\n"
-            s += "color=" + str(self.color) + "\n"
+            s += "quality=" + str(self.quality) + "\n"
             s += "format=" + str(self.format)
-        else:
-            s += "NAMED-PROFILE request:\n";
-            s += "profile=" + str(self.profile) + "\n"
         return(s)

@@ -2,13 +2,13 @@
 
 """Test encoding and decoding of i3f request URLs
 
-Follows http://library.stanford.edu/iiif/image-api/ v0.1 dated "9 March 2012"
+Follows http://library.stanford.edu/iiif/image-api/ v0.2 dated "13 April 2012"
 
 This test includes a number of test cases beyond those given as examples
 in the table in section 7 of the spec. See i3f_urltest_spec.py for the
 set given in the spec.
 
-Simeon Warner - 2012-03-23
+Simeon Warner - 2012-03-23, 2012-04-13
 """
 import unittest
 
@@ -20,61 +20,60 @@ from i3f.request import I3fRequest
 # 
 data  = {
     '00_params': [
-        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'color':'color' },
-        'id1/full/100,100/0/color'],
+        {'identifier':'id1', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native' },
+        'id1/full/full/0/native'],
     '02_params': [
-        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'color':'color', 'format':'jpg' },
-        'id1/full/100,100/0/color.jpg'],
+        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'quality':'native', 'format':'jpg' },
+        'id1/full/100,100/0/native.jpg'],
     '03_params': [
-        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'color':'grey' },
+        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'quality':'grey' },
         'id1/full/100,100/0/grey'],
     '04_params': [
-        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'color':'grey', 'format':'tif' },
+        {'identifier':'id1', 'region':'full', 'size':'100,100', 'rotation':'0', 'quality':'grey', 'format':'tif' },
         'id1/full/100,100/0/grey.tif'],
     '05_params': [
-        {'identifier':'bb157hs6068', 'region':'full', 'size':'pct:100', 'rotation':'270', 'color':'bitonal', 'format':'jpg'},
+        {'identifier':'bb157hs6068', 'region':'full', 'size':'pct:100', 'rotation':'270', 'quality':'bitonal', 'format':'jpg'},
         'bb157hs6068/full/pct:100/270/bitonal.jpg',
         'bb157hs6068/full/pct%3A100/270/bitonal.jpg'],
     '06_params': [
-        {'identifier':'bb157hs6068', 'region':'full', 'size':'100,', 'rotation':'123.456', 'color':'grey', 'format':'jpg'},
+        {'identifier':'bb157hs6068', 'region':'full', 'size':'100,', 'rotation':'123.456', 'quality':'grey', 'format':'jpg'},
         'bb157hs6068/full/100,/123.456/grey.jpg'],
-# Named profile
-    '10_profile': [
-        {'identifier':'id1', 'profile':'thumb', },
-        'id1/thumb'],
-    '11_profile': [
-        {'identifier':'id1', 'profile':'thumb', 'format':'png' },
-        'id1/thumb.png'],
 # ARKs from http://tools.ietf.org/html/draft-kunze-ark-00
 # ark:sneezy.dopey.com/12025/654xz321
 # ark:/12025/654xz321
     '21_ARK ': [
-        {'identifier':'ark:sneezy.dopey.com/12025/654xz321', 'profile':'mobile'},
-        'ark:sneezy.dopey.com%2F12025%2F654xz321/mobile',
-        'ark%3Asneezy.dopey.com%2F12025%2F654xz321/mobile'],
+        {'identifier':'ark:sneezy.dopey.com/12025/654xz321', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native'},
+        'ark:sneezy.dopey.com%2F12025%2F654xz321/full/full/0/native',
+        'ark%3Asneezy.dopey.com%2F12025%2F654xz321/full/full/0/native'],
     '22_ARK ': [
-        {'identifier':'ark:/12025/654xz321', 'profile':'mobile'},
-        'ark:%2F12025%2F654xz321/mobile',
-        'ark%3A%2F12025%2F654xz321/mobile'],
+        {'identifier':'ark:/12025/654xz321', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native'},
+        'ark:%2F12025%2F654xz321/full/full/0/native',
+        'ark%3A%2F12025%2F654xz321/full/full/0/native'],
 # URNs from http://tools.ietf.org/html/rfc2141
 # urn:foo:a123,456
     '31_URN ': [
-        {'identifier':'urn:foo:a123,456', 'profile':'mobile'},
-        'urn:foo:a123,456/mobile',
-        'urn%3Afoo%3Aa123,456/mobile'],
+        {'identifier':'urn:foo:a123,456', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native'},
+        'urn:foo:a123,456/full/full/0/native',
+        'urn%3Afoo%3Aa123,456/full/full/0/native'],
 # URNs from http://en.wikipedia.org/wiki/Uniform_resource_name
 # urn:sici:1046-8188(199501)13:1%3C69:FTTHBI%3E2.0.TX;2-4
 # ** note will get double encoding **
     '32_URN ': [
-        {'identifier':'urn:sici:1046-8188(199501)13:1%3C69:FTTHBI%3E2.0.TX;2-4', 'profile':'mobile'},
-        'urn:sici:1046-8188(199501)13:1%253C69:FTTHBI%253E2.0.TX;2-4/mobile',
-        'urn%3Asici%3A1046-8188(199501)13%3A1%253C69%3AFTTHBI%253E2.0.TX;2-4/mobile'],
+        {'identifier':'urn:sici:1046-8188(199501)13:1%3C69:FTTHBI%3E2.0.TX;2-4', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native'},
+        'urn:sici:1046-8188(199501)13:1%253C69:FTTHBI%253E2.0.TX;2-4/full/full/0/native',
+        'urn%3Asici%3A1046-8188(199501)13%3A1%253C69%3AFTTHBI%253E2.0.TX;2-4/full/full/0/native'],
 # Extreme silliness
     '41_odd ': [
-        {'identifier':'http://example.com/?54#a', 'profile':'mobile'},
-        'http:%2F%2Fexample.com%2F%3F54%23a/mobile',
-        'http%3A%2F%2Fexample.com%2F?54#a/mobile'],
-
+        {'identifier':'http://example.com/?54#a', 'region':'full', 'size':'full', 'rotation':'0', 'quality':'native'},
+        'http:%2F%2Fexample.com%2F%3F54%23a/full/full/0/native',
+        'http%3A%2F%2Fexample.com%2F?54#a/full/full/0/native'],
+    # Info requests
+    '50_info': [
+        {'identifier':'id1', 'info':True, 'format':'json' },
+        'id1/info.json'],
+    '51_info': [
+        {'identifier':'id1', 'info':True, 'format':'xml' },
+        'id1/info.xml'],
     }
 
 class TestAll(unittest.TestCase):
@@ -167,27 +166,27 @@ class TestAll(unittest.TestCase):
         r.rotation='abc'
         self.assertRaises( I3fError, r.parse_rotation )
 
-    def test04_parse_color(self):
-        print "parse_color tests..."
+    def test04_parse_quality(self):
+        print "parse_quality tests..."
         r = I3fRequest()
-        r.color=None
-        r.parse_color()
-        self.assertEqual(r.color_val, 'color')
-        r.color='color'
-        r.parse_color()
-        self.assertEqual(r.color_val, 'color')
-        r.color='bitonal'
-        r.parse_color()
-        self.assertEqual(r.color_val, 'bitonal')
-        r.color='grey'
-        r.parse_color()
-        self.assertEqual(r.color_val, 'grey')
+        r.quality=None
+        r.parse_quality()
+        self.assertEqual(r.quality_val, 'native')
+        r.quality='native'
+        r.parse_quality()
+        self.assertEqual(r.quality_val, 'native')
+        r.quality='bitonal'
+        r.parse_quality()
+        self.assertEqual(r.quality_val, 'bitonal')
+        r.quality='grey'
+        r.parse_quality()
+        self.assertEqual(r.quality_val, 'grey')
         # bad ones
-        r.color='does_not_exist'
-        self.assertRaises( I3fError, r.parse_color )
+        r.quality='does_not_exist'
+        self.assertRaises( I3fError, r.parse_quality )
         # bad ones
-        r.color=''
-        self.assertRaises( I3fError, r.parse_color )
+        r.quality=''
+        self.assertRaises( I3fError, r.parse_quality )
 
 
     def test1_encode(self):
@@ -216,11 +215,11 @@ class TestAll(unittest.TestCase):
         self.assertRaises(I3fError, I3fRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
 
     def pstr(self,p):
-        str=''
-        for k in ['identifier','region','size','rotation','color','profile','format']:
+        s=''
+        for k in ['identifier','region','size','rotation','native','info','format']:
             if k in p and p[k]:
-                str += k+'='+p[k]+' '
-        return(str)
+                s += k+'='+str(p[k])+' '
+        return(s)
 
         
 # If run from command line, do tests

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<error xmlns="http://library.stanford.edu/iiif/image-api/ns/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <parameter>size</parameter>
+  <!-- text is optional, omitted here -->
+</error>
