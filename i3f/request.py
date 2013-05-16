@@ -8,7 +8,7 @@ import urllib
 import re
 import string
 
-from i3f.error import I3fError
+from error import I3fError
 
 class I3fRequest:
     """ Implement IIIF request URL syntax
@@ -130,7 +130,7 @@ class I3fRequest:
         # Break up by path segments, count to decide format
         segs = string.split( url, '/', 5)
         if (len(segs) > 5):
-            raise(I3fError(code=400,text="Too many path segments in URL."))
+            raise(I3fError(code=400,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
             self.identifier = urllib.unquote(segs[0])
             self.region = urllib.unquote(segs[1])
@@ -146,7 +146,7 @@ class I3fRequest:
                 raise(I3fError(code=400,text="Bad information request format, must be json or xml"))
             self.info = True
         else:
-            raise(I3fError(code=400,text="Bad number of path segments (%d) in URL."%(len(segs))))
+            raise(I3fError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
         return(self)
 
     def parse_parameters(self):
@@ -358,15 +358,15 @@ class I3fRequest:
         Distinguishes parametrerized and info requests to
         show only appropriate parameters in each case.
         """
-        #s =  "baseurl=" + str(self.baseurl) + "\n"
-        s = "identifier=" + str(self.identifier) + "\n"
+        s =  "baseurl=" + str(self.baseurl) + " "
+        s += "identifier=" + str(self.identifier) + " "
         if (self.info):
-            s += "INFO request \n";
-            s += "format=" + str(self.format) + "\n"
+            s += "INFO request ";
+            s += "format=" + str(self.format) + " "
         else:
-            s += "region=" + str(self.region) + "\n"
-            s += "size=" + str(self.size) + "\n"
-            s += "rotation=" + str(self.rotation) + "\n"
-            s += "quality=" + str(self.quality) + "\n"
+            s += "region=" + str(self.region) + " "
+            s += "size=" + str(self.size) + " "
+            s += "rotation=" + str(self.rotation) + " "
+            s += "quality=" + str(self.quality) + " "
             s += "format=" + str(self.format)
         return(s)

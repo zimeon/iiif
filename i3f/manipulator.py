@@ -38,8 +38,11 @@ class I3fManipulator(object):
     def do_i3f_manipulation(self,file=None,i3f=None):
         """ Do sequence of manipulations for IIIF
 
-        Calls methods in sequence: do_first -> do_region -> do_size ->
-        do_rotation -> do_color -> do_format -> do_last
+        See order in spec: http://www-sul.stanford.edu/iiif/image-api/#order
+
+          Region THEN Size THEN Rotation THEN Quality THEN Format
+
+        Adds hooks for do_first before and do_last after.
         """
         self.srcfile=file
         self.i3f=i3f
@@ -47,7 +50,7 @@ class I3fManipulator(object):
         self.do_region()
         self.do_size()
         self.do_rotation()
-        self.do_color()
+        self.do_quality()
         self.do_format()
         self.do_last()
         return(self.outfile,self.mime_type)
@@ -60,12 +63,50 @@ class I3fManipulator(object):
         self.width=-1  #don't know width of height
         self.height=-1 
 
+    def do_region(self):
+        # Region
+        (x,y,w,h)=self.region_to_apply()
+        if (x is not None):
+            raise I3fError(code=501,parameter="region",
+                           text="Null manipulator supports only region=/full/.")
+
+    def do_size(self):
+        # Size
+        # (w,h) = self.size_to_apply()
+        if (self.i3f.size_pct != 100.0 and
+            self.i3f.size != 'full'):
+            raise I3fError(code=501,parameter="size",
+                           text="Null manipulator supports only size=pct:100 and size=full.")
+
+    def do_rotation(self):
+        # Rotate
+        if (self.rotation_to_apply() != 0.0):
+            raise I3fError(code=501,parameter="rotation",
+                           text="Null manipulator supports only rotation=(0|360).")
+
+    def do_quality(self):
+        # Quality
+        if (self.quality_to_apply() != "native"):
+            raise I3fError(code=501,parameter="native",
+                           text="Null manipulator supports only color=color.")
+
+    def do_format(self):
+        # Format
+        if (self.i3f.format is not None):
+            raise I3fError(code=415,parameter="format",
+                           text="Null manipulator does not support specification of output format.")
+        self.outfile=self.srcfile
+        self.mime_type=None
+
+
     def do_last(self):
         """ Hook in pipeline at end of processing
 
         Does nothing.
         """
         return
+
+    ### Utility methods
 
     def region_to_apply(self):
         """Return the x,y,w,h parameters to extract given image width and height
@@ -170,14 +211,14 @@ class I3fManipulator(object):
                            text="This implementation supports only 0,90,180,270 degree rotations.")
         return(rotation)
 
-    def color_to_apply(self):
+    def quality_to_apply(self):
         """Value of color parameter to use in processing request
 
-        Simple substitution of 'color' for default.
+        Simple substitution of 'native' for default.
         """
-        if (self.i3f.color is None):
-            return('color')
-        return(self.i3f.color)
+        if (self.i3f.quality is None):
+            return('native')
+        return(self.i3f.quality)
 
     def cleanup(self):
         """Clean up after manipulation

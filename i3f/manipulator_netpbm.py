@@ -138,27 +138,27 @@ class I3fManipulatorNetpbm(I3fManipulator):
                 raise I3fError(text="Oops... got nonzero output from pnmrotate.")
             self.tmpfile=outfile
 
-    def do_color(self):
+    def do_quality(self):
         infile = self.tmpfile
         outfile = self.basename+'.col'
-        # Color (bit-depth):
-        color=self.color_to_apply()
-        if (color == 'grey'):
-            #print "color: grey"
+        # Quality (bit-depth):
+        quality=self.quality_to_apply()
+        if (quality == 'grey'):
+            #print "quality: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
                 raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
-        elif (color == 'bitonal'):
-            #print "color: grey"
+        elif (quality == 'bitonal'):
+            #print "quality: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' | '+self.pamditherbw+' > '+outfile)):
                 raise I3fError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
-        elif (color == 'color'):
-            #print "color: color"
+        elif (quality == 'quality'):
+            #print "quality: quality"
             self.tmpfile=infile
         else: 
-            raise I3fError(code=400,parameter='color',
-                           text="Unknown color parameter value requested.")
+            raise I3fError(code=400,parameter='quality',
+                           text="Unknown quality parameter value requested.")
 
     def do_format(self):
         infile = self.tmpfile
@@ -197,6 +197,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
             raise I3fError(code=415, parameter='format',
                            text="Unsupported output file format (%s), only png,jpg,tiff are supported."%(fmt))
         self.outfile=outfile
+        self.output_format=fmt
         self.mime_type=mime_type
 
     def file_type(self,file):

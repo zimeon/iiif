@@ -1,7 +1,7 @@
 """IIIF error class
 
 <?xml version="1.0" encoding="UTF8"?>
-<error xmlns="http://namespace.i3f.somewhere.org">
+<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">
   <parameter>size</parameter>
   <text>Invalid size specified</text>
 </error>

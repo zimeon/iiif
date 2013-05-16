@@ -1,8 +1,6 @@
-#!/usr/bin/env python
-
 """Test encoding and decoding of i3f request URLs
 
-Follows http://library.stanford.edu/iiif/image-api/ v0.2 dated "13 April 2012"
+Follows http://www-sul.stanford.edu/iiif/image-api/ v1.0 dated "10 August 2012"
 
 This test includes a number of test cases beyond those given as examples
 in the table in section 7 of the spec. See i3f_urltest_spec.py for the

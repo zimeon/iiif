@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Crude webserver that service i3f requests
 
 Relies upon I3fManupulator object to do any manipulations
@@ -24,35 +25,54 @@ class I3fRequestException(Exception):
 
 class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    """Class variable as dictionary of named profiles
-
-    In this server we implement named profiles as a dictionary
-    of I3f objects which specify parameterized requests indexed
-    by profile name. This limits named profiles to things that
-    can be specified as a parameterized request. The specification
-    has no such limitation.
-    """
-    named_profiles={ }
-    manipulator_class=None
-
+    manipulator_classes={}
+    
     @classmethod
-    def loadProfile(cls,profile,i3f_request_attributes):
-        """Load a named profile into the I3fRequestHandler class
-        """
-        cls.named_profiles[profile]=i3f_request_attributes
+    def add_manipulator(cls, klass,prefix):
+        cls.manipulator_classes[prefix]=klass
 
-       
     def __init__(self, request, client_address, server):
         # Add some local attributes for this subclass (seems we have to 
         # do this ahead of calling the base class __init__ because that
         # does not return
         self.debug=True
-        self.complianceLevel=None;
+        self.compliance_level=None
+        self.manipulator=None
         # Cannot use super() because BaseHTTPServer.BaseHTTPRequestHandler 
         # is not new style class
         #super(I3fRequestHandler, self).__init__(request, client_address, server)
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
+    def send_404_response(self, content='Resource Not Found'):
+        """Send a plain 404 for URLs not under a known IIIF endpoint prefix"""
+        self.send_response(404)
+        self.send_header('Content-Type','text/plain')
+        self.end_headers()
+        self.wfile.write(content)
+    
+    def send_index_page(self, file='index.html'):
+        """Send an HTML file as response"""
+        self.send_response(404)
+        self.send_header('Content-Type','text/html')
+        self.end_headers()
+        self.wfile.write("<html><head><title>i3f_testserver</title></head><body>\n")
+        self.wfile.write("<h1>i3f_testserver on %s:%s</h1>\n" %(SERVER_HOST,SERVER_PORT))
+        prefixes = sorted(I3fRequestHandler.manipulator_classes.keys())
+        files = os.listdir(TESTIMAGE_DIR)
+        self.wfile.write("<table>\n")
+        self.wfile.write("<tr><th></th>")
+        for prefix in prefixes:
+            self.wfile.write("<th>%s</th>" % (prefix))
+        self.wfile.write("</tr>\n")
+        for file in sorted(files):
+            self.wfile.write("<tr><th>%s</th>" % (file))
+            for prefix in prefixes:
+                url = "/%s/%s/full/full/0/native" % (prefix,file)
+                self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
+            self.wfile.write("</tr>\n")
+        self.wfile.write("</table<\n")
+        self.wfile.write("</html>\n")
+        
     """Minimal implementation of HTTP request handler to do i3f GET
     """
     def error_response(self,code,content=''):
@@ -63,8 +83,8 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write(content)
 
     def add_compliance_header(self):
-        if (self.complianceLevel is not None):
-            self.send_header('Link','<'+self.complianceLevel+'>;rel="compliesTo"')
+        if (self.compliance_level is not None):
+            self.send_header('Link','<'+self.compliance_level+'>;rel="compliesTo"')
         
     def do_GET(self):
         """Implement the HTTP GET method
@@ -73,8 +93,26 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         within the code may raise an I3fError which then results in an
         I3f error response (section 5 of spec).
         """
-        self.complianceLevel=None
-        self.i3f = I3fRequest(baseurl='/')
+        self.compliance_level=None
+        # We take prefix to see whe implementation to use, / is special info
+        if (self.path == '/'):
+            self.send_index_page()
+            return
+        # Now assume we have an iiif request
+        m = re.match(r'/(\w+)(/.*)$', self.path)
+        if (m):
+            prefix = m.group(1)
+            if (prefix in I3fRequestHandler.manipulator_classes):
+                self.i3f = I3fRequest(baseurl='/'+prefix+'/')
+                self.manipulator = I3fRequestHandler.manipulator_classes[prefix]()
+            else:
+                # 404 - unrecognized prefix
+                self.send_404_response("Not Found - prefix /%s/ is not known" + (prefix))
+                return
+        else:
+            # 404 - unknwn prefix/path structure
+            self.send_404_response("Not Found - path structure not recognized")
+            return
         try:
             (of,mime_type) = self.do_GET_body()
             if (not of):
@@ -82,6 +120,10 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200,'OK')
             if (mime_type is not None):
                 self.send_header('Content-Type',mime_type)
+#            download_filename = os.path.basename(self.i3f.identifier)
+#            if (self.i3f.ouput_format):
+#                downlocal_filename += '.' + self.i3f.ouput_format 
+#            self.send_header('Content-Disposition','inline;filename='+download_filename)
             self.add_compliance_header()
             self.end_headers()
             while (1):
@@ -91,13 +133,13 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.wfile.write(buffer)
         except I3fError as e:
             if (self.debug):
-                e.text += "\nRequest parameters:\n" + str(self.i3f)
+                e.text += " Request parameters: " + str(self.i3f)
             self.error_response(e.code, str(e))
         except Exception as ue:
             # Anything else becomes a 500 Internal Server Error
             e = I3fError(code=500,text="Something went wrong... %s.\n"%(str(ue)))
             if (self.debug):
-                e.text += "\nRequest parameters:\n" + str(self.i3f)
+                e.text += " Request parameters: " + str(self.i3f)
             self.error_response(e.code, str(e))
 
     def do_GET_body(self):
@@ -118,22 +160,6 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             raise I3fError(code=500,
                            text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
         # URL path parsed OK, now determine how to handle request
-        if (i3f.profile is not None):
-            # this is named-profile request
-            if (i3f.profile in I3fRequestHandler.named_profiles):
-                # substitute named-profile object for current request
-                np=I3fRequestHandler.named_profiles[i3f.profile]
-                i3f.region=np.region
-                i3f.size=np.size
-                i3f.rotation=np.rotation
-                i3f.color=np.color
-                i3f.format=np.format
-                i3f.profile=None
-            else:
-                raise I3fError(code=400,
-                               text="Named-profile %s not implemented" % (i3f.profile) )
-        # Now we have a full i3f request either through direct specification
-        # of parameters or through translation of a named-profile request
         if (re.match('[\w\.\-]+$',i3f.identifier)):
             file = 'testimages/'+i3f.identifier
             if (not os.path.isfile(file)):
@@ -146,9 +172,9 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             raise I3fError(code=404,parameter="identifier",
                            text="Image resource '"+i3f.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
-        manipulator = I3fRequestHandler.manipulator_class()
-        self.complianceLevel=manipulator.complianceLevel;
-        (outfile,mime_type)=manipulator.do_i3f_manipulation(file,i3f)
+        # 
+        self.compliance_level=self.manipulator.complianceLevel
+        (outfile,mime_type)=self.manipulator.do_i3f_manipulation(file,i3f)
         return(open(outfile,'r'),mime_type)
 
 def run(host='', port='8888',
@@ -162,12 +188,12 @@ def run(host='', port='8888',
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
 
-I3fRequestHandler.loadProfile( 'unmodified', I3fRequest() )
-I3fRequestHandler.loadProfile( 'thumb', {'size':'32,32'} )
-from i3f.manipulator_dummy import I3fManipulatorDummy
-I3fRequestHandler.manipulator_class = I3fManipulatorDummy
+# Import a set of manipulators and define prefixes for them
+from i3f.manipulator import I3fManipulator
+I3fRequestHandler.add_manipulator( klass=I3fManipulator, prefix='dummy')
+from i3f.manipulator_pil import I3fManipulatorPIL
+I3fRequestHandler.add_manipulator( klass=I3fManipulatorPIL, prefix='pil')
 #from i3f.manipulator_netpbm import I3fManipulatorNetpbm
-#I3fRequestHandler.manipulator_class = I3fManipulatorNetpbm
-#from i3f.manipulator_pil import I3fManipulatorPIL
-#I3fRequestHandler.manipulator_class = I3fManipulatorPIL
+#I3fRequestHandler.add_manipulator_class[ = I3fManipulatorNetpbm
+
 run(SERVER_HOST,SERVER_PORT)

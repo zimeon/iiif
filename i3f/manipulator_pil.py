@@ -70,14 +70,14 @@ class I3fManipulatorPIL(I3fManipulator):
             print "rotation: by %f degrees clockwise" % (rot)
             self.image = self.image.rotate( -rot, expand=True )
 
-    def do_color(self):
-        color=self.color_to_apply()
-        if (color == 'grep'):
-            print "color: grey"
-        elif (color == 'bitonal'):
-            print "color: bitonal"
+    def do_quality(self):
+        quality=self.quality_to_apply()
+        if (quality == 'grep'):
+            print "quality: grey"
+        elif (quality == 'bitonal'):
+            print "quality: bitonal"
         else: 
-            print "color: color (nop)"
+            print "quality: quality (nop)"
 
     def do_format(self):
         fmt = ( 'png' if (self.i3f.format is None) else self.i3f.format)
@@ -86,6 +86,7 @@ class I3fManipulatorPIL(I3fManipulator):
             self.outfile='/tmp/pil.png'
             self.image.save(self.outfile)
             self.mime_type="image/png"
+            self.output_format=fmt
         else:
             raise Error(code=415, parameter='format',
                         text="Unsupported output file format (%s), only png,jpg,tiff are supported."%(fmt))
