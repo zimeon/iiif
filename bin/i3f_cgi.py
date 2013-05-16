@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python2.6
 """Crude webserver that service i3f requests
 
 Relies upon I3fManupulator object to do any manipulations
@@ -17,7 +17,7 @@ HOME_DIR = os.path.normpath(os.path.join(os.getcwd(),'..'))
 TMP_DIR = os.path.join(HOME_DIR,'tmp')
 TESTIMAGE_DIR = os.path.join(HOME_DIR,'i3f/testimages')
 PNM_DIR = os.path.join(HOME_DIR,'opt/usr/bin')
-SHELL_SETUP = 'export LD_LIBRARY_PATH='+os.path.join(HOME_DIR,'opt/usr/lib')+'; ';
+SHELL_SETUP = '' #'export LD_LIBRARY_PATH='+os.path.join(HOME_DIR,'opt/usr/lib')+'; ';
 
 from i3f.error import I3fError
 from i3f.request import I3fRequest
@@ -181,23 +181,24 @@ I3fRequestHandler.loadProfile( 'thumb', '/full/!32,32/0/color' )
 #exit(0)
 myname = ( os.environ['SCRIPT_NAME'] if ('SCRIPT_NAME' in os.environ) else '/i3f_dummy.cgi')
 sys.stderr = sys.stdout
-if (myname == '/i3f_dummy.cgi'):
+if (re.match(myname,'/i3f_dummy') is not None):
     from i3f.manipulator_dummy import I3fManipulatorDummy
     I3fRequestHandler.manipulator_class = I3fManipulatorDummy
-elif (myname == '/i3f_netpbm.cgi'):
+elif (re.match(myname,'/i3f_netpbm') is not None):
     from i3f.manipulator_netpbm import I3fManipulatorNetpbm
     I3fManipulatorNetpbm.find_binaries(tmpdir=TMP_DIR,
                                        shellsetup=SHELL_SETUP,
                                        pnmdir=PNM_DIR)
     I3fRequestHandler.manipulator_class = I3fManipulatorNetpbm
-elif (myname == '/i3f_pil.cgi'):
+else:
+    #elif (re.match(myname,'/i3f_pil'):
     from i3f.manipulator_pil import I3fManipulatorPIL
     I3fRequestHandler.manipulator_class = I3fManipulatorPIL
-else:
-    print "Status: 500\r"
-    print "Content-type: text/plain\r\n\r"
-    print "Bad script name '%s'" % myname
-    exit(0)
+#else:
+#    print "Status: 500\r"
+#    print "Content-type: text/plain\r\n\r"
+#    print "Bad script name '%s'" % myname
+#    exit(0)
 
 rh = I3fRequestHandler()
 rh.do_GET()
