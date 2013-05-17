@@ -1,4 +1,5 @@
-"""Implementation of i3f image manipulations using the Python Image Library (PIL)
+"""
+Implementation of IIIF image manipulations using the Python Image Library
 
 Uses the Python Image Library (PIL) for in-python manipulation:
 http://www.pythonware.com/products/pil/index.htm
@@ -8,6 +9,7 @@ import re
 import os
 import os.path
 import subprocess
+import tmpfile
 
 from PIL import Image
 
@@ -32,14 +34,13 @@ class I3fManipulatorPIL(I3fManipulator):
         self.complianceLevel="http://i3f.example.org/compliance/level/0"
 
     def do_first(self):
-        """Create PIL object from input
+        """Create PIL object from input image file
         """
         try:
             self.image=Image.open(self.srcfile)
             self.image.load()
         except Exception as e:
-            raise Error(text="PIL Image.open(..) barfed: "+str(e))
-        #
+            raise I3fError(text="PIL Image.open(..) barfed: "+str(e))
         (self.width,self.height)=self.image.size
 
     def do_region(self):
@@ -72,22 +73,37 @@ class I3fManipulatorPIL(I3fManipulator):
 
     def do_quality(self):
         quality=self.quality_to_apply()
-        if (quality == 'grep'):
+        if (quality == 'grey'):
             print "quality: grey"
         elif (quality == 'bitonal'):
             print "quality: bitonal"
-        else: 
+        else:
             print "quality: quality (nop)"
 
     def do_format(self):
-        fmt = ( 'png' if (self.i3f.format is None) else self.i3f.format)
+        # assume tiling apps want jpg...
+        fmt = ( 'jpg' if (self.i3f.format is None) else self.i3f.format)
         if (fmt == 'png'):
             print "format: png"
-            self.outfile='/tmp/pil.png'
-            self.image.save(self.outfile)
+            f = tempfile.NamedTemporaryFile(delete=False)
+            self.outfile=f.name
+            self.image.save(f,format='PNG')
             self.mime_type="image/png"
             self.output_format=fmt
+        elif (fmt == 'jpg'):
+            print "format: jpg"
+            f = tempfile.NamedTemporaryFile(delete=False)
+            self.outfile=f.name
+            self.image.save(f,format='JPG')
+            self.mime_type="image/jpeg"
+            self.output_format=fmt
         else:
-            raise Error(code=415, parameter='format',
-                        text="Unsupported output file format (%s), only png,jpg,tiff are supported."%(fmt))
+            raise I3fError(code=415, parameter='format',
+                           text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
 
+    def cleanup(self):
+        try:
+            os.unlink(self.outfile)
+        except OSError as e:
+            # FIXME - should log warning when we have logging...
+            pass
