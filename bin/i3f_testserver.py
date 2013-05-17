@@ -12,6 +12,7 @@ import os.path
 
 from i3f.error import I3fError
 from i3f.request import I3fRequest
+from i3f.info import I3fInfo
 
 SERVER_HOST = ''   #'' for localhost
 SERVER_PORT = 8000
@@ -63,12 +64,17 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write("<tr><th></th>")
         for prefix in prefixes:
             self.wfile.write("<th>%s</th>" % (prefix))
+            if (prefix!='dummy'):
+                self.wfile.write("<th>%s 256x256</th>" % (prefix))
         self.wfile.write("</tr>\n")
         for file in sorted(files):
             self.wfile.write("<tr><th>%s</th>" % (file))
             for prefix in prefixes:
                 url = "/%s/%s/full/full/0/native" % (prefix,file)
                 self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
+                if (prefix!='dummy'):
+                    url = "/%s/%s/full/256,256/0/native" % (prefix,file)
+                    self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
             self.wfile.write("</tr>\n")
         self.wfile.write("</table<\n")
         self.wfile.write("</html>\n")
@@ -174,8 +180,26 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                            text="Image resource '"+i3f.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
         # 
         self.compliance_level=self.manipulator.complianceLevel
-        (outfile,mime_type)=self.manipulator.do_i3f_manipulation(file,i3f)
-        return(open(outfile,'r'),mime_type)
+        if (self.i3f.info):
+            # get size
+            self.manipulator.srcfile=file
+            self.manipulator.i3f=i3f
+            self.manipulator.do_first()
+            # FIXME - make dummy info, should get from configs/modules
+            i = I3fInfo()
+            i.identifier = self.i3f.identifier
+            i.width = self.manipulator.width
+            i.height = self.manipulator.height
+            i.scale_factors = [1, 2, 3, 4, 5]
+            i.tile_width = 256
+            i.tile_height = 256
+            i.formats = [ "jpg", "png" ]
+            i.qualities = [ "native", "color" ]
+            import StringIO
+            return(StringIO.StringIO(i.as_json()),"application/json")
+        else:
+            (outfile,mime_type)=self.manipulator.do_i3f_manipulation(file,i3f)
+            return(open(outfile,'r'),mime_type)
 
 def run(host='', port='8888',
         server_class=BaseHTTPServer.HTTPServer,
