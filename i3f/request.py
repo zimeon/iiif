@@ -101,7 +101,8 @@ class I3fRequest:
         and parse_parameters() methods.
         """
         self.split_url(url)
-        self.parse_parameters()
+        if (not self.info):
+            self.parse_parameters()
         return(self)
 
     def split_url(self,url):
@@ -237,10 +238,11 @@ class I3fRequest:
         """
         self.size_pct=None
         self.size_bang=False
+        self.size_full=False
+        self.size_wh=(None,None)
         if (self.size is None or self.size=='full'):
             self.size_full=True
             return
-        self.size_full=False
         pct_match = re.match('pct:(.*)$',self.size)
         if (pct_match is not None):
             pct_str=pct_match.group(1)
@@ -264,7 +266,6 @@ class I3fRequest:
                 if (mw is None or mh is None):
                     raise I3fError(code=400,parameter="size",
                                    text="Illegal size requested: both w,h must be specified in !w,h requests.")
-                self.size_wh=(mw,mh)
                 self.size_bang=True
             else:
                 # Must now be "w,h", "w," or ",h"
@@ -292,6 +293,7 @@ class I3fRequest:
         if (w is None and h is None):
             raise I3fError(code=400,parameter=param,
                            text="Must specify at least one of w,h.")
+        self.size_wh=(w,h)
         return(w,h)
 
     def _parse_non_negative_int(self,istr,name):
