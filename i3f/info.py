@@ -12,16 +12,17 @@ from xml.etree.ElementTree import ElementTree, Element
 
 # Namespace used in XML error response
 I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
-PARAMS = ['width','height','scale_factors']
+PARAMS = ['identifier','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
 # A lookup for which values take a list, and also a traslation table for
 # the XML element names for list elements
 LIST_PARAMS = {'scale_factors':'scale_factor','formats':'format','qualities':'quality'}
 
 class I3fInfo:
 
-    def __init__(self,width=None,height=None,
+    def __init__(self,identifier=None,width=None,height=None,
                  scale_factors=None,tile_width=None,tile_height=None,
                  formats=None,qualities=None):
+        self.identifier = identifier
         self.width = width
         self.height = height
         self.scale_factors = scale_factors
@@ -29,6 +30,7 @@ class I3fInfo:
         self.tile_height = tile_height
         self.formats = formats
         self.qualities = qualities
+        self.profile = 'http://library.stanford.edu/iiif/image-api/compliance.html#level1'
         #
         self.pretty_xml=True
 
