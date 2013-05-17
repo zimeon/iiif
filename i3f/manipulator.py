@@ -157,15 +157,11 @@ class I3fManipulator(object):
 
         Formats are: w, ,h w,h pct:p !w,h
 
-        Expected use:
-          (w,h) = self.size_to_apply(region_w,region_h)
-          if (q is None):
-              # full image
-          else:
-              # scale to w by h
         Returns (None,None) if no scaling is required.
         """
-        if (self.i3f.size_pct is not None):
+        if (self.i3f.size_full):
+            return(None,None)
+        elif (self.i3f.size_pct is not None):
             w = int(self.width * self.i3f.size_pct / 100.0 + 0.5)
             h = int(self.height * self.i3f.size_pct / 100.0 + 0.5)
         elif (self.i3f.size_bang):
