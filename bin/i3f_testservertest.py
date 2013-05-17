@@ -6,7 +6,7 @@
 import unittest
 from urllib2 import *
 
-baseurl='http://localhost:8000/'
+baseurl='http://localhost:8000/pil/'
 
 class TestAll(unittest.TestCase):
 
@@ -29,8 +29,7 @@ class TestAll(unittest.TestCase):
     def test1_success(self):
         print "Success tests..."
         id = "214-2.png"
-        size = 17865 #13844
-        self.assertEqual( self.get(id+'/unmodified'), size)
+        size = 13929
         self.assertEqual( self.get(id+'/full/pct:100/0/color'), size)
         self.assertEqual( self.get(id+'/full/pct:100/360/color'), size)
         self.assertEqual( self.get(id+'/full/pct:100.000/0/color'), size)
@@ -50,7 +49,6 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get('1param/2/3/4/5/6'), 'code400' )
         self.assertEqual( self.get('1param/2/3/4/5/6/7'), 'code400' )
         # Simple bogus params
-        self.assertEqual( self.get('bad-id/unmodified'), 'code404' )
         self.assertEqual( self.get('bad-id/full/pct:100/0/color'), 'code404' )
         self.assertEqual( self.get(id+'/bogus-profile'), 'code400' )
         self.assertEqual( self.get(id+'/bogus-profile.png'), 'code400' )
@@ -61,16 +59,16 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/100,0,100,100/pct:100/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/0,100,100,100/pct:100/0/color'), 'code400' )        
         # Bad size
-        self.assertEqual( self.get(id+'/full/pct:101/0/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/pct:101/0/color'), 14024 )        
         self.assertEqual( self.get(id+'/full/pct:0/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/pct:0.1/0/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/pct:100.1/0/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/pct:100.1/0/color'), 13929 )        
         self.assertEqual( self.get(id+'/full/0,0/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/0,/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/,0/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/,/0/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/101,/0/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/,101/0/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/101,/0/color'), 14024 )        
+        self.assertEqual( self.get(id+'/full/,101/0/color'), 14024 )        
         self.assertEqual( self.get(id+'/full/1.0,1.0/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/1.1,1.1/0/color'), 'code400' )        
         # Bad rotation
