@@ -1,3 +1,7 @@
 .coverage
 *.pyc
 *~
+.DS_store
+
+# setup stuff
+build
