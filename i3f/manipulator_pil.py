@@ -9,7 +9,7 @@ import re
 import os
 import os.path
 import subprocess
-import tmpfile
+import tempfile
 
 from PIL import Image
 
@@ -87,14 +87,14 @@ class I3fManipulatorPIL(I3fManipulator):
             print "format: png"
             f = tempfile.NamedTemporaryFile(delete=False)
             self.outfile=f.name
-            self.image.save(f,format='PNG')
+            self.image.save(f,format='png')
             self.mime_type="image/png"
             self.output_format=fmt
         elif (fmt == 'jpg'):
             print "format: jpg"
             f = tempfile.NamedTemporaryFile(delete=False)
             self.outfile=f.name
-            self.image.save(f,format='JPG')
+            self.image.save(f,format='jpeg')
             self.mime_type="image/jpeg"
             self.output_format=fmt
         else:
