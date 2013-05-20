@@ -65,7 +65,7 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write("<table>\n")
         self.wfile.write("<tr><th></th>")
         for prefix in prefixes:
-            self.wfile.write("<th>%s</th>" % (prefix))
+            self.wfile.write('<th colspan="2">%s</th>' % (prefix))
             if (prefix!='dummy'):
                 self.wfile.write("<th>%s 256x256</th>" % (prefix))
         self.wfile.write("</tr>\n")
@@ -74,6 +74,8 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             for prefix in prefixes:
                 url = "/%s/%s/full/full/0/native" % (prefix,file)
                 self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
+                info = "/%s/%s/info.json" % (prefix,file)
+                self.wfile.write('<td><a href="%s">%s</a></td>' % (info,info))
                 if (prefix!='dummy'):
                     url = "/%s/%s/full/256,256/0/native" % (prefix,file)
                     self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
