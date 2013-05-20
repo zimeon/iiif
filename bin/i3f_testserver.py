@@ -187,7 +187,6 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if (self.i3f.info):
             # get size
             self.manipulator.srcfile=file
-            self.manipulator.i3f=i3f
             self.manipulator.do_first()
             # most of info.json comes from config, a few things specific to image
             i = I3fInfo(conf=I3fRequestHandler.INFO)

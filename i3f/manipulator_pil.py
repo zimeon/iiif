@@ -82,7 +82,7 @@ class I3fManipulatorPIL(I3fManipulator):
 
     def do_format(self):
         # assume tiling apps want jpg...
-        fmt = ( 'jpg' if (self.i3f.format is None) else self.i3f.format)
+        fmt = ( 'jpg' if (self.request.format is None) else self.request.format)
         if (fmt == 'png'):
             print "format: png"
             f = tempfile.NamedTemporaryFile(delete=False)

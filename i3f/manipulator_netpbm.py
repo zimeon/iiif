@@ -171,7 +171,7 @@ class I3fManipulatorNetpbm(I3fManipulator):
         #pnmtotiff: Too many colors - proceeding to write a 24-bit RGB file.
         #pnmtotiff: If you want an 8-bit palette file, try doing a 'ppmquant 256'.
         #simeon@ice ~>cat m3.pnm | pnmtopng  > m4.png
-        fmt = ( 'png' if (self.i3f.format is None) else self.i3f.format)
+        fmt = ( 'png' if (self.request.format is None) else self.request.format)
         if (fmt == 'png'):
             #print "format: png"
             if (self.shell_call(self.pnmtopng+' '+infile+' > '+outfile)):
