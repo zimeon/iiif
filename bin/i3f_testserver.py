@@ -10,13 +10,10 @@ import re
 import os
 import os.path
 
+from i3f.config import I3fConfig
 from i3f.error import I3fError
 from i3f.request import I3fRequest
 from i3f.info import I3fInfo
-
-SERVER_HOST = ''   #'' for localhost
-SERVER_PORT = 8000
-TESTIMAGE_DIR = 'testimages'
 
 class I3fRequestException(Exception):
     def __init__(self, value):
@@ -26,11 +23,16 @@ class I3fRequestException(Exception):
 
 class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
-    manipulator_classes={}
+    # Class data
+    HOST=None
+    PORT=None
+    IMAGE_DIR=None
+    INFO=None
+    MANIPULATOR_CLASSES={}
     
     @classmethod
     def add_manipulator(cls, klass,prefix):
-        cls.manipulator_classes[prefix]=klass
+        cls.MANIPULATOR_CLASSES[prefix]=klass
 
     def __init__(self, request, client_address, server):
         # Add some local attributes for this subclass (seems we have to 
@@ -57,9 +59,9 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_header('Content-Type','text/html')
         self.end_headers()
         self.wfile.write("<html><head><title>i3f_testserver</title></head><body>\n")
-        self.wfile.write("<h1>i3f_testserver on %s:%s</h1>\n" %(SERVER_HOST,SERVER_PORT))
-        prefixes = sorted(I3fRequestHandler.manipulator_classes.keys())
-        files = os.listdir(TESTIMAGE_DIR)
+        self.wfile.write("<h1>i3f_testserver on %s:%s</h1>\n" %(I3fRequestHandler.HOST,I3fRequestHandler.PORT))
+        prefixes = sorted(I3fRequestHandler.MANIPULATOR_CLASSES.keys())
+        files = os.listdir(I3fRequestHandler.IMAGE_DIR)
         self.wfile.write("<table>\n")
         self.wfile.write("<tr><th></th>")
         for prefix in prefixes:
@@ -108,9 +110,9 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         m = re.match(r'/(\w+)(/.*)$', self.path)
         if (m):
             prefix = m.group(1)
-            if (prefix in I3fRequestHandler.manipulator_classes):
+            if (prefix in I3fRequestHandler.MANIPULATOR_CLASSES):
                 self.i3f = I3fRequest(baseurl='/'+prefix+'/')
-                self.manipulator = I3fRequestHandler.manipulator_classes[prefix]()
+                self.manipulator = I3fRequestHandler.MANIPULATOR_CLASSES[prefix]()
             else:
                 # 404 - unrecognized prefix
                 self.send_404_response("Not Found - prefix /%s/ is not known" + (prefix))
@@ -167,11 +169,11 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                            text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
         # URL path parsed OK, now determine how to handle request
         if (re.match('[\w\.\-]+$',i3f.identifier)):
-            file = 'testimages/'+i3f.identifier
+            file = os.path.join(I3fRequestHandler.IMAGE_DIR,i3f.identifier)
             if (not os.path.isfile(file)):
                 images_available=""
-                for image_file in os.listdir(TESTIMAGE_DIR):
-                    if (os.path.isfile(os.path.join(TESTIMAGE_DIR,image_file))):
+                for image_file in os.listdir(I3fRequestHandler.IMAGE_DIR):
+                    if (os.path.isfile(os.path.join(I3fRequestHandler.IMAGE_DIR,image_file))):
                         images_available += "  "+image_file+"\n"
                 raise I3fError(code=404,parameter="identifier",
                                text="Image resource '"+i3f.identifier+"' not found. Local image files available:\n" + images_available)
@@ -185,39 +187,57 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.manipulator.srcfile=file
             self.manipulator.i3f=i3f
             self.manipulator.do_first()
-            # FIXME - make dummy info, should get from configs/modules
-            i = I3fInfo()
+            # most of info.json comes from config, a few things specific to image
+            i = I3fInfo(conf=I3fRequestHandler.INFO)
             i.identifier = self.i3f.identifier
             i.width = self.manipulator.width
             i.height = self.manipulator.height
-            i.scale_factors = [1, 2, 3, 4, 5]
-            i.tile_width = 256
-            i.tile_height = 256
-            i.formats = [ "jpg", "png" ]
-            i.qualities = [ "native", "color" ]
             import StringIO
             return(StringIO.StringIO(i.as_json()),"application/json")
         else:
             (outfile,mime_type)=self.manipulator.do_i3f_manipulation(file,i3f)
             return(open(outfile,'r'),mime_type)
 
-def run(host='', port='8888',
+def run(host='', port=8888, image_dir='img', info=None,
         server_class=BaseHTTPServer.HTTPServer,
         handler_class=I3fRequestHandler):
     """Run webserver forever
 
-    Defaults to localhost and port 8888
+    Conf must include Defaults to localhost, port, image_dir and info (a dict)
     """
     httpd = server_class( (host,port), handler_class)
+    handler_class.HOST=host
+    handler_class.PORT=port
+    handler_class.IMAGE_DIR=image_dir
+    handler_class.INFO=info
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
 
+conf = I3fConfig()
 # Import a set of manipulators and define prefixes for them
-from i3f.manipulator import I3fManipulator
-I3fRequestHandler.add_manipulator( klass=I3fManipulator, prefix='dummy')
-from i3f.manipulator_pil import I3fManipulatorPIL
-I3fRequestHandler.add_manipulator( klass=I3fManipulatorPIL, prefix='pil')
-#from i3f.manipulator_netpbm import I3fManipulatorNetpbm
-#I3fRequestHandler.add_manipulator_class[ = I3fManipulatorNetpbm
+if (conf.get('test','run_dummy')):
+    from i3f.manipulator import I3fManipulator
+    prefix=prefix=conf.get('test','dummy_prefix')
+    I3fRequestHandler.add_manipulator( klass=I3fManipulator,prefix=prefix )
+    print "Installing I3fManipulator at /%s/" % (prefix)
+if (conf.get('test','run_pil')):
+    from i3f.manipulator_pil import I3fManipulatorPIL
+    prefix=conf.get('test','pil_prefix')
+    print "Installing I3fManipulatorPIL at /%s/" % (prefix)
+    I3fRequestHandler.add_manipulator( klass=I3fManipulatorPIL,prefix=prefix )
+if (conf.get('test','run_netpbm')):
+    from i3f.manipulator_netpbm import I3fManipulatorNetpbm
+    prefix=conf.get('test','netpbm_prefix')
+    print "Installing I3fManipulatorNetpbm at /%s/" % (prefix)
+    I3fRequestHandler.add_manipulator( klass=I3fManipulatorNetpbm,prefix=prefix )
 
-run(SERVER_HOST,SERVER_PORT)
+info={}
+for option in conf.conf.options('info'):
+    print "got %s = %s" % (option,conf.get('info',option))
+    info[option] = conf.get('info',option)
+print "info = " + str(info)
+
+run(host=conf.get('test','server_host'),
+    port=int(conf.get('test','server_port')),
+    image_dir=conf.get('test','image_dir'),
+    info=info)
