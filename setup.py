@@ -22,7 +22,7 @@ setup(
     scripts=[],
     classifiers=["Development Status :: 3 - Alpha",
                  "Intended Audience :: Developers",
-                 "License :: OSI Approved :: GPLv3",
+                 "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
                  "Operating System :: OS Independent", #is this true? know Linux & OS X ok
                  "Programming Language :: Python",
                  "Programming Language :: Python :: 2.6",
