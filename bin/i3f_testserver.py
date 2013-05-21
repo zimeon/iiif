@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Crude webserver that service i3f requests
 
-Relies upon I3fManupulator object to do any manipulations
+Relies upon I3fManipulator object to do any manipulations
 requested.
 """
 
@@ -196,7 +196,7 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             import StringIO
             return(StringIO.StringIO(i.as_json()),"application/json")
         else:
-            (outfile,mime_type)=self.manipulator.do_i3f_manipulation(file,i3f)
+            (outfile,mime_type)=self.manipulator.derive(file,i3f)
             return(open(outfile,'r'),mime_type)
 
 def run(host='', port=8888, image_dir='img', info=None,
