@@ -32,6 +32,7 @@ class I3fManipulatorPIL(I3fManipulator):
         super(I3fManipulatorPIL, self).__init__()
         # Does not support jp2 output
         self.complianceLevel="http://i3f.example.org/compliance/level/0"
+        self.outtmp = None
 
     def do_first(self):
         """Create PIL object from input image file
@@ -85,25 +86,32 @@ class I3fManipulatorPIL(I3fManipulator):
         fmt = ( 'jpg' if (self.request.format is None) else self.request.format)
         if (fmt == 'png'):
             print "format: png"
-            f = tempfile.NamedTemporaryFile(delete=False)
-            self.outfile=f.name
-            self.image.save(f,format='png')
             self.mime_type="image/png"
             self.output_format=fmt
+            format = 'png'
         elif (fmt == 'jpg'):
             print "format: jpg"
-            f = tempfile.NamedTemporaryFile(delete=False)
-            self.outfile=f.name
-            self.image.save(f,format='jpeg')
             self.mime_type="image/jpeg"
             self.output_format=fmt
+            format = 'jpeg';
         else:
             raise I3fError(code=415, parameter='format',
                            text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
 
+        if (self.outfile is None):
+            # Create temp
+            f = tempfile.NamedTemporaryFile(delete=False)
+            self.outfile=f.name
+            self.outtmp=f.name
+            self.image.save(f,format='png')
+        else:
+            # Save to specified location
+            self.image.save(self.outfile,format='jpeg')
+
     def cleanup(self):
-        try:
-            os.unlink(self.outfile)
-        except OSError as e:
-            # FIXME - should log warning when we have logging...
-            pass
+        if (self.outtmp is not None):
+            try:
+                os.unlink(self.outtmp)
+            except OSError as e:
+                # FIXME - should log warning when we have logging...
+                pass

@@ -8,6 +8,7 @@ image size.
 import re
 import os
 import os.path
+import shutil
 import subprocess
 
 from error import I3fError
@@ -36,13 +37,15 @@ class I3fManipulator(object):
         self.outfile = None;
         self.complianceLevel = None;
 
-    def do_i3f_manipulation(self,srcfile=None,request=None,outfile=None):
-        """ Do sequence of manipulations for IIIF
+    def derive(self,srcfile=None,request=None,outfile=None):
+        """ Do sequence of manipulations for IIIF to derive output image
         
         Args:
             srcfile - source image file
             request - I3fRequest object with parsed parameters
-            outfile - output image file (one will be created if None specified)
+            outfile - output image file. If set the the output file will be
+                      written to that file, otherwise a new temporary file
+                      will be created and outfile set to its location.
 
         See order in spec: http://www-sul.stanford.edu/iiif/image-api/#order
 
@@ -50,14 +53,15 @@ class I3fManipulator(object):
 
         Typical use:
             
+            r = I3fRequest(region=...)
             m = I3fManipulator()
             try:
-                m.do_i3f_manipulation(srcfile='a.jpg',request=i3freq)
+                m.derive(srcfile='a.jpg',request=r)
                 # .. serve m.outfile
-            except:
+            except I3fError as e:
                 # ..
             finally:
-                m.cleanup()
+                m.cleanup() #removes temp m.outfile
 
         """
         # set if specified
@@ -113,11 +117,19 @@ class I3fManipulator(object):
                            text="Null manipulator supports only color=color.")
 
     def do_format(self):
-        # Format
+        # Format (the last step)
         if (self.request.format is not None):
             raise I3fError(code=415,parameter="format",
                            text="Null manipulator does not support specification of output format.")
-        self.outfile=self.srcfile
+        # 
+        if (self.outfile is None):
+            self.outfile=self.srcfile
+        else:
+            try:
+                shutil.copyfile(self.srcfile,self.outfile)
+            except IOError as e:
+                raise I3fError(code=500,
+                               text="Failed to copy file (%s)." % (str(e)))
         self.mime_type=None
 
 
@@ -239,9 +251,10 @@ class I3fManipulator(object):
         return(self.request.quality)
 
     def cleanup(self):
-        """Clean up after manipulation
+        """Clean up after derive call and use of output
 
-        Call after any output file from the manipulation process has been read. Intended
-        to handle any clean up of temporary files or such. This method empty.
+        Call after any output file from the derivation process has been 
+        read. Intended to handle any clean up of temporary files or such. 
+        This method empty in base class.
         """
         return()

@@ -1,5 +1,6 @@
 """Implementation of IIIF image manipulations using netpbm programs
 
+FIXME - has not been kept up to date with other code
 """
 
 import re
