@@ -5,4 +5,5 @@
 ts.py
 # setup stuff
 build
+dist
 MANIFEST
