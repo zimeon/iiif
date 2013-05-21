@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
-"""Test code for i3f_error.py
-
-"""
+"""Test code for i3f_error.py"""
 import unittest
 
 from i3f.error import I3fError

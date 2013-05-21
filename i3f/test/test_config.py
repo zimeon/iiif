@@ -1,6 +1,4 @@
-"""
-test for i3f/config.py
-"""
+"""Test for i3f/config.py"""
 import unittest
 
 from i3f.config import I3fConfig
