@@ -1,8 +1,8 @@
 """ Create and parse IIIF request URLs
 
 This class is a thorough implementation of restrictions in the
-IIIF specification. It does not implement any implementation 
-specific restrictions.
+IIIF specification. It does not add any implementation specific 
+restrictions.
 """
 import urllib
 import re
@@ -24,13 +24,19 @@ class I3fRequest:
     """
 
     def __init__(self, **params):
-        """ Create Request object and optionally set any attributes via named parameters
+        """Create Request object and optionally set any attributes via 
+        named parameters
 
         Unless specified the baseurl will be set to nothing ("").
         """
         self.clear()
         self.baseurl = ''
         self.set(**params)
+        #
+        self.region_full=False
+        self.region_pct=False
+        self.region_xywh=None # (x,y,w,h)
+        self.size_wh=None     # (w,h)
 
     def clear(self):
         """ Clear all data that might pertain to an individual i3f URL
@@ -153,9 +159,9 @@ class I3fRequest:
     def parse_parameters(self):
         """ Parse the parameters of a parameterized request
 
-        Will throw an I3fError on failure, set attributes on success. Care is take not
-        to change any of the artibutes which store path components, all parsed values
-        are stored in new attributes.
+        Will throw an I3fError on failure, set attributes on success. Care is 
+        take not to change any of the artibutes which store path components, 
+        all parsed values are stored in new attributes.
         """
         self.parse_region()
         self.parse_size()
@@ -336,8 +342,8 @@ class I3fRequest:
     def parse_quality(self):
         """ Check quality paramater
 
-        Sets self.quality_val based on simple substitution of 'native' for default. 
-        Checks for the three valid values else throws and I3fError.
+        Sets self.quality_val based on simple substitution of 'native' for 
+        default. Checks for the three valid values else throws and I3fError.
         """
         if (self.quality is None):
             self.quality_val='native'
@@ -348,11 +354,11 @@ class I3fRequest:
             self.quality_val=self.quality
 
     def parse_format(self):
-        """ Value of quality parameter to use in processing request
+        """ Check format parameter
 
-        Sets self.quality_val based on simple substitution of 'native' for default. 
-        Checks for the three 
+        FIXME - do something...
         """
+        pass
 
     def __str__(self):
         """ Pretty print this object in human readable form
