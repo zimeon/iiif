@@ -1,8 +1,8 @@
 #!/usr/bin/env python2.6
-"""Crude webserver that service i3f requests
+"""Crude CGI implementation for IIIF service
 
-Relies upon I3fManupulator object to do any manipulations
-requested.
+Relies upon I3fManupulator object to do the image
+manipulations requested.
 """
 
 import BaseHTTPServer
@@ -168,7 +168,7 @@ class I3fRequestHandler(CGI_responder):
                            text="Image resource '"+i3f.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
         manipulator = I3fRequestHandler.manipulator_class()
         self.complianceLevel=manipulator.complianceLevel;
-        (outfile,mime_type)=manipulator.do_i3f_manipulation(file,i3f)
+        (outfile,mime_type)=manipulator.derive(file,i3f)
         # Stash manipulator object so we can cleanup after reading file
         self.manipulator=manipulator
         return(open(outfile,'r'),mime_type)

@@ -1,3 +1,9 @@
 .coverage
 *.pyc
 *~
+.DS_store
+ts.py
+# setup stuff
+build
+dist
+MANIFEST

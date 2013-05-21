@@ -8,6 +8,7 @@ image size.
 import re
 import os
 import os.path
+import shutil
 import subprocess
 
 from error import I3fError
@@ -31,21 +32,46 @@ class I3fManipulator(object):
         This null manipulator doesn't comply to any of the levels defined
         in the i3f specification so it is set to None.
         """
-        self.file = None;
-        self.source = None;
+        self.srcfile = None;
+        self.request = None;
+        self.outfile = None;
         self.complianceLevel = None;
 
-    def do_i3f_manipulation(self,file=None,i3f=None):
-        """ Do sequence of manipulations for IIIF
+    def derive(self,srcfile=None,request=None,outfile=None):
+        """ Do sequence of manipulations for IIIF to derive output image
+        
+        Args:
+            srcfile - source image file
+            request - I3fRequest object with parsed parameters
+            outfile - output image file. If set the the output file will be
+                      written to that file, otherwise a new temporary file
+                      will be created and outfile set to its location.
 
         See order in spec: http://www-sul.stanford.edu/iiif/image-api/#order
 
           Region THEN Size THEN Rotation THEN Quality THEN Format
 
-        Adds hooks for do_first before and do_last after.
+        Typical use:
+            
+            r = I3fRequest(region=...)
+            m = I3fManipulator()
+            try:
+                m.derive(srcfile='a.jpg',request=r)
+                # .. serve m.outfile
+            except I3fError as e:
+                # ..
+            finally:
+                m.cleanup() #removes temp m.outfile
+
         """
-        self.srcfile=file
-        self.i3f=i3f
+        # set if specified
+        if (srcfile is not None):
+            self.srcfile=srcfile
+        if (request is not None):
+            self.request=request
+        if (outfile is not None):
+            self.outfile=outfile
+        #
         self.do_first()
         self.do_region()
         self.do_size()
@@ -73,8 +99,8 @@ class I3fManipulator(object):
     def do_size(self):
         # Size
         # (w,h) = self.size_to_apply()
-        if (self.i3f.size_pct != 100.0 and
-            self.i3f.size != 'full'):
+        if (self.request.size_pct != 100.0 and
+            self.request.size != 'full'):
             raise I3fError(code=501,parameter="size",
                            text="Null manipulator supports only size=pct:100 and size=full.")
 
@@ -91,11 +117,19 @@ class I3fManipulator(object):
                            text="Null manipulator supports only color=color.")
 
     def do_format(self):
-        # Format
-        if (self.i3f.format is not None):
+        # Format (the last step)
+        if (self.request.format is not None):
             raise I3fError(code=415,parameter="format",
                            text="Null manipulator does not support specification of output format.")
-        self.outfile=self.srcfile
+        # 
+        if (self.outfile is None):
+            self.outfile=self.srcfile
+        else:
+            try:
+                shutil.copyfile(self.srcfile,self.outfile)
+            except IOError as e:
+                raise I3fError(code=500,
+                               text="Failed to copy file (%s)." % (str(e)))
         self.mime_type=None
 
 
@@ -112,7 +146,7 @@ class I3fManipulator(object):
         """Return the x,y,w,h parameters to extract given image width and height
 
         Assume image width and height are available in self.width and 
-        self.height, and self.i3f is I3fRequest object 
+        self.height, and self.request is I3fRequest object 
 
         Expected use:
           (x,y,w,h) = self.region_to_apply()
@@ -122,14 +156,14 @@ class I3fManipulator(object):
               # extract
         Returns (None,None,None,None) if no extraction is required.
         """
-        if (self.i3f.region_full):
+        if (self.request.region_full):
             return(None,None,None,None)
         # Cannot do anything else unless we know size (in self.width and self.height)
         if (self.width<=0 or self.height<=0):
             raise I3fError(code=501,parameter='region',
                            text="Region parameters require knowledge of image size which is not implemented.")
-        pct = self.i3f.region_pct
-        (x,y,w,h)=self.i3f.region_xywh
+        pct = self.request.region_pct
+        (x,y,w,h)=self.request.region_xywh
         # Convert pct to real
         if (pct):
             x = int( (x / 100.0) * self.width + 0.5)
@@ -153,20 +187,20 @@ class I3fManipulator(object):
         """Calculate size of image scaled using size parameters
 
         Assumes current image width and height are available in self.width and 
-        self.height, and self.i3f is I3fRequest object 
+        self.height, and self.request is I3fRequest object 
 
         Formats are: w, ,h w,h pct:p !w,h
 
         Returns (None,None) if no scaling is required.
         """
-        if (self.i3f.size_full):
+        if (self.request.size_full):
             return(None,None)
-        elif (self.i3f.size_pct is not None):
-            w = int(self.width * self.i3f.size_pct / 100.0 + 0.5)
-            h = int(self.height * self.i3f.size_pct / 100.0 + 0.5)
-        elif (self.i3f.size_bang):
+        elif (self.request.size_pct is not None):
+            w = int(self.width * self.request.size_pct / 100.0 + 0.5)
+            h = int(self.height * self.request.size_pct / 100.0 + 0.5)
+        elif (self.request.size_bang):
             # Have "!w,h" form
-            (mw,mh)=self.i3f.size_wh
+            (mw,mh)=self.request.size_wh
             # Pick smaller fraction and then work from that...
             frac = min ( (float(mw)/float(self.width)), (float(mh)/float(self.height)) )
             #print "size=!w,h: mw=%d mh=%d -> frac=%f" % (mw,mh,frac)
@@ -177,7 +211,7 @@ class I3fManipulator(object):
         else:
             # Must now be "w,h", "w," or ",h". If both are specified then this will the size,
             # otherwise find other to keep aspect ratio
-            (w,h)=self.i3f.size_wh
+            (w,h)=self.request.size_wh
             if (w is None):
                 w = int(self.width * h / self.height + 0.5)
             elif (h is None):
@@ -200,7 +234,7 @@ class I3fManipulator(object):
 
         Returns a floating point number 0 <= angle < 360 (degrees).
         """
-        rotation=self.i3f.rotation_deg
+        rotation=self.request.rotation_deg
         if (only90s and (rotation!=0.0 and rotation!=90.0 and 
                          rotation!=180.0 and rotation!=270.0)):
             raise I3fError(code=501,parameter="rotation",
@@ -212,14 +246,15 @@ class I3fManipulator(object):
 
         Simple substitution of 'native' for default.
         """
-        if (self.i3f.quality is None):
+        if (self.request.quality is None):
             return('native')
-        return(self.i3f.quality)
+        return(self.request.quality)
 
     def cleanup(self):
-        """Clean up after manipulation
+        """Clean up after derive call and use of output
 
-        Call after any output file from the manipulation process has been read. Intended
-        to handle any clean up of temporary files or such. This method empty.
+        Call after any output file from the derivation process has been 
+        read. Intended to handle any clean up of temporary files or such. 
+        This method empty in base class.
         """
         return()
