@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 
-"""Test encoding and decoding of the request URLs in the i3f spec
+"""Test encoding and decoding of the request URLs in the iiif spec
 
 For http://library.stanford.edu/iiif/image-api/ v0.2 dated "13 April 2012"
 
 This test includes only test cases for the table in section 7. See
-i3f_urltest.py for more examples that test other cases and alternative 
+iiif_urltest.py for more examples that test other cases and alternative 
 forms which should still be decoded correctly.
 
 Simeon Warner - 2012-03-23, 2012-04-13
 """
 import unittest
 
-from i3f.request import I3fRequest
+from iiif.request import IIIFRequest
 
 # Data for test. Format is
 # name : [ {args}, 'canonical_url', 'alternate_form1', ... ]
@@ -68,8 +68,8 @@ class TestAll(unittest.TestCase):
         for tname in sorted(data.iterkeys()):
             tdata=data[tname]
             print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
-            i3f = I3fRequest(**data[tname][0])
-            self.assertEqual(i3f.url(),data[tname][1])
+            iiif = IIIFRequest(**data[tname][0])
+            self.assertEqual(iiif.url(),data[tname][1])
         print
   
     def test2_decode(self):
@@ -78,8 +78,8 @@ class TestAll(unittest.TestCase):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
             for turl in data[tname][1:]:
-                i3f = I3fRequest().parse_url(turl)
-                tstr = self.pstr(i3f.__dict__)
+                iiif = IIIFRequest().parse_url(turl)
+                tstr = self.pstr(iiif.__dict__)
                 print "    <tr>\n      <td>" + tstr + "</td>\n      <td>" + turl + "</td>\n    </tr>"
                 self.assertEqual(tstr,pstr)
         print

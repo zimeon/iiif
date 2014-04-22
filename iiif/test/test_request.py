@@ -1,17 +1,17 @@
-"""Test encoding and decoding of i3f request URLs
+"""Test encoding and decoding of iiif request URLs
 
 Follows http://www-sul.stanford.edu/iiif/image-api/ v1.0 dated "10 August 2012"
 
 This test includes a number of test cases beyond those given as examples
-in the table in section 7 of the spec. See i3f_urltest_spec.py for the
+in the table in section 7 of the spec. See iiif_urltest_spec.py for the
 set given in the spec.
 
 Simeon Warner - 2012-03-23, 2012-04-13
 """
 import unittest
 
-from i3f.error import I3fError
-from i3f.request import I3fRequest
+from iiif.error import IIIFError
+from iiif.request import IIIFRequest
 
 # Data for test. Format is
 # name : [ {args}, 'canonical_url', 'alternate_form1', ... ]
@@ -78,7 +78,7 @@ class TestAll(unittest.TestCase):
 
     def test02_parse_region(self):
         print "parse_region tests..."
-        r = I3fRequest()
+        r = IIIFRequest()
         r.region=None
         r.parse_region()
         self.assertTrue(r.region_full)
@@ -107,13 +107,13 @@ class TestAll(unittest.TestCase):
         self.assertEqual(r.region_xywh, [0.0,0.0,100.0,100.0])
         # bad ones
         r.region='pct:0,0,50,1000'
-        self.assertRaises( I3fError, r.parse_region )
+        self.assertRaises( IIIFError, r.parse_region )
         r.region='pct:-10,0,50,100'
-        self.assertRaises( I3fError, r.parse_region )
+        self.assertRaises( IIIFError, r.parse_region )
 
     def test02_parse_size(self):
         print "parse_size tests..."
-        r = I3fRequest()
+        r = IIIFRequest()
         r.size='pct:100'
         r.parse_size()
         self.assertEqual(r.size_pct, 100.0)
@@ -141,7 +141,7 @@ class TestAll(unittest.TestCase):
 
     def test03_parse_rotation(self):
         print "parse_rotation tests..."
-        r = I3fRequest()
+        r = IIIFRequest()
         r.rotation='0'
         r.parse_rotation()
         self.assertEqual(r.rotation_deg, 0.0)
@@ -156,17 +156,17 @@ class TestAll(unittest.TestCase):
         self.assertEqual(r.rotation_deg, 180.0)
         # bad ones
         r.rotation='-1'
-        self.assertRaises( I3fError, r.parse_rotation )
+        self.assertRaises( IIIFError, r.parse_rotation )
         r.rotation='-0.0000001'
-        self.assertRaises( I3fError, r.parse_rotation )
+        self.assertRaises( IIIFError, r.parse_rotation )
         r.rotation='360.1'
-        self.assertRaises( I3fError, r.parse_rotation )
+        self.assertRaises( IIIFError, r.parse_rotation )
         r.rotation='abc'
-        self.assertRaises( I3fError, r.parse_rotation )
+        self.assertRaises( IIIFError, r.parse_rotation )
 
     def test04_parse_quality(self):
         print "parse_quality tests..."
-        r = I3fRequest()
+        r = IIIFRequest()
         r.quality=None
         r.parse_quality()
         self.assertEqual(r.quality_val, 'native')
@@ -181,10 +181,10 @@ class TestAll(unittest.TestCase):
         self.assertEqual(r.quality_val, 'grey')
         # bad ones
         r.quality='does_not_exist'
-        self.assertRaises( I3fError, r.parse_quality )
+        self.assertRaises( IIIFError, r.parse_quality )
         # bad ones
         r.quality=''
-        self.assertRaises( I3fError, r.parse_quality )
+        self.assertRaises( IIIFError, r.parse_quality )
 
 
     def test1_encode(self):
@@ -192,8 +192,8 @@ class TestAll(unittest.TestCase):
         for tname in sorted(data.iterkeys()):
             tdata=data[tname]
             print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
-            i3f = I3fRequest(**data[tname][0])
-            self.assertEqual(i3f.url(),data[tname][1])
+            iiif = IIIFRequest(**data[tname][0])
+            self.assertEqual(iiif.url(),data[tname][1])
         print
   
     def test2_decode(self):
@@ -202,15 +202,15 @@ class TestAll(unittest.TestCase):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
             for turl in data[tname][1:]:
-                i3f = I3fRequest().split_url(turl)
-                tstr = self.pstr(i3f.__dict__)
+                iiif = IIIFRequest().split_url(turl)
+                tstr = self.pstr(iiif.__dict__)
                 print tname + "   " + turl + " -> " + tstr
                 self.assertEqual(tstr,pstr)
         print
 
     def test3_decode_except(self):
-        self.assertRaises(I3fError, I3fRequest().split_url, ("bogus"))
-        self.assertRaises(I3fError, I3fRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("bogus"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
 
     def pstr(self,p):
         s=''

@@ -12,7 +12,7 @@ CONTEXT = "http://library.stanford.edu/iiif/image-api/1.1/context.json"
 PARAMS = ['identifier','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
 EVAL_PARAMS = set(['scale_factors','formats','qualities'])
 
-class I3fInfo:
+class IIIFInfo:
 
     def __init__(self,identifier=None,width=None,height=None,
                  scale_factors=None,tile_width=None,tile_height=None,

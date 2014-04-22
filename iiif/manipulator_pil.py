@@ -13,12 +13,12 @@ import tempfile
 
 from PIL import Image
 
-from error import I3fError
-from request import I3fRequest
-from manipulator import I3fManipulator
+from error import IIIFError
+from request import IIIFRequest
+from manipulator import IIIFManipulator
 
-class I3fManipulatorPIL(I3fManipulator):
-    """Module to manipulate and image according to i3f rules
+class IIIFManipulatorPIL(IIIFManipulator):
+    """Module to manipulate and image according to iiif rules
 
     All exceptions are raise as Error objects which directly
     determine the HTTP response.
@@ -29,9 +29,9 @@ class I3fManipulatorPIL(I3fManipulator):
     pnmdir = None
 
     def __init__(self):
-        super(I3fManipulatorPIL, self).__init__()
+        super(IIIFManipulatorPIL, self).__init__()
         # Does not support jp2 output
-        self.complianceLevel="http://i3f.example.org/compliance/level/0"
+        self.complianceLevel="http://iiif.example.org/compliance/level/0"
         self.outtmp = None
 
     def do_first(self):
@@ -41,7 +41,7 @@ class I3fManipulatorPIL(I3fManipulator):
             self.image=Image.open(self.srcfile)
             self.image.load()
         except Exception as e:
-            raise I3fError(text="PIL Image.open(..) barfed: "+str(e))
+            raise IIIFError(text="PIL Image.open(..) barfed: "+str(e))
         (self.width,self.height)=self.image.size
 
     def do_region(self):
@@ -95,7 +95,7 @@ class I3fManipulatorPIL(I3fManipulator):
             self.output_format=fmt
             format = 'jpeg';
         else:
-            raise I3fError(code=415, parameter='format',
+            raise IIIFError(code=415, parameter='format',
                            text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
 
         if (self.outfile is None):

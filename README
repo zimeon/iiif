@@ -1,9 +1,10 @@
-===
-i3f
-===
+====
+iiif
+====
 
-*i3f* - A Python library implementing the [International Image 
-Interoperability Framework: Image API 1.0][http://www-sul.stanford.edu/iiif/image-api/]
+*iiif* - A Python library implementing the 
+`International Image Interoperability Framework: Image API 1.0
+<http://www-sul.stanford.edu/iiif/image-api/>`_
 
 Installation
 ------------
@@ -12,17 +13,17 @@ The client and library are designed to work with Python 2.6 or 2.7.
 
 **Automatic installation**::
 
-    easy_install i3f
+    easy_install iiif
 
-rsync is listed in `PyPI
-<http://pypi.python.org/pypi/resync>`_ and can be installed with 
+*iiif* is listed in `PyPI
+<http://pypi.python.org/pypi/iiif>`_ and can be installed with 
 ``pip`` or ``easy_install``. 
 
 **Manual installation from github**::
 
     cd /tmp
-    git clone git://github.com/zimeon/i3f.git
-    cd i3f/
+    git clone git://github.com/zimeon/iiif.git
+    cd iiif/
     python setup.py build
     sudo python setup.py install
 
@@ -30,18 +31,18 @@ This will install the library code in the appropriate place within
 your python setup.
 
 The source code is maintained on `Github
-<https://github.com/zimeon/i3f>`_
+<https://github.com/zimeon/iiif>`_
 
 See also
 --------
 
-http://github.com/zimeon/i3f
+http://github.com/zimeon/iiif
 
 Copyright and License
 ---------------------
 
-    i3f library and programs implementing the IIIF API
-    Copyright (C) 2012,2013 Simeon Warner
+    iiif library and programs implementing the IIIF API
+    Copyright (C) 2012,2013,2014 Simeon Warner
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -1,13 +1,13 @@
-"""i3f configs
+"""iiif configs
 
 Goal is to have a sane set of default configs so that even if there
-isn't entries in i3f.conf, or there are parameters missing, then something
+isn't entries in iiif.conf, or there are parameters missing, then something
 useful will still happen.
 """
 import ConfigParser
 import os
 
-I3F_CONF = 'etc/i3f.conf'
+I3F_CONF = 'etc/iiif.conf'
 
 DEFAULTS = {
     'info' : {
@@ -30,7 +30,7 @@ DEFAULTS = {
         },
 }
 
-class I3fConfig(object):
+class IIIFConfig(object):
 
     def __init__(self,conf_file=None):
         if (conf_file is None):

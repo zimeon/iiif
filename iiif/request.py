@@ -8,9 +8,9 @@ import urllib
 import re
 import string
 
-from error import I3fError
+from error import IIIFError
 
-class I3fRequest:
+class IIIFRequest:
     """ Implement IIIF request URL syntax
     
     There are two URL forms defined in section 2:
@@ -39,7 +39,7 @@ class I3fRequest:
         self.size_wh=None     # (w,h)
 
     def clear(self):
-        """ Clear all data that might pertain to an individual i3f URL
+        """ Clear all data that might pertain to an individual iiif URL
 
         Does not change/reset the baseurl which might be useful in a
         sequence of calls.
@@ -103,7 +103,7 @@ class I3fRequest:
         
         Will parse a URL or URL path that accords with either the
         parametrized or info request forms. Will raise an
-        I3fError on failure. A wrapper for the split_url()
+        IIIFError on failure. A wrapper for the split_url()
         and parse_parameters() methods.
         """
         self.split_url(url)
@@ -115,7 +115,7 @@ class I3fRequest:
         """ Perform the initial parsing of an IIIF API URL path into components
 
         Will parse a URL or URL path that accords with either the
-        parametrized or info API forms. Will raise an I3fError on 
+        parametrized or info API forms. Will raise an IIIFError on 
         failure.
         """
         # clear data first
@@ -124,7 +124,7 @@ class I3fRequest:
         if (self.baseurl): 
             (path, num) = re.subn('^'+self.baseurl, '', url, 1)
             if (num != 1):
-                raise(I3fError("URL does not match baseurl (server/prefix)."))
+                raise(IIIFError("URL does not match baseurl (server/prefix)."))
             url=path
         # Look for optional .fmt at end, must start with letter. Note that we 
         # want to catch the case of a dot and no format (format='') which is
@@ -137,7 +137,7 @@ class I3fRequest:
         # Break up by path segments, count to decide format
         segs = string.split( url, '/', 5)
         if (len(segs) > 5):
-            raise(I3fError(code=400,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
+            raise(IIIFError(code=400,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
             self.identifier = urllib.unquote(segs[0])
             self.region = urllib.unquote(segs[1])
@@ -148,18 +148,18 @@ class I3fRequest:
         elif (len(segs) == 2):
             self.identifier = urllib.unquote(segs[0])
             if (urllib.unquote(segs[1]) != "info"):
-                raise(I3fError(code=400,text="Badly formed information request, must be info.json or info.xml"))
+                raise(IIIFError(code=400,text="Badly formed information request, must be info.json or info.xml"))
             if (self.format not in ("json","xml")):
-                raise(I3fError(code=400,text="Bad information request format, must be json or xml"))
+                raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
             self.info = True
         else:
-            raise(I3fError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
+            raise(IIIFError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
         return(self)
 
     def parse_parameters(self):
         """ Parse the parameters of a parameterized request
 
-        Will throw an I3fError on failure, set attributes on success. Care is 
+        Will throw an IIIFError on failure, set attributes on success. Care is 
         take not to change any of the artibutes which store path components, 
         all parsed values are stored in new attributes.
         """
@@ -193,34 +193,34 @@ class I3fRequest:
         # Now whether this was pct: or now, we expect 4 values...
         str_values = string.split(xywh, ',', 5)
         if (len(str_values) != 4):
-            raise I3fError(code=400,parameter="region",
+            raise IIIFError(code=400,parameter="region",
                            text="Bad number of values in region specification, must be x,y,w,h but got %d value(s) from '%s'"%(len(str_values),xywh))
         values=[]
         for str_value in str_values:
             # Must be either integer (not pct) or interger/float (pct)
             if (pct_match):
                 try:
-                    # This is rather more permissive that the i3f spec
+                    # This is rather more permissive that the iiif spec
                     value=float(str_value)
                 except ValueError:
-                    raise I3fError(code=400,parameter="region",
+                    raise IIIFError(code=400,parameter="region",
                                    text="Bad floating point value for percentage in region (%s)."%str_value)
                 if (value>100.0):
-                    raise I3fError(code=400,parameter="region",
+                    raise IIIFError(code=400,parameter="region",
                                    text="Percentage over value over 100.0 in region (%s)."%str_value)
             else:
                 try:
                     value=int(str_value)
                 except ValueError:
-                    raise I3fError(code=400,parameter="region",
+                    raise IIIFError(code=400,parameter="region",
                                    text="Bad integer value in region (%s)."%str_value)
             if (value<0):
-                raise I3fError(code=400,parameter="region",
+                raise IIIFError(code=400,parameter="region",
                                text="Negative values not allowed in region (%s)."%str_value)
             values.append(value)
         # Zero size region is w or h are zero (careful that they may be float)
         if (values[2]==0.0 or values[3]==0.0):
-            raise I3fError(code=400,parameter="region",
+            raise IIIFError(code=400,parameter="region",
                            text="Zero size region specified (%s))."%xywh)
         self.region_xywh=values
 
@@ -235,7 +235,7 @@ class I3fRequest:
         /!w,h/ -> self.size_wh = (w,h), self.size_bang = True
 
         Expected use:
-          (w,h) = i3f.size_to_apply(region_w,region_h)
+          (w,h) = iiif.size_to_apply(region_w,region_h)
           if (q is None):
               # full image
           else:
@@ -255,14 +255,14 @@ class I3fRequest:
             try:
                 self.size_pct=float(pct_str)
             except ValueError:
-                raise I3fError(code=400,parameter="size",
+                raise IIIFError(code=400,parameter="size",
                                text="Percentage size value must be a number, got '%s'."%(pct_str))
 # FIXME - current spec places no upper limit on size
 #            if (self.size_pct<0.0 or self.size_pct>100.0):
-#                raise I3fError(code=400,parameter="size",
+#                raise IIIFError(code=400,parameter="size",
 #                               text="Illegal percentage size, must be 0 <= pct <= 100.")
             if (self.size_pct<0.0):
-                raise I3fError(code=400,parameter="size",
+                raise IIIFError(code=400,parameter="size",
                                text="Base size percentage, must be > 0.0, got %f."%(self.size_pct))
         else:
             bang_match = re.match('!(.*)$',self.size)
@@ -270,7 +270,7 @@ class I3fRequest:
                 # Have "!w,h" form
                 (mw,mh)=self._parse_w_comma_h(bang_match.group(1),'size')
                 if (mw is None or mh is None):
-                    raise I3fError(code=400,parameter="size",
+                    raise IIIFError(code=400,parameter="size",
                                    text="Illegal size requested: both w,h must be specified in !w,h requests.")
                 self.size_bang=True
             else:
@@ -280,7 +280,7 @@ class I3fRequest:
             (w,h) = self.size_wh
             if ( ( w is not None and w<=0) or 
                  ( h is not None and h<=0) ):
-                raise I3fError(code=400,parameter='size',
+                raise IIIFError(code=400,parameter='size',
                                text="Size parameters request zero size result image.")
 
     def _parse_w_comma_h(self,str,param):
@@ -294,10 +294,10 @@ class I3fRequest:
             w = self._parse_non_negative_int(wstr,'w')
             h = self._parse_non_negative_int(hstr,'h')
         except ValueError as e:
-            raise I3fError(code=400,parameter=param,
+            raise IIIFError(code=400,parameter=param,
                            text="Illegal parameter value (%s)." % str(e) )
         if (w is None and h is None):
-            raise I3fError(code=400,parameter=param,
+            raise IIIFError(code=400,parameter=param,
                            text="Must specify at least one of w,h.")
         self.size_wh=(w,h)
         return(w,h)
@@ -305,7 +305,7 @@ class I3fRequest:
     def _parse_non_negative_int(self,istr,name):
         """ Parse integer from string (istr)
 
-        The (name) parameter is used just for I3fError message generation
+        The (name) parameter is used just for IIIFError message generation
         to indicate what the error is in.
         """
         if (istr == ''):
@@ -330,10 +330,10 @@ class I3fRequest:
         try:
             self.rotation_deg=float(self.rotation)
         except ValueError:
-            raise I3fError(code=400,parameter="rotation",
+            raise IIIFError(code=400,parameter="rotation",
                            text="Bad rotation value, must be a number, got '%s'."%(self.rotation))
         if (self.rotation_deg<0.0 or self.rotation_deg>360.0):
-            raise I3fError(code=400,parameter="rotation",
+            raise IIIFError(code=400,parameter="rotation",
                            text="Illegal rotation value, must be 0 <= rotation <= 360, got %f."%(self.rotation_deg))
         elif (self.rotation_deg==360.0):
             # The spec admits 360 as valid, but change to 0
@@ -343,12 +343,12 @@ class I3fRequest:
         """ Check quality paramater
 
         Sets self.quality_val based on simple substitution of 'native' for 
-        default. Checks for the three valid values else throws and I3fError.
+        default. Checks for the three valid values else throws and IIIFError.
         """
         if (self.quality is None):
             self.quality_val='native'
         elif (self.quality not in ['native','color','bitonal','grey']):
-            raise I3fError(code=400,parameter="quality",
+            raise IIIFError(code=400,parameter="quality",
                            text="The quality parameter must be 'native', 'color', 'bitonal' or 'grey', got '%s'."%(self.quality))
         else:
             self.quality_val=self.quality

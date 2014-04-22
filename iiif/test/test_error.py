@@ -1,13 +1,13 @@
-"""Test code for i3f_error.py"""
+"""Test code for iiif_error.py"""
 import unittest
 
-from i3f.error import I3fError
+from iiif.error import IIIFError
 
 class TestAll(unittest.TestCase):
 
     def test1(self):
         # Just do the trivial XML test
-        ie = I3fError()
+        ie = IIIFError()
         self.assertEqual( str(ie), '<?xml version=\'1.0\' encoding=\'UTF-8\'?>\n<error xmlns="http://library.stanford.edu/iiif/image-api/ns/">\n<parameter>unknown</parameter>\n</error>')
         ie.code='501'
         ie.parameter='size'

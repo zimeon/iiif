@@ -1,4 +1,4 @@
-""" Almost null implementation i3f image manipulations and base class 
+""" Almost null implementation iiif image manipulations and base class 
 
 Provides a number of utility methods to extract information necessary
 for doing the transformations once one has knowledge of the source
@@ -11,13 +11,13 @@ import os.path
 import shutil
 import subprocess
 
-from error import I3fError
-from request import I3fRequest
+from error import IIIFError
+from request import IIIFRequest
 
-class I3fManipulator(object):
+class IIIFManipulator(object):
     """ Manipulate an image according to IIIF rules
 
-    All exceptions are raise as I3fError objects which directly
+    All exceptions are raise as IIIFError objects which directly
     determine the HTTP response.
     """
 
@@ -27,10 +27,10 @@ class I3fManipulator(object):
         The attribute complicanceLevel is set of either None or a URI 
         that can be used in the HTTP response headers like of the form
 
-        Link: <http://i3f.example.org/compliance/level/0>;rel="compliesTo"
+        Link: <http://iiif.example.org/compliance/level/0>;rel="compliesTo"
 
         This null manipulator doesn't comply to any of the levels defined
-        in the i3f specification so it is set to None.
+        in the iiif specification so it is set to None.
         """
         self.srcfile = None;
         self.request = None;
@@ -42,7 +42,7 @@ class I3fManipulator(object):
         
         Args:
             srcfile - source image file
-            request - I3fRequest object with parsed parameters
+            request - IIIFRequest object with parsed parameters
             outfile - output image file. If set the the output file will be
                       written to that file, otherwise a new temporary file
                       will be created and outfile set to its location.
@@ -53,12 +53,12 @@ class I3fManipulator(object):
 
         Typical use:
             
-            r = I3fRequest(region=...)
-            m = I3fManipulator()
+            r = IIIFRequest(region=...)
+            m = IIIFManipulator()
             try:
                 m.derive(srcfile='a.jpg',request=r)
                 # .. serve m.outfile
-            except I3fError as e:
+            except IIIFError as e:
                 # ..
             finally:
                 m.cleanup() #removes temp m.outfile
@@ -93,7 +93,7 @@ class I3fManipulator(object):
         # Region
         (x,y,w,h)=self.region_to_apply()
         if (x is not None):
-            raise I3fError(code=501,parameter="region",
+            raise IIIFError(code=501,parameter="region",
                            text="Null manipulator supports only region=/full/.")
 
     def do_size(self):
@@ -101,25 +101,25 @@ class I3fManipulator(object):
         # (w,h) = self.size_to_apply()
         if (self.request.size_pct != 100.0 and
             self.request.size != 'full'):
-            raise I3fError(code=501,parameter="size",
+            raise IIIFError(code=501,parameter="size",
                            text="Null manipulator supports only size=pct:100 and size=full.")
 
     def do_rotation(self):
         # Rotate
         if (self.rotation_to_apply() != 0.0):
-            raise I3fError(code=501,parameter="rotation",
+            raise IIIFError(code=501,parameter="rotation",
                            text="Null manipulator supports only rotation=(0|360).")
 
     def do_quality(self):
         # Quality
         if (self.quality_to_apply() != "native"):
-            raise I3fError(code=501,parameter="native",
+            raise IIIFError(code=501,parameter="native",
                            text="Null manipulator supports only color=color.")
 
     def do_format(self):
         # Format (the last step)
         if (self.request.format is not None):
-            raise I3fError(code=415,parameter="format",
+            raise IIIFError(code=415,parameter="format",
                            text="Null manipulator does not support specification of output format.")
         # 
         if (self.outfile is None):
@@ -128,7 +128,7 @@ class I3fManipulator(object):
             try:
                 shutil.copyfile(self.srcfile,self.outfile)
             except IOError as e:
-                raise I3fError(code=500,
+                raise IIIFError(code=500,
                                text="Failed to copy file (%s)." % (str(e)))
         self.mime_type=None
 
@@ -146,7 +146,7 @@ class I3fManipulator(object):
         """Return the x,y,w,h parameters to extract given image width and height
 
         Assume image width and height are available in self.width and 
-        self.height, and self.request is I3fRequest object 
+        self.height, and self.request is IIIFRequest object 
 
         Expected use:
           (x,y,w,h) = self.region_to_apply()
@@ -160,7 +160,7 @@ class I3fManipulator(object):
             return(None,None,None,None)
         # Cannot do anything else unless we know size (in self.width and self.height)
         if (self.width<=0 or self.height<=0):
-            raise I3fError(code=501,parameter='region',
+            raise IIIFError(code=501,parameter='region',
                            text="Region parameters require knowledge of image size which is not implemented.")
         pct = self.request.region_pct
         (x,y,w,h)=self.request.region_xywh
@@ -177,7 +177,7 @@ class I3fManipulator(object):
             h=self.height-y
         # Final check to see if we have the whole image
         if ( w==0 or h==0 ):
-            raise I3fError(code=400,parameter='region',
+            raise IIIFError(code=400,parameter='region',
                            text="Region parameters would result in zero size result image.")
         if ( x==0 and y==0 and w==self.width and h==self.height ):
             return(None,None,None,None)
@@ -187,7 +187,7 @@ class I3fManipulator(object):
         """Calculate size of image scaled using size parameters
 
         Assumes current image width and height are available in self.width and 
-        self.height, and self.request is I3fRequest object 
+        self.height, and self.request is IIIFRequest object 
 
         Formats are: w, ,h w,h pct:p !w,h
 
@@ -219,11 +219,11 @@ class I3fManipulator(object):
             #print "size=w,h: w=%d h=%d" % (w,h)
         # Now have w,h, sanity check and return
         if ( w==0 or h==0 ):
-            raise I3fError(code=400,parameter='size',
+            raise IIIFError(code=400,parameter='size',
                            text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
 # FIXME - this isn't actually forbidden by v0.1 of the spec
 #        if ( w>self.width or h>self.height ):
-#            raise I3fError(code=400,parameter='size',
+#            raise IIIFError(code=400,parameter='size',
 #                           text="Size requests scaling up image to larger than orginal.")
         if ( w==self.width and h==self.height ):    
             return(None,None)
@@ -237,7 +237,7 @@ class I3fManipulator(object):
         rotation=self.request.rotation_deg
         if (only90s and (rotation!=0.0 and rotation!=90.0 and 
                          rotation!=180.0 and rotation!=270.0)):
-            raise I3fError(code=501,parameter="rotation",
+            raise IIIFError(code=501,parameter="rotation",
                            text="This implementation supports only 0,90,180,270 degree rotations.")
         return(rotation)
 

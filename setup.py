@@ -5,7 +5,7 @@ from distutils.core import setup
 # (thanks for comments in 
 # http://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package )
 import re
-VERSIONFILE="i3f/_version.py"
+VERSIONFILE="iiif/_version.py"
 verfilestr = open(VERSIONFILE, "rt").read()
 match = re.search(r"^__version__ = '(\d\.\d.\d+(\.\d+)?)'", verfilestr, re.MULTILINE)
 if match:
@@ -14,11 +14,11 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
 
 setup(
-    name='i3f',
+    name='iiif',
     version=version,
     author='Simeon Warner',
     author_email='simeon.warner@cornel.edu',
-    packages=['i3f'],
+    packages=['iiif'],
     scripts=[],
     classifiers=["Development Status :: 3 - Alpha",
                  "Intended Audience :: Developers",
@@ -30,7 +30,7 @@ setup(
                  "Topic :: Internet :: WWW/HTTP",
                  "Topic :: Software Development :: Libraries :: Python Modules",
                  "Environment :: Web Environment"],
-    url='https://github.com/zimeon/i3f',
+    url='https://github.com/zimeon/iiif',
     license='LICENSE.txt',
     description='IIIF Image API library',
     long_description=open('README').read(),
