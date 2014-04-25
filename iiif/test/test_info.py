@@ -1,20 +1,9 @@
-"""Test code for iiif_info.py"""
+"""Test code for iiif/info.py"""
 import unittest
 
 from iiif.info import IIIFInfo
 
 class TestAll(unittest.TestCase):
-
-    def test04_level_and_profile(self):
-        i = IIIFInfo()
-        i.level = 0
-        self.assertEqual( i.level, 0 )
-        self.assertEqual( i.profile, "http://iiif.io/api/image/2/level0.json" )
-        i.level = 2
-        self.assertEqual( i.level, 2 )
-        self.assertEqual( i.profile, "http://iiif.io/api/image/2/level2.json" )
-        i.profile = "http://iiif.io/api/image/2/level1.json"
-        self.assertEqual( i.level, 1 )
 
     def test01_minmal(self):
         # Just do the trivial JSON test
@@ -40,6 +29,17 @@ class TestAll(unittest.TestCase):
         i = IIIFInfo(conf=conf)
         self.assertEqual( i.tile_width, 999 )
         self.assertEqual( i.scale_factors, [9,8,7] )
+
+    def test05_level_and_profile(self):
+        i = IIIFInfo()
+        i.level = 0
+        self.assertEqual( i.level, 0 )
+        self.assertEqual( i.profile, "http://iiif.io/api/image/2/level0.json" )
+        i.level = 2
+        self.assertEqual( i.level, 2 )
+        self.assertEqual( i.profile, "http://iiif.io/api/image/2/level2.json" )
+        i.profile = "http://iiif.io/api/image/2/level1.json"
+        self.assertEqual( i.level, 1 )
 
 # If run from command line, do tests
 if __name__ == '__main__':
