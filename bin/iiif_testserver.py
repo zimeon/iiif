@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Crude webserver that service i3f requests
+"""Crude webserver that services IIIF Image API requests
 
-Relies upon I3fManipulator object to do any manipulations
+Relies upon IIIFManipulator object to do any manipulations
 requested.
 """
 
@@ -10,18 +10,18 @@ import re
 import os
 import os.path
 
-from i3f.config import I3fConfig
-from i3f.error import I3fError
-from i3f.request import I3fRequest
-from i3f.info import I3fInfo
+from iiif.config import IIIFConfig
+from iiif.error import IIIFError
+from iiif.request import IIIFRequest
+from iiif.info import IIIFInfo
 
-class I3fRequestException(Exception):
+class IIIFRequestException(Exception):
     def __init__(self, value):
         self.value = value
     def __str__(self):
         return repr(self.value)
 
-class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     # Class data
     HOST=None
@@ -43,7 +43,7 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.manipulator=None
         # Cannot use super() because BaseHTTPServer.BaseHTTPRequestHandler 
         # is not new style class
-        #super(I3fRequestHandler, self).__init__(request, client_address, server)
+        #super(IIIFRequestHandler, self).__init__(request, client_address, server)
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     def send_404_response(self, content='Resource Not Found'):
@@ -58,10 +58,10 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(404)
         self.send_header('Content-Type','text/html')
         self.end_headers()
-        self.wfile.write("<html><head><title>i3f_testserver</title></head><body>\n")
-        self.wfile.write("<h1>i3f_testserver on %s:%s</h1>\n" %(I3fRequestHandler.HOST,I3fRequestHandler.PORT))
-        prefixes = sorted(I3fRequestHandler.MANIPULATOR_CLASSES.keys())
-        files = os.listdir(I3fRequestHandler.IMAGE_DIR)
+        self.wfile.write("<html><head><title>iiif_testserver</title></head><body>\n")
+        self.wfile.write("<h1>iiif_testserver on %s:%s</h1>\n" %(IIIFRequestHandler.HOST,IIIFRequestHandler.PORT))
+        prefixes = sorted(IIIFRequestHandler.MANIPULATOR_CLASSES.keys())
+        files = os.listdir(IIIFRequestHandler.IMAGE_DIR)
         self.wfile.write("<table>\n")
         self.wfile.write("<tr><th></th>")
         for prefix in prefixes:
@@ -83,7 +83,7 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write("</table<\n")
         self.wfile.write("</html>\n")
         
-    """Minimal implementation of HTTP request handler to do i3f GET
+    """Minimal implementation of HTTP request handler to do iiif GET
     """
     def error_response(self,code,content=''):
         self.send_response(code)
@@ -100,8 +100,8 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         """Implement the HTTP GET method
 
         The bulk of this code is wrapped in a big try block and anywhere
-        within the code may raise an I3fError which then results in an
-        I3f error response (section 5 of spec).
+        within the code may raise an IIIFError which then results in an
+        IIIF error response (section 5 of spec).
         """
         self.compliance_level=None
         # We take prefix to see whe implementation to use, / is special info
@@ -112,9 +112,9 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         m = re.match(r'/(\w+)(/.*)$', self.path)
         if (m):
             prefix = m.group(1)
-            if (prefix in I3fRequestHandler.MANIPULATOR_CLASSES):
-                self.i3f = I3fRequest(baseurl='/'+prefix+'/')
-                self.manipulator = I3fRequestHandler.MANIPULATOR_CLASSES[prefix]()
+            if (prefix in IIIFRequestHandler.MANIPULATOR_CLASSES):
+                self.iiif = IIIFRequest(baseurl='/'+prefix+'/')
+                self.manipulator = IIIFRequestHandler.MANIPULATOR_CLASSES[prefix]()
             else:
                 # 404 - unrecognized prefix
                 self.send_404_response("Not Found - prefix /%s/ is not known" + (prefix))
@@ -126,13 +126,13 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             (of,mime_type) = self.do_GET_body()
             if (not of):
-                raise I3fError("Unexpected failure to open result image")
+                raise IIIFError("Unexpected failure to open result image")
             self.send_response(200,'OK')
             if (mime_type is not None):
                 self.send_header('Content-Type',mime_type)
-#            download_filename = os.path.basename(self.i3f.identifier)
-#            if (self.i3f.ouput_format):
-#                downlocal_filename += '.' + self.i3f.ouput_format 
+#            download_filename = os.path.basename(self.iiif.identifier)
+#            if (self.iiif.ouput_format):
+#                downlocal_filename += '.' + self.iiif.ouput_format 
 #            self.send_header('Content-Disposition','inline;filename='+download_filename)
             self.add_compliance_header()
             self.end_headers()
@@ -141,67 +141,67 @@ class I3fRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 if (not buffer):
                     break
                 self.wfile.write(buffer)
-        except I3fError as e:
+        except IIIFError as e:
             if (self.debug):
-                e.text += " Request parameters: " + str(self.i3f)
+                e.text += " Request parameters: " + str(self.iiif)
             self.error_response(e.code, str(e))
         except Exception as ue:
             # Anything else becomes a 500 Internal Server Error
-            e = I3fError(code=500,text="Something went wrong... %s.\n"%(str(ue)))
+            e = IIIFError(code=500,text="Something went wrong... %s.\n"%(str(ue)))
             if (self.debug):
-                e.text += " Request parameters: " + str(self.i3f)
+                e.text += " Request parameters: " + str(self.iiif)
             self.error_response(e.code, str(e))
 
     def do_GET_body(self):
-        i3f=self.i3f
+        iiif=self.iiif
         if (len(self.path)>1024):
-            raise I3fError(code=414,
+            raise IIIFError(code=414,
                            text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
         print "GET " + self.path
         try:
-            i3f.parse_url(self.path)
-        except I3fRequestException as e:
-            # Most conditions would thow an I3fError which is handled
+            iiif.parse_url(self.path)
+        except IIIFRequestException as e:
+            # Most conditions would thow an IIIFError which is handled
             # elsewhere, catch others and rethrow
-            raise I3fError(code=400,
+            raise IIIFError(code=400,
                            text="Bad request: " + str(e) + "\n") 
         except Exception as e:
             # Something completely unexpected => 500
-            raise I3fError(code=500,
+            raise IIIFError(code=500,
                            text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
         # URL path parsed OK, now determine how to handle request
-        if (re.match('[\w\.\-]+$',i3f.identifier)):
-            file = os.path.join(I3fRequestHandler.IMAGE_DIR,i3f.identifier)
+        if (re.match('[\w\.\-]+$',iiif.identifier)):
+            file = os.path.join(IIIFRequestHandler.IMAGE_DIR,iiif.identifier)
             if (not os.path.isfile(file)):
                 images_available=""
-                for image_file in os.listdir(I3fRequestHandler.IMAGE_DIR):
-                    if (os.path.isfile(os.path.join(I3fRequestHandler.IMAGE_DIR,image_file))):
+                for image_file in os.listdir(IIIFRequestHandler.IMAGE_DIR):
+                    if (os.path.isfile(os.path.join(IIIFRequestHandler.IMAGE_DIR,image_file))):
                         images_available += "  "+image_file+"\n"
-                raise I3fError(code=404,parameter="identifier",
-                               text="Image resource '"+i3f.identifier+"' not found. Local image files available:\n" + images_available)
+                raise IIIFError(code=404,parameter="identifier",
+                               text="Image resource '"+iiif.identifier+"' not found. Local image files available:\n" + images_available)
         else:
-            raise I3fError(code=404,parameter="identifier",
-                           text="Image resource '"+i3f.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
+            raise IIIFError(code=404,parameter="identifier",
+                           text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
         # 
         self.compliance_level=self.manipulator.complianceLevel
-        if (self.i3f.info):
+        if (self.iiif.info):
             # get size
             self.manipulator.srcfile=file
             self.manipulator.do_first()
             # most of info.json comes from config, a few things specific to image
-            i = I3fInfo(conf=I3fRequestHandler.INFO)
-            i.identifier = self.i3f.identifier
+            i = IIIFInfo(conf=IIIFRequestHandler.INFO)
+            i.identifier = self.iiif.identifier
             i.width = self.manipulator.width
             i.height = self.manipulator.height
             import StringIO
             return(StringIO.StringIO(i.as_json()),"application/json")
         else:
-            (outfile,mime_type)=self.manipulator.derive(file,i3f)
+            (outfile,mime_type)=self.manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
 
 def run(host='', port=8888, image_dir='img', info=None,
         server_class=BaseHTTPServer.HTTPServer,
-        handler_class=I3fRequestHandler):
+        handler_class=IIIFRequestHandler):
     """Run webserver forever
 
     Conf must include Defaults to localhost, port, image_dir and info (a dict)
@@ -214,23 +214,23 @@ def run(host='', port=8888, image_dir='img', info=None,
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
 
-conf = I3fConfig()
+conf = IIIFConfig()
 # Import a set of manipulators and define prefixes for them
 if (conf.get('test','run_dummy')):
-    from i3f.manipulator import I3fManipulator
+    from iiif.manipulator import IIIFManipulator
     prefix=prefix=conf.get('test','dummy_prefix')
-    I3fRequestHandler.add_manipulator( klass=I3fManipulator,prefix=prefix )
-    print "Installing I3fManipulator at /%s/" % (prefix)
+    IIIFRequestHandler.add_manipulator( klass=IIIFManipulator,prefix=prefix )
+    print "Installing IIIFManipulator at /%s/" % (prefix)
 if (conf.get('test','run_pil')):
-    from i3f.manipulator_pil import I3fManipulatorPIL
+    from iiif.manipulator_pil import IIIFManipulatorPIL
     prefix=conf.get('test','pil_prefix')
-    print "Installing I3fManipulatorPIL at /%s/" % (prefix)
-    I3fRequestHandler.add_manipulator( klass=I3fManipulatorPIL,prefix=prefix )
+    print "Installing IIIFManipulatorPIL at /%s/" % (prefix)
+    IIIFRequestHandler.add_manipulator( klass=IIIFManipulatorPIL,prefix=prefix )
 if (conf.get('test','run_netpbm')):
-    from i3f.manipulator_netpbm import I3fManipulatorNetpbm
+    from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
     prefix=conf.get('test','netpbm_prefix')
-    print "Installing I3fManipulatorNetpbm at /%s/" % (prefix)
-    I3fRequestHandler.add_manipulator( klass=I3fManipulatorNetpbm,prefix=prefix )
+    print "Installing IIIFManipulatorNetpbm at /%s/" % (prefix)
+    IIIFRequestHandler.add_manipulator( klass=IIIFManipulatorNetpbm,prefix=prefix )
 
 info={}
 for option in conf.conf.options('info'):

@@ -3,8 +3,8 @@ iiif
 ====
 
 *iiif* - A Python library implementing the 
-`International Image Interoperability Framework: Image API 1.0
-<http://www-sul.stanford.edu/iiif/image-api/>`_
+`International Image Interoperability Framework: Image API 2.0
+<http://iiif.io/api/image/2.0/>`_
 
 Installation
 ------------
