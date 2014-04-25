@@ -1,14 +1,10 @@
-#!/usr/bin/env python
-
-"""Test encoding and decoding of the request URLs in the iiif spec
-
-For http://library.stanford.edu/iiif/image-api/ v0.2 dated "13 April 2012"
+"""Test encoding and decoding of the request URLs in the IIIF Image API v2.0
 
 This test includes only test cases for the table in section 7. See
 iiif_urltest.py for more examples that test other cases and alternative 
 forms which should still be decoded correctly.
 
-Simeon Warner - 2012-03-23, 2012-04-13
+Simeon Warner - 2012-03-23...2014-04-25
 """
 import unittest
 

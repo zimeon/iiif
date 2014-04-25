@@ -1,20 +1,26 @@
-"""IIIF information response class
+"""IIIF Image Information Response
 
-Model for info.json. Just JSON format since API v1.1.
+Model for info.json. The Image Information Response has been
+in just the JSON format, with JSOD-LD extensions, since v1.1
+of the Image API.
 """
 
 import sys
 import json
+import re
 import StringIO
+from iiif import __api_major__,__api_minor__
 
 # JSON-LD context
-CONTEXT = "http://library.stanford.edu/iiif/image-api/1.1/context.json"
+CONTEXT = "http://iiif.io/api/image/%d.%d/context.json" % (__api_major__,__api_minor__)
+PROFILE_PREFIX = "http://iiif.io/api/image/%d/level" % (__api_major__)
+PROFILE_SUFFIX = ".json"
 PARAMS = ['identifier','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
 EVAL_PARAMS = set(['scale_factors','formats','qualities'])
 
-class IIIFInfo:
+class IIIFInfo(object):
 
-    def __init__(self,identifier=None,width=None,height=None,
+    def __init__(self,level=1, identifier=None,width=None,height=None,
                  scale_factors=None,tile_width=None,tile_height=None,
                  formats=None,qualities=None,conf=None):
         # explicit settings
@@ -26,8 +32,7 @@ class IIIFInfo:
         self.tile_height = tile_height
         self.formats = formats
         self.qualities = qualities
-        self.profile = 'http://library.stanford.edu/iiif/image-api/compliance.html#level1'
-        self.pretty_xml=True
+        self.level = level
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
@@ -36,14 +41,47 @@ class IIIFInfo:
                 else:
                     self.__dict__[option]=conf[option]
 
+    @property
+    def level(self):
+        """Extract level number from profile URI
+
+        Returns integer level number or raises excpetion
+        """
+        m = re.match(PROFILE_PREFIX+r'(\d)'+PROFILE_SUFFIX+"$",self.profile)
+        if (m):
+            return int(m.group(1))
+        raise Exception("Bad compliance profile URI, failed to extract level number")
+
+    @level.setter
+    def level(self, value):
+        """Build profile URI from level
+        
+        Level should be an integer 0,1,2
+        """
+        self.profile = PROFILE_PREFIX + ("%d" % value) + PROFILE_SUFFIX
+
     def set(self,param,value):
         if (param in EVAL_PARAMS):
             self.__dict__[param]=eval(value) #FIXME - avoid eval
         else:
             self.__dict__[param]=value
 
-    def as_json(self):
-        """return JSON serialization"""
+    def validate(self):
+        """Validate this object as Image API data
+
+        Raise Exception with helpful message if not valid.
+        """
+        #FIXME - CODE IN HERE
+        pass
+
+    def as_json(self, validate=True):
+        """Return JSON serialization
+        
+        Will raise exception if insufficient parameters are present to
+        have a valid info.json response (unless validate is False).
+        """
+        if (validate):
+            self.validate 
         json_dict = {}
         json_dict['@context']=CONTEXT
         for param in PARAMS:
