@@ -30,13 +30,13 @@ class IIIFRequest:
         Unless specified the baseurl will be set to nothing ("").
         """
         self.clear()
-        self.baseurl = ''
-        self.set(**params)
-        #
         self.region_full=False
         self.region_pct=False
         self.region_xywh=None # (x,y,w,h)
         self.size_wh=None     # (w,h)
+        #
+        self.baseurl = ''
+        self.set(**params)
 
     def clear(self):
         """ Clear all data that might pertain to an individual iiif URL
@@ -84,8 +84,18 @@ class IIIFRequest:
             format = self.format if self.format else "json"
         else:
             # set defaults if not given
-            region = self.region if self.region else "full"
-            size = self.size if self.size else "full"
+            if self.region:
+                region = self.region
+            elif self.region_xywh:
+                region = "%d,%d,%d,%d" % (self.region_xywh[0],self.region_xywh[1],self.region_xywh[2],self.region_xywh[3]) #FIXME - how to get tiple from list
+            else:
+                region = "full"
+            if self.size:
+                size = self.size
+            elif self.size_wh:
+                size = "%d,%d" % (self.size_wh[0],self.size_wh[1])
+            else:
+                size = "full" 
             rotation = self.rotation if self.rotation else "0"
             quality = self.quality if self.quality else "native"
             # parameterized form
