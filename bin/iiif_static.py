@@ -50,6 +50,7 @@ def main():
         sg = IIIFStatic(dst=args.dst,tilesize=args.tilesize)
         if (os.path.isfile(source)):
             print "source file: %s" % (source)
+            sg.generate(source)
         elif (os.path.isdir(source)):
             print "source dir: %s - FIXME: not yet supported" % (source)
         else:
