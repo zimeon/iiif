@@ -13,9 +13,10 @@ from iiif import __api_major__,__api_minor__
 
 # JSON-LD context
 CONTEXT = "http://iiif.io/api/image/%d.%d/context.json" % (__api_major__,__api_minor__)
+PROTOCOL = "http://iiif.io/api/image"
 PROFILE_PREFIX = "http://iiif.io/api/image/%d/level" % (__api_major__)
 PROFILE_SUFFIX = ".json"
-PARAMS = ['identifier','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
+PARAMS = ['identifier','protocol','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
 EVAL_PARAMS = set(['scale_factors','formats','qualities'])
 
 class IIIFInfo(object):
@@ -40,6 +41,8 @@ class IIIFInfo(object):
                     self.__dict__[option]=eval(conf[option]) #FIXME - avoid eval
                 else:
                     self.__dict__[option]=conf[option]
+        # set value
+        self.protocol = PROTOCOL
 
     @property
     def level(self):
@@ -71,8 +74,14 @@ class IIIFInfo(object):
 
         Raise Exception with helpful message if not valid.
         """
-        #FIXME - CODE IN HERE
-        pass
+        errors = []
+        for param in ['identifier','width','height','protocol','profile']:
+            if (param not in self.__dict__ or
+                self.__dict__[param] is None):
+                errors.append("missing %s parameter" % (param))
+        if (len(errors)>0):
+            raise Exception("Bad data for inso.json: "+", ".join(errors))
+        return True
 
     def as_json(self, validate=True):
         """Return JSON serialization
@@ -81,10 +90,14 @@ class IIIFInfo(object):
         have a valid info.json response (unless validate is False).
         """
         if (validate):
-            self.validate 
+            self.validate()
         json_dict = {}
         json_dict['@context']=CONTEXT
+        if (self.identifier):
+            json_dict['@id']=self.identifier
         for param in PARAMS:
-            if (param in self.__dict__ and self.__dict__[param] is not None):
+            if (param in self.__dict__ and 
+                self.__dict__[param] is not None and
+                param!='identifier'):
                 json_dict[param] = self.__dict__[param]
         return( json.dumps(json_dict, sort_keys=True, indent=2 ) )
