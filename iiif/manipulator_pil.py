@@ -1,5 +1,5 @@
 """
-Implementation of IIIF image manipulations using the Python Image Library
+Implementation of IIIF Image API manipulations using the Python Image Library
 
 Uses the Python Image Library (PIL) for in-python manipulation:
 http://www.pythonware.com/products/pil/index.htm
