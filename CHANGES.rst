@@ -13,3 +13,11 @@ iiif changelog
 - Designed to work with Loris for for Open Seadragon demo
   (https://github.com/zimeon/loris)
 - Add GPL
+
+2014-04-22 v0.3.0
+- Change pypi package name from i3f to iiif
+
+2014-04-28 v0.4.0
+- Aim to support IIIF API v1.1 and v2.0
+- Added generation of static file tiles for OpenSeadragon
+- Included demo for OpenSeadragon with static file tiles
