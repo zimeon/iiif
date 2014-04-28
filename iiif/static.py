@@ -8,7 +8,6 @@ import logging
 import os
 import os.path
 
-from iiif import __api_major__,__api_minor__
 from iiif.manipulator_pil import IIIFManipulatorPIL
 from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
@@ -29,12 +28,19 @@ class IIIFStatic:
         sg.generate("image3.jpg")
     """
 
-    def __init__(self, src=None, dst=None, prefix=None, tilesize=None):
+    def __init__(self, src=None, dst=None, prefix=None, tilesize=None, 
+                 api_version=None, dryrun=None):
         self.src=src
         self.dst=dst
         self.prefix=prefix
         self.identifier=None
         self.tilesize=tilesize if tilesize is not None else 512
+        self.api_version=api_version if api_version is not None else '1.1'
+        if (self.api_version=='1'):
+            self.apr_version='1.1'
+        elif (self.api_version=='2'):
+            self.apr_version='2.0'
+        self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger('iiif_static')
 
     def generate(self, src=None, dst=None, tilesize=None):
@@ -70,12 +76,18 @@ class IIIFStatic:
         info=IIIFInfo(level=0, identifier=self.identifier,
                       width=width, height=height, scale_factors=scale_factors,
                       tile_width=self.tilesize, tile_height=self.tilesize,
-                      formats=['jpg'], qualities=['native'])
+                      formats=['jpg'], qualities=['native'],
+                      api_version=self.api_version)
         json_file=os.path.join(self.dst,self.identifier,'info.json')
-        with open(json_file,'w') as f:
-            f.write(info.as_json())
-            f.close()
-        self.logger.info("Written %s"%(json_file))
+        if (self.dryrun):
+            print "dryrun mode, would write the following files:"
+            print "%s / %s" % (self.dst, os.path.join(self.identifier,'info.json'))
+            self.logger.info(info.as_json())
+        else:
+            with open(json_file,'w') as f:
+                f.write(info.as_json())
+                f.close()
+            self.logger.info("Written %s"%(json_file))
         # Write out images
         for sf in scale_factors:
             rts = self.tilesize*sf #tile size in original region
@@ -85,27 +97,55 @@ class IIIFStatic:
                 rx = nx*rts
                 rxe = rx+rts
                 if (rxe>width):
-                    rxe=width-1
+                    rxe=width
                 rw = rxe-rx
                 sw = rw/sf
                 for ny in range(yt):
                     ry = ny*rts
                     rye = ry+rts
                     if (rye>height):
-                        rye=height-1
+                        rye=height
                     rh = rye-ry
                     sh = rh/sf
-                    self.generate_tile(rx,ry,rw,rh,sw,sh)
+                    self.generate_tile([rx,ry,rw,rh],[sw,sh])
+        # Now generate reduced size versions of full image
+        # 
+        # FIXME - Not sure what correct algorithm is for this, from
+        # observation of Openseadragon it seems that one keeps halving
+        # the pixel size of the full until until both width and height
+        # are less than the tile size. The output that tile and further
+        # halvings for some time. It seems that without this Openseadragon
+        # will not display any unzoomed image in small windows.
+        #
+        # I do not understand the algorithm that openseadragon uses (or
+        # know where it is in the code) to decide how small a version of
+        # the complete image to request. It seems that there is a bug in
+        # openseadragon here because in some cases it requests images
+        # of size 1,1 multiple times. For now, just go all the way down to 
+        # this size
+        for level in range(1,20):
+            factor = 2.0**level
+            sw = int(width/factor + 0.5)
+            sh = int(height/factor + 0.5)
+            if (sw<self.tilesize and sh<self.tilesize):
+                if (sw<1 or sh<1):
+                    break
+                self.generate_tile('full',[sw,sh])
 
-    def generate_tile(self,rx,ry,rw,rh,sw,sh):
+    def generate_tile(self,region,size):
         r = IIIFRequest(identifier=self.identifier)
-        r.region_xywh=[rx,ry,rw,rh]
-        r.size_wh=[sw,sh]
+        if (region == 'full'):
+            r.region_full = True
+        else:
+            r.region_xywh=region # [rx,ry,rw,rh]
+        r.size_wh=size # [sw,sh]
+        r.format='jpg'
         path = r.url()
         print "%s / %s" % (self.dst,path)
         # Generate...
-        m = IIIFManipulatorPIL()
-        m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
+        if (not self.dryrun):
+            m = IIIFManipulatorPIL()
+            m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
 
     def setup_destination(self, src):
         if (self.dst is None):
