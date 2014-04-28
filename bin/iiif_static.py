@@ -3,18 +3,6 @@
 iiif_static: Generate static images implementing the IIIF Image API level 0
 
 Copyright 2014 Simeon Warner
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License
 """
 
 import logging
@@ -38,7 +26,9 @@ def main():
     p.add_option('--dst', '-d', action='store',
                  help="destination directory")
     p.add_option('--tilesize', '-t', action='store', type='int',
-                 help="tilesize in pixels")
+                 help="tilesize in pixels [512 default]")
+    p.add_option('--api-version', '--api','-a', action='store',
+                 help="API version, may be 1.1 [default] or 2.0") 
     p.add_option('--dryrun', '-n', action='store_true',
                  help="do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
@@ -46,19 +36,21 @@ def main():
 
     (args, sources) = p.parse_args()
 
-    logging.basicConfig( format='%(message)s',
+    logging.basicConfig( format='%(name)s: %(message)s',
                          level=( logging.INFO if (args.verbose) else logging.WARNING ) )
+    logger = logging.getLogger(os.path.basename(__file__))
 
     for source in sources:
         # File or directory (or neither)?
-        sg = IIIFStatic(dst=args.dst,tilesize=args.tilesize)
+        sg = IIIFStatic( dst=args.dst, tilesize=args.tilesize,
+                         api_version=args.api_version, dryrun=args.dryrun )
         if (os.path.isfile(source)):
-            print "source file: %s" % (source)
+            logger.info("source file: %s" % (source))
             sg.generate(source)
         elif (os.path.isdir(source)):
-            print "source dir: %s - FIXME: not yet supported" % (source)
+            raise Exception("source dir: %s - FIXME: not yet supported" % (source))
         else:
-            print "ignoring source '%s': neither file nor path" % (source)
+            logger.warn("ignoring source '%s': neither file nor path" % (source))
 
 if __name__ == '__main__':
     main()
