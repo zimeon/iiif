@@ -19,7 +19,7 @@ setup(
     author='Simeon Warner',
     author_email='simeon.warner@cornel.edu',
     packages=['iiif'],
-    scripts=[],
+    scripts=['bin/iiif_static.py'],
     classifiers=["Development Status :: 3 - Alpha",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

@@ -1,5 +1,5 @@
 iiif changelog
-=============
+==============
 
 2012-03-21 v0.1.0
 - First stab at IIIF API v0.1
@@ -21,3 +21,6 @@ iiif changelog
 - Aim to support IIIF API v1.1 and v2.0
 - Added generation of static file tiles for OpenSeadragon
 - Included demo for OpenSeadragon with static file tiles
+
+2014-04-28 v0.4.1
+- Add iiif_static.py as script for pypi install
