@@ -5,9 +5,10 @@ for doing the transformations once one has knowledge of the source
 image size.
 """
 
-import re
+import logging
 import os
 import os.path
+import re
 import shutil
 import subprocess
 
@@ -32,10 +33,11 @@ class IIIFManipulator(object):
         This null manipulator doesn't comply to any of the levels defined
         in the iiif specification so it is set to None.
         """
-        self.srcfile = None;
-        self.request = None;
-        self.outfile = None;
-        self.complianceLevel = None;
+        self.srcfile = None
+        self.request = None
+        self.outfile = None
+        self.complianceLevel = None
+        self.logger = logging.getLogger(__name__)
 
     def derive(self,srcfile=None,request=None,outfile=None):
         """ Do sequence of manipulations for IIIF to derive output image

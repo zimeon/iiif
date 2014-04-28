@@ -37,7 +37,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_first(self):
         """Create PIL object from input image file
         """
-        print "src=%s" % (self.srcfile)
+        self.logger.info("do_first: src=%s" % (self.srcfile))
         try:
             self.image=Image.open(self.srcfile)
             self.image.load()
@@ -48,9 +48,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_region(self):
         (x,y,w,h)=self.region_to_apply()
         if (x is None):
-            print "region: full (nop)"
+            self.logger.info("region: full (nop)")
         else:
-            print "region: (%d,%d,%d,%d)" % (x,y,w,h)
+            self.logger.info("region: (%d,%d,%d,%d)" % (x,y,w,h))
             self.image = self.image.crop( (x,y,x+w,y+h) )
             self.width = w
             self.height = h
@@ -58,9 +58,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_size(self):
         (w,h)=self.size_to_apply()
         if (w is None):
-            print "size: no scaling (nop)"
+            self.logger.info("size: no scaling (nop)")
         else:
-            print "size: scaling to (%d,%d)" % (w,h)
+            self.logger.info("size: scaling to (%d,%d)" % (w,h))
             self.image = self.image.resize( (w,h) )
             self.width = w
             self.height = h
@@ -68,30 +68,30 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_rotation(self):
         rot=self.rotation_to_apply()
         if (rot==0.0):
-            print "rotation: no rotation (nop)"
+            self.logger.info("rotation: no rotation (nop)")
         else:
-            print "rotation: by %f degrees clockwise" % (rot)
+            self.logger.info("rotation: by %f degrees clockwise" % (rot))
             self.image = self.image.rotate( -rot, expand=True )
 
     def do_quality(self):
         quality=self.quality_to_apply()
         if (quality == 'grey'):
-            print "quality: grey"
+            self.logger.info("quality: grey")
         elif (quality == 'bitonal'):
-            print "quality: bitonal"
+            self.logger.info("quality: bitonal")
         else:
-            print "quality: quality (nop)"
+            self.logger.info("quality: quality (nop)")
 
     def do_format(self):
         # assume tiling apps want jpg...
         fmt = ( 'jpg' if (self.request.format is None) else self.request.format)
         if (fmt == 'png'):
-            print "format: png"
+            self.logger.info("format: png")
             self.mime_type="image/png"
             self.output_format=fmt
             format = 'png'
         elif (fmt == 'jpg'):
-            print "format: jpg"
+            self.logger.info("format: jpg")
             self.mime_type="image/jpeg"
             self.output_format=fmt
             format = 'jpeg';
