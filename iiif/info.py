@@ -9,13 +9,9 @@ import sys
 import json
 import re
 import StringIO
-from iiif import __api_major__,__api_minor__
 
 # JSON-LD context
-CONTEXT = "http://iiif.io/api/image/%d.%d/context.json" % (__api_major__,__api_minor__)
-PROTOCOL = "http://iiif.io/api/image"
-PROFILE_PREFIX = "http://iiif.io/api/image/%d/level" % (__api_major__)
-PROFILE_SUFFIX = ".json"
+# 1.1
 PARAMS = ['identifier','protocol','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile']
 EVAL_PARAMS = set(['scale_factors','formats','qualities'])
 
@@ -23,7 +19,11 @@ class IIIFInfo(object):
 
     def __init__(self,level=1, identifier=None,width=None,height=None,
                  scale_factors=None,tile_width=None,tile_height=None,
-                 formats=None,qualities=None,conf=None):
+                 formats=None,qualities=None,api_version='2.0',
+                 conf=None,):
+        # API version (used in level settings)
+        self.api_version = api_version
+        self.set_version_info()
         # explicit settings
         self.identifier = identifier
         self.width = width
@@ -41,8 +41,20 @@ class IIIFInfo(object):
                     self.__dict__[option]=eval(conf[option]) #FIXME - avoid eval
                 else:
                     self.__dict__[option]=conf[option]
-        # set value
-        self.protocol = PROTOCOL
+
+    def set_version_info(self):
+        if (self.api_version=='1.1'):
+            self.context = "http://library.stanford.edu/iiif/image-api/1.1/context.json"
+            self.profile_prefix = "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level"
+            self.profile_suffix = ""
+            self.protocol = None
+            self.required_params = ['identifier','width','height','profile']
+        elif (self.api_version=='2.0'):
+            self.context = "http://iiif.io/api/image/2.0/context.json"
+            self.profile_prefix = "http://iiif.io/api/image/2/level"
+            self.profile_suffix = ".json"
+            self.protocol = "http://iiif.io/api/image"
+            self.required_params = ['identifier','width','height','protocol','profile']
 
     @property
     def level(self):
@@ -50,7 +62,7 @@ class IIIFInfo(object):
 
         Returns integer level number or raises excpetion
         """
-        m = re.match(PROFILE_PREFIX+r'(\d)'+PROFILE_SUFFIX+"$",self.profile)
+        m = re.match(self.profile_prefix+r'(\d)'+self.profile_suffix+"$",self.profile)
         if (m):
             return int(m.group(1))
         raise Exception("Bad compliance profile URI, failed to extract level number")
@@ -61,7 +73,7 @@ class IIIFInfo(object):
         
         Level should be an integer 0,1,2
         """
-        self.profile = PROFILE_PREFIX + ("%d" % value) + PROFILE_SUFFIX
+        self.profile = self.profile_prefix + ("%d" % value) + self.profile_suffix
 
     def set(self,param,value):
         if (param in EVAL_PARAMS):
@@ -75,7 +87,7 @@ class IIIFInfo(object):
         Raise Exception with helpful message if not valid.
         """
         errors = []
-        for param in ['identifier','width','height','protocol','profile']:
+        for param in self.required_params:
             if (param not in self.__dict__ or
                 self.__dict__[param] is None):
                 errors.append("missing %s parameter" % (param))
@@ -92,7 +104,7 @@ class IIIFInfo(object):
         if (validate):
             self.validate()
         json_dict = {}
-        json_dict['@context']=CONTEXT
+        json_dict['@context']=self.context
         if (self.identifier):
             json_dict['@id']=self.identifier
         for param in PARAMS:
