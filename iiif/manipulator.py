@@ -99,7 +99,7 @@ class IIIFManipulator(object):
         (x,y,w,h)=self.region_to_apply()
         if (x is not None):
             raise IIIFError(code=501,parameter="region",
-                           text="Null manipulator supports only region=/full/.")
+                            text="Null manipulator supports only region=/full/.")
 
     def do_size(self):
         # Size
@@ -107,25 +107,25 @@ class IIIFManipulator(object):
         if (self.request.size_pct != 100.0 and
             self.request.size != 'full'):
             raise IIIFError(code=501,parameter="size",
-                           text="Null manipulator supports only size=pct:100 and size=full.")
+                            text="Null manipulator supports only size=pct:100 and size=full.")
 
     def do_rotation(self):
         # Rotate
         if (self.rotation_to_apply() != 0.0):
             raise IIIFError(code=501,parameter="rotation",
-                           text="Null manipulator supports only rotation=(0|360).")
+                            text="Null manipulator supports only rotation=(0|360).")
 
     def do_quality(self):
         # Quality
         if (self.quality_to_apply() != "native"):
             raise IIIFError(code=501,parameter="native",
-                           text="Null manipulator supports only color=color.")
+                            text="Null manipulator supports only color=color.")
 
     def do_format(self):
         # Format (the last step)
         if (self.request.format is not None):
             raise IIIFError(code=415,parameter="format",
-                           text="Null manipulator does not support specification of output format.")
+                            text="Null manipulator does not support specification of output format.")
         # 
         if (self.outfile is None):
             self.outfile=self.srcfile
@@ -134,7 +134,7 @@ class IIIFManipulator(object):
                 shutil.copyfile(self.srcfile,self.outfile)
             except IOError as e:
                 raise IIIFError(code=500,
-                               text="Failed to copy file (%s)." % (str(e)))
+                                text="Failed to copy file (%s)." % (str(e)))
         self.mime_type=None
 
 
@@ -166,7 +166,7 @@ class IIIFManipulator(object):
         # Cannot do anything else unless we know size (in self.width and self.height)
         if (self.width<=0 or self.height<=0):
             raise IIIFError(code=501,parameter='region',
-                           text="Region parameters require knowledge of image size which is not implemented.")
+                            text="Region parameters require knowledge of image size which is not implemented.")
         pct = self.request.region_pct
         (x,y,w,h)=self.request.region_xywh
         # Convert pct to real
@@ -183,7 +183,7 @@ class IIIFManipulator(object):
         # Final check to see if we have the whole image
         if ( w==0 or h==0 ):
             raise IIIFError(code=400,parameter='region',
-                           text="Region parameters would result in zero size result image.")
+                            text="Region parameters would result in zero size result image.")
         if ( x==0 and y==0 and w==self.width and h==self.height ):
             return(None,None,None,None)
         return(x,y,w,h)
@@ -221,15 +221,14 @@ class IIIFManipulator(object):
                 w = int(self.width * h / self.height + 0.5)
             elif (h is None):
                 h = int(self.height * w / self.width + 0.5)
-            #print "size=w,h: w=%d h=%d" % (w,h)
         # Now have w,h, sanity check and return
         if ( w==0 or h==0 ):
             raise IIIFError(code=400,parameter='size',
-                           text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
-# FIXME - this isn't actually forbidden by v0.1 of the spec
-#        if ( w>self.width or h>self.height ):
-#            raise IIIFError(code=400,parameter='size',
-#                           text="Size requests scaling up image to larger than orginal.")
+                            text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
+        # Below would be test for scaling up image size, this is allowed by spec
+        # if ( w>self.width or h>self.height ):
+        #      raise IIIFError(code=400,parameter='size',
+        #                      text="Size requests scaling up image to larger than orginal.")
         if ( w==self.width and h==self.height ):    
             return(None,None)
         return(w,h)
@@ -243,7 +242,7 @@ class IIIFManipulator(object):
         if (only90s and (rotation!=0.0 and rotation!=90.0 and 
                          rotation!=180.0 and rotation!=270.0)):
             raise IIIFError(code=501,parameter="rotation",
-                           text="This implementation supports only 0,90,180,270 degree rotations.")
+                            text="This implementation supports only 0,90,180,270 degree rotations.")
         return(rotation)
 
     def quality_to_apply(self):
