@@ -51,6 +51,11 @@ class IIIFRequest:
         self.quality = None
         self.format = None
         self.info = None
+        # Other flags
+        self.size_full = False
+        self.size_pct = None
+        self.size_bang = None
+        self.rotation_deg = 0.0 
 
     def set(self, **params):
         # FIXME - maybe make this safe an allow only setting valid attributes

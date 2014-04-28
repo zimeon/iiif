@@ -17,6 +17,7 @@ Copyright 2014 Simeon Warner
    limitations under the License
 """
 
+import logging
 import optparse
 import sys
 import os.path 
@@ -44,6 +45,9 @@ def main():
                  help="verbose")
 
     (args, sources) = p.parse_args()
+
+    logging.basicConfig( format='%(message)s',
+                         level=( logging.INFO if (args.verbose) else logging.WARNING ) )
 
     for source in sources:
         # File or directory (or neither)?

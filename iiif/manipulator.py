@@ -71,6 +71,11 @@ class IIIFManipulator(object):
             self.request=request
         if (outfile is not None):
             self.outfile=outfile
+        if (self.outfile is not None):
+            # create path to output dir if necessary
+            dir = os.path.dirname(self.outfile)
+            if (not os.path.exists(dir)):
+                os.makedirs(dir)
         #
         self.do_first()
         self.do_region()

@@ -37,11 +37,12 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_first(self):
         """Create PIL object from input image file
         """
+        print "src=%s" % (self.srcfile)
         try:
             self.image=Image.open(self.srcfile)
             self.image.load()
         except Exception as e:
-            raise IIIFError(text="PIL Image.open(..) barfed: "+str(e))
+            raise IIIFError(text=("PIL Image.open(%s) barfed: %s",(self.srcfile,str(e))))
         (self.width,self.height)=self.image.size
 
     def do_region(self):

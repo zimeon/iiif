@@ -4,6 +4,10 @@ Use IIIF Image API manipulations to generate a set of tiles for
 a level0 implementation of the IIIF Image API using static files.
 """
 
+import logging
+import os
+import os.path
+
 from iiif import __api_major__,__api_minor__
 from iiif.manipulator_pil import IIIFManipulatorPIL
 from iiif.info import IIIFInfo
@@ -25,29 +29,31 @@ class IIIFStatic:
         sg.generate("image3.jpg")
     """
 
-    def __init__(self, src=None, dst=None, tilesize=None):
+    def __init__(self, src=None, dst=None, prefix=None, tilesize=None):
         self.src=src
         self.dst=dst
-        self.identifier='./img'
+        self.prefix=prefix
+        self.identifier=None
         self.tilesize=tilesize if tilesize is not None else 512
+        self.logger = logging.getLogger('iiif_static')
 
     def generate(self, src=None, dst=None, tilesize=None):
-        # Use attributes as defaults for params not specified
-        if (src is None):
-            src=self.src
-        if (dst is None):
-            dst=self.dst
-        if (tilesize is None):
-            tilesize=self.tilesize
+        # Use params to override object attributes
+        if (src is not None):
+            self.src=src
+        if (dst is not None):
+            self.dst=dst
+        if (tilesize is not None):
+            self.tilesize=tilesize
         # Get image details and calculate tiles
         im=IIIFManipulatorPIL()
-        im.srcfile=src
+        im.srcfile=self.src
         im.do_first()
         width=im.width
         height=im.height
         #print "w=%d h=%d ts=%d" % (im.width,im.height,tilesize)
-        xtiles = int(width/tilesize)
-        ytiles = int(height/tilesize)
+        xtiles = int(width/self.tilesize)
+        ytiles = int(height/self.tilesize)
         max_tiles = xtiles if (xtiles>ytiles) else ytiles
         scale_factors = [ 1 ]
         factor = 1
@@ -56,15 +62,23 @@ class IIIFStatic:
                 break
             factor = factor+factor
             scale_factors.append(factor)
+        # Setup destination and IIIF identifier
+        self.setup_destination(self.src)
+        if (self.identifier is None):
+            (self.identifier,ext) = os.path.splitext(os.path.basename(self.dst))
         # Write info.json
         info=IIIFInfo(level=0, identifier=self.identifier,
                       width=width, height=height, scale_factors=scale_factors,
-                      tile_width=tilesize, tile_height=tilesize,
+                      tile_width=self.tilesize, tile_height=self.tilesize,
                       formats=['jpg'], qualities=['native'])
-        print info.as_json()
+        json_file=os.path.join(self.dst,self.identifier,'info.json')
+        with open(json_file,'w') as f:
+            f.write(info.as_json())
+            f.close()
+        self.logger.info("Written %s"%(json_file))
         # Write out images
         for sf in scale_factors:
-            rts = tilesize*sf #tile size in original region
+            rts = self.tilesize*sf #tile size in original region
             xt = (width-1)/rts+1 
             yt = (height-1)/rts+1
             for nx in range(xt):
@@ -84,10 +98,25 @@ class IIIFStatic:
                     self.generate_tile(rx,ry,rw,rh,sw,sh)
 
     def generate_tile(self,rx,ry,rw,rh,sw,sh):
-        r = IIIFRequest(identifier="aa")
+        r = IIIFRequest(identifier=self.identifier)
         r.region_xywh=[rx,ry,rw,rh]
         r.size_wh=[sw,sh]
         path = r.url()
-        print path
-        #m = IIIFManipulator()
-        #m.derive(srcfile='a.jpg',request=r)        
+        print "%s / %s" % (self.dst,path)
+        # Generate...
+        m = IIIFManipulatorPIL()
+        m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
+
+    def setup_destination(self, src):
+        if (self.dst is None):
+            (self.dst, junk) = os.path.splitext(src)
+        if (os.path.isdir(self.dst)):
+            # Nothin for now, perhaps should delete?
+            pass
+        elif (os.path.isfile(self.dst)):
+            raise Exception("Can't write to directory %s: a file of that name exists"%(self.dst))
+        else:
+            os.makedirs(self.dst)
+        # Now chop off identifier directory
+        (self.dst, self.identifier) = os.path.split(self.dst)
+        self.logger.info("Output directory %s" % (self.dst))
