@@ -1,0 +1,22 @@
+{
+  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", 
+  "@id": "starfish2", 
+  "formats": [
+    "jpg"
+  ], 
+  "height": 3176, 
+  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0", 
+  "qualities": [
+    "native"
+  ], 
+  "scale_factors": [
+    1, 
+    2, 
+    4, 
+    8, 
+    16
+  ], 
+  "tile_height": 256, 
+  "tile_width": 256, 
+  "width": 1920
+}
