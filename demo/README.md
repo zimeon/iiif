@@ -36,7 +36,7 @@ I suspect this is to do with default quality of the Python Image Library
 output jpegs.
 
 ```
-simeon@RottenApple iiif>du -sh testimages/tetons.jpg demo/tetons testimages/starfish.jpg demo/starfish testimages/starfish2.jpg demo/starfish2
+iiif> du -sh testimages/tetons.jpg demo/tetons testimages/starfish.jpg demo/starfish testimages/starfish2.jpg demo/starfish2
 2.8M		   testimages/tetons.jpg
 1.8M		   demo/tetons
 3.4M		   testimages/starfish.jpg
