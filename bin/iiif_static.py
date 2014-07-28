@@ -40,17 +40,20 @@ def main():
                          level=( logging.INFO if (args.verbose) else logging.WARNING ) )
     logger = logging.getLogger(os.path.basename(__file__))
 
-    for source in sources:
-        # File or directory (or neither)?
-        sg = IIIFStatic( dst=args.dst, tilesize=args.tilesize,
-                         api_version=args.api_version, dryrun=args.dryrun )
-        if (os.path.isfile(source)):
-            logger.info("source file: %s" % (source))
-            sg.generate(source)
-        elif (os.path.isdir(source)):
-            raise Exception("source dir: %s - FIXME: not yet supported" % (source))
-        else:
-            logger.warn("ignoring source '%s': neither file nor path" % (source))
+    if (len(sources)==0):
+        logger.warn("no sources specified, nothing to do, bye! (-h for help)")
+    else:
+        for source in sources:
+            # File or directory (or neither)?
+            sg = IIIFStatic( dst=args.dst, tilesize=args.tilesize,
+                             api_version=args.api_version, dryrun=args.dryrun )
+            if (os.path.isfile(source)):
+                logger.info("source file: %s" % (source))
+                sg.generate(source)
+            elif (os.path.isdir(source)):
+                raise Exception("source dir: %s - FIXME: not yet supported" % (source))
+            else:
+                logger.warn("ignoring source '%s': neither file nor path" % (source))
 
 if __name__ == '__main__':
     main()
