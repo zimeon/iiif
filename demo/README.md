@@ -10,7 +10,7 @@ revisions of the Image API and viewers will reduce or eliminate the
 amount of out-of-band knwoledge required.)
 
 To run this demo you will need a copy of this git repository (clone as 
-described in <../README>). All of the static files for the demo are 
+described in <https://github.com/zimeon/iiif>). All of the static files for the demo are 
 included in git so you can run OpenSeadragon immediately. Instructions
 for regenerating them are below and allow testing with different tile
 size or with different images.
