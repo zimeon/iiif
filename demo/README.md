@@ -1,14 +1,28 @@
 IIIF Image API Static File Demo with OpenSeadragon
 ==================================================
 
+The [IIIF Image API](http://iiif.io/api/image) supports description of
+tiles that may be implemented using static files. This demo
+uses static files to drive [OpenSeadragon](http://openseadragon.github.io/).
+(At present the viewers available, such as OpenSeadragon, need specific 
+tile sizes to be available based on knowledge of the viewer. Later 
+revisions of the Image API and viewers will reduce or eliminate the
+amount of out-of-band knwoledge required.)
+
+To run this demo you will need a copy of this git repository (clone as 
+described in <../README>). All of the static files for the demo are 
+included in git so you can run OpenSeadragon immediately. Instructions
+for regenerating them are below and allow testing with different tile
+size or with different images.
+
 A copy of OpenSeadragon is included in the the `demo/osd` directory
 for convenience. The current version may be downloaded from 
 <http://openseadragon.github.io/#download>.
 
-All files for the demo are included in git, instructions for regenerating 
-them are below but one can view run the demo directly.
+Run demo
+--------
 
-Run test server on local machine from `iiif` directory:
+Run a test web server on local machine from `iiif` directory:
 ```
 iiif> python -m SimpleHTTPServer
 ```
