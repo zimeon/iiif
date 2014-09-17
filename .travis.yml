@@ -5,7 +5,7 @@ python:
 # command to install dependencies
 # need "python setup.py install" to install resync so that client tests work
 install:
-  - pip install PIL
+  - pip install pil
   - python setup.py install
 # command to run tests
 script: py.test
