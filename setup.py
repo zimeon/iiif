@@ -1,6 +1,8 @@
-from distutils.core import setup
+from setuptools import setup
+# setuptools used instead of distutils.core so that 
+# dependencies can be handled automatically
 
-# Extract version number from resync/_version.py. Here we are very strict
+# Extract version number from iiif/_version.py. Here we are very strict
 # about the format of the version string as an extra sanity check.
 # (thanks for comments in 
 # http://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package )
@@ -34,4 +36,8 @@ setup(
     license='LICENSE.txt',
     description='IIIF Image API library',
     long_description=open('README').read(),
+    install_requires=[
+        "Pillow"
+    ],
+    test_suite="iiif.test",
 )
