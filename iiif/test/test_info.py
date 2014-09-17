@@ -1,6 +1,6 @@
 """Test code for iiif/info.py"""
 import unittest
-
+import re #needed because no assertRegexpMatches in 2.6
 from iiif.info import IIIFInfo
 
 class TestAll(unittest.TestCase):
@@ -16,7 +16,9 @@ class TestAll(unittest.TestCase):
 
     def test02_scale_factor(self):
         ir = IIIFInfo(width=1,height=2,scale_factors=[1,2])
-        self.assertRegexpMatches( ir.as_json(validate=False), r'"scale_factors": \[\s*1' ) #,\s*2\s*]' )
+        #self.assertRegexpMatches( ir.as_json(validate=False), r'"scale_factors": \[\s*1' ) #,\s*2\s*]' ) #no assertRegexpMatches in 2.6
+        json = ir.as_json(validate=False)
+        self.assertTrue( re.search(r'"scale_factors": \[\s*1',json) )
 
     def test03_array_vals(self):
         i = IIIFInfo()
