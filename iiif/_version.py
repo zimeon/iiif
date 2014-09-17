@@ -1,2 +1,2 @@
 # This is the one place the version number for this iiif library is stored
-__version__ = '0.4.1'
+__version__ = '0.4.2'
