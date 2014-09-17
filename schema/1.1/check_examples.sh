@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "# All good cases should say 'valididates'"
+echo "# All good cases should say 'validates'"
 for xml in *_ex*.xml; do
   echo -n "xsd: "
   xmllint --noout --schema image-api.xsd $xml
