@@ -11,11 +11,16 @@ iiif
 <http://iiif.io/api/image/2.0/>`_ and 
 Image API 1.1
 `<http://iiif.io/api/image/1.1/>`_.
+Also includes a test server using the library to implement the Image
+API transformations dynamically, and a static file generator to
+pre-compute tiles necessary for OpenSeadragon which may then be
+stored a static files.
 
 Installation
 ------------
 
-The client and library are designed to work with Python 2.6 or 2.7.
+The library, test server, static file generator are all designed to
+work with Python 2.6 or 2.7.
 
 **Automatic installation**::
 
