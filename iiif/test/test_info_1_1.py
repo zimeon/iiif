@@ -60,6 +60,11 @@ class TestAll(unittest.TestCase):
         self.assertEqual( i.profile, "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0" )
         self.assertEqual( i.width, 6000 )
         self.assertEqual( i.height, 4000 )
+        self.assertEqual( i.scale_factors, [1,2,4] )
+        self.assertEqual( i.tile_width, 1024 )
+        self.assertEqual( i.tile_height, 1024 )
+        self.assertEqual( i.formats, ['jpg','png'] )
+        self.assertEqual( i.qualities, ['native','grey'] )
 
     def test11_read_example_with_explicit_version(self):
         i = IIIFInfo() #default not 1.1

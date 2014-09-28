@@ -1,6 +1,7 @@
 """Test code for iiif/info.py"""
 import unittest
 import re #needed because no assertRegexpMatches in 2.6
+import json
 from iiif.info import IIIFInfo
 
 class TestAll(unittest.TestCase):
@@ -15,10 +16,11 @@ class TestAll(unittest.TestCase):
         self.assertEqual( ir.as_json(), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}' )
 
     def test02_scale_factor(self):
-        ir = IIIFInfo(width=1,height=2,scale_factors=[1,2])
-        #self.assertRegexpMatches( ir.as_json(validate=False), r'"scale_factors": \[\s*1' ) #,\s*2\s*]' ) #no assertRegexpMatches in 2.6
+        ir = IIIFInfo(width=199,height=299,tile_width=100,tile_height=100,scale_factors=[1,2])
+        #self.assertRegexpMatches( ir.as_json(validate=False), r'"scaleFactors": \[\s*1' ) #,\s*2\s*]' ) #no assertRegexpMatches in 2.6
         json = ir.as_json(validate=False)
-        self.assertTrue( re.search(r'"scale_factors": \[\s*1',json) )
+        self.assertTrue( re.search(r'"width": 100',json) )
+        self.assertTrue( re.search(r'"scaleFactors": \[\s*1',json) )
 
     def test03_array_vals(self):
         i = IIIFInfo()
@@ -61,11 +63,66 @@ class TestAll(unittest.TestCase):
         self.assertEqual( i.protocol, "http://iiif.io/api/image" )
         self.assertEqual( i.width, 6000 )
         self.assertEqual( i.height, 4000 )
+        self.assertEqual( i.sizes, [ {"width" : 150, "height" : 100},
+                                     {"width" : 600, "height" : 400},
+                                     {"width" : 3000, "height": 2000} ] )
 
-    def test20_read_unknown_contect(self):
+    def test11_read_example_with_extra(self):
+        i = IIIFInfo()
+        fh = open('test_info/2.0/info_with_extra.json')
+        i.read(fh)
+        self.assertEqual( i.context, "http://iiif.io/api/image/2/context.json" )
+        self.assertEqual( i.id, "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C" )
+        self.assertEqual( i.protocol, "http://iiif.io/api/image" )
+        self.assertEqual( i.width, 6000 )
+        self.assertEqual( i.height, 4000 )
+        self.assertEqual( i.tiles, [{"width" : 512, "scaleFactors" : [1,2,4,8,16]}] )
+        # and should have 1.1-like params too
+        self.assertEqual( i.tile_width, 512 )
+        self.assertEqual( i.scale_factors, [1,2,4,8,16] )
+        self.assertEqual( i.profile, "http://iiif.io/api/image/2/level2.json" )
+
+    def test12_read_unknown_context(self):
         i = IIIFInfo()
         fh = open('test_info/2.0/info_bad_context.json')
         self.assertRaises( Exception, i.read, fh )
+
+    def test20_write_example_in_spec(self):
+        i = IIIFInfo(
+            identifier="http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+            #"protocol" : "http://iiif.io/api/image",
+            width=6000,
+            height=4000,
+            sizes=[
+                {"width" : 150, "height" : 100},
+                {"width" : 600, "height" : 400},
+                {"width" : 3000, "height": 2000}
+                ],
+            tiles=[
+                {"width" : 512, "scaleFactors" : [1,2,4,8,16]}
+                ],
+            profile=[
+                "http://iiif.io/api/image/2/level2.json",
+                {
+                    "formats" : [ "gif", "pdf" ],
+                    "qualities" : [ "color", "gray" ],
+                    "supports" : [
+                        "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
+                        ]
+                    }
+                ],
+            service={
+                "@context": "http://iiif.io/api/annex/service/physdim/1/context.json",
+                "profile": "http://iiif.io/api/annex/service/physdim",
+                "physicalScale": 0.0025,
+                "physicalUnits": "in"
+                }
+            )
+        reparsed_json = json.loads( i.as_json() )
+        example_json = json.load( open('test_info/2.0/info_from_spec.json') )
+        self.maxDiff = 4000
+        self.assertEqual( reparsed_json, example_json )
+        
 
 # If run from command line, do tests
 if __name__ == '__main__':
