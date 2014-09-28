@@ -15,7 +15,7 @@ import StringIO
 CONF = {
     '1.1': {
         'params': ['identifier','protocol','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile'],
-        'eval_params': set(['sizes','scale_factors','formats','qualities']),
+        'array_params': set(['scale_factors','formats','qualities']),
         'context': "http://library.stanford.edu/iiif/image-api/1.1/context.json",
         'profile_prefix': "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level",
         'profile_suffix': "",
@@ -24,8 +24,8 @@ CONF = {
         },
     '2.0': {
         'params': ['identifier','protocol','width','height','sizes','scale_factors','tile_width','tile_height','formats','qualities','profile'],
-        'eval_params': set(['sizes','scale_factors','formats','qualities']),
-        'context': "http://iiif.io/api/image/2.0/context.json",
+        'array_params': set(['sizes','scale_factors','formats','qualities']),
+        'context': "http://iiif.io/api/image/2/context.json",
         'profile_prefix': "http://iiif.io/api/image/2/level",
         'profile_suffix': ".json",
         'protocol': "http://iiif.io/api/image",
@@ -44,7 +44,7 @@ class IIIFInfo(object):
             raise Exception("Unknown IIIF Image API version '%s', versions supported are ('%s')" % (api_version,sorted(CONF.keys())))
         self.api_version = api_version
         self.params = CONF[api_version]['params']
-        self.eval_params = CONF[api_version]['eval_params']
+        self.array_params = CONF[api_version]['array_params']
         self.set_version_info()
         # explicit settings
         self.identifier = identifier
@@ -59,7 +59,7 @@ class IIIFInfo(object):
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
-                if (option in self.eval_params):
+                if (option in self.array_params):
                     self.__dict__[option]=eval(conf[option]) #FIXME - avoid eval
                 else:
                     self.__dict__[option]=conf[option]
@@ -96,7 +96,7 @@ class IIIFInfo(object):
         self.profile = self.profile_prefix + ("%d" % value) + self.profile_suffix
 
     def set(self,param,value):
-        if (param in self.eval_params):
+        if (param in self.array_params):
             self.__dict__[param]=eval(value) #FIXME - avoid eval
         else:
             self.__dict__[param]=value
@@ -134,17 +134,47 @@ class IIIFInfo(object):
                 json_dict[param] = self.__dict__[param]
         return( json.dumps(json_dict, sort_keys=True, indent=2 ) )
 
-    def read(self, fh):
+    def read(self, fh, api_version=None):
         """Read info.json from file like object supporting fh.read()
+
+        If version is set then the parsing will assume this API version. If
+        there is a @context specified then an exception will be raised unless
+        it matches. If no known @context is present and no api_version set 
+        then an exception will be raised.
         """
         j = json.load(fh)
         self.context = j['@context']
         # Determine API version from context
+        api_version_read = None
+        for v in CONF:
+            if (self.context == CONF[v]['context']):
+                api_version_read = v
+        if (api_version_read is None):
+            if (api_version is not None):
+                self.api_version = api_version
+            else:
+                raise Exception("Unknown @context, cannot determine API version (%s)"%(self.context))
+        else:
+            if (api_version is not None and
+                api_version != api_version_read):
+                raise Exception("Expected API version '%s' but got context for API version '%s'" % (api_version,api_version_read))
+            else:
+                self.api_version = api_version_read
+        self.set_version_info()
+        #
         self.id = j['@id']
-        self.protocol = j['protocol']
+        for param in self.params:
+            if (param == 'indetifier'):
+                continue
+            if (param in j):
+                if (param in self.array_params):
+                    #self.set(param,j[param]) need to handle arrays
+                    pass
+                else:
+                    self.set(param,j[param])
+        #self.protocol = j['protocol']
+        self.profile = j['profile']
         self.width = j['width']
         self.height = j['height']
-        for hw in j['sizes']:
-            pass
         return True
 

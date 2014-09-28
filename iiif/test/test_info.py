@@ -9,10 +9,10 @@ class TestAll(unittest.TestCase):
         # Just do the trivial JSON test
         # ?? should this empty case raise and error instead?
         ir = IIIFInfo(identifier="http://example.com/i1")
-        self.assertEqual( ir.as_json(validate=False), '{\n  "@context": "http://iiif.io/api/image/2.0/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image"\n}' )
+        self.assertEqual( ir.as_json(validate=False), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image"\n}' )
         ir.width=100
         ir.height=200
-        self.assertEqual( ir.as_json(), '{\n  "@context": "http://iiif.io/api/image/2.0/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}' )
+        self.assertEqual( ir.as_json(), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}' )
 
     def test02_scale_factor(self):
         ir = IIIFInfo(width=1,height=2,scale_factors=[1,2])
@@ -54,14 +54,19 @@ class TestAll(unittest.TestCase):
 
     def test10_read_example_from_spec(self):
         i = IIIFInfo()
-        fh = open('schema/2.0/info_from_spec.json')
+        fh = open('test_info/2.0/info_from_spec.json')
         i.read(fh)
         self.assertEqual( i.context, "http://iiif.io/api/image/2/context.json" )
         self.assertEqual( i.id, "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C" )
         self.assertEqual( i.protocol, "http://iiif.io/api/image" )
         self.assertEqual( i.width, 6000 )
         self.assertEqual( i.height, 4000 )
-        
+
+    def test20_read_unknown_contect(self):
+        i = IIIFInfo()
+        fh = open('test_info/2.0/info_bad_context.json')
+        self.assertRaises( Exception, i.read, fh )
+
 # If run from command line, do tests
 if __name__ == '__main__':
     unittest.main()
