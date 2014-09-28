@@ -52,6 +52,16 @@ class TestAll(unittest.TestCase):
         i = IIIFInfo(identifier='a',width=1,height=2)
         self.assertTrue( i.validate() )
 
+    def test10_read_example_from_spec(self):
+        i = IIIFInfo()
+        fh = open('schema/2.0/info_from_spec.json')
+        i.read(fh)
+        self.assertEqual( i.context, "http://iiif.io/api/image/2/context.json" )
+        self.assertEqual( i.id, "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C" )
+        self.assertEqual( i.protocol, "http://iiif.io/api/image" )
+        self.assertEqual( i.width, 6000 )
+        self.assertEqual( i.height, 4000 )
+        
 # If run from command line, do tests
 if __name__ == '__main__':
     unittest.main()
