@@ -1,4 +1,4 @@
-""" Almost null implementation iiif image manipulations and base class 
+"""Almost null implementation iiif image manipulations to provide base class 
 
 Provides a number of utility methods to extract information necessary
 for doing the transformations once one has knowledge of the source
@@ -22,17 +22,18 @@ class IIIFManipulator(object):
     determine the HTTP response.
     """
 
-    def __init__(self):
+    def __init__(self, api_version='2.0'):
         """ Return URI indicating IIIF compliance level, or None if not
 
-        The attribute complicanceLevel is set of either None or a URI 
+        The attribute complicanceLevel is set either to None or a URI 
         that can be used in the HTTP response headers like of the form
 
         Link: <http://iiif.example.org/compliance/level/0>;rel="compliesTo"
 
         This null manipulator doesn't comply to any of the levels defined
-        in the iiif specification so it is set to None.
+        in the iiif specification so it is set to None here.
         """
+        self.api_version = api_version
         self.srcfile = None
         self.request = None
         self.outfile = None
@@ -113,7 +114,8 @@ class IIIFManipulator(object):
 
     def do_rotation(self):
         # Rotate
-        if (self.rotation_to_apply() != 0.0):
+        (mirror,rot) = self.rotation_to_apply(no_mirror=True)
+        if (rot != 0.0):
             raise IIIFError(code=501,parameter="rotation",
                             text="Null manipulator supports only rotation=(0|360).")
 
@@ -235,17 +237,21 @@ class IIIFManipulator(object):
             return(None,None)
         return(w,h)
 
-    def rotation_to_apply(self, only90s=False):
+    def rotation_to_apply(self, only90s=False, no_mirror=False):
         """Check an interpret rotation
 
-        Returns a floating point number 0 <= angle < 360 (degrees).
+        Returns a truth value as to whether to mirror, and a floating point 
+        number 0 <= angle < 360 (degrees).
         """
         rotation=self.request.rotation_deg
+        if (no_mirror and self.request.rotation_mirror):
+            raise IIIFError(code=501,parameter="rotation",
+                            text="This implementation does not support mirroring.")            
         if (only90s and (rotation!=0.0 and rotation!=90.0 and 
                          rotation!=180.0 and rotation!=270.0)):
             raise IIIFError(code=501,parameter="rotation",
                             text="This implementation supports only 0,90,180,270 degree rotations.")
-        return(rotation)
+        return(self.request.rotation_mirror,rotation)
 
     def quality_to_apply(self):
         """Value of color parameter to use in processing request

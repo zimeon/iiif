@@ -28,11 +28,11 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     PORT=None
     IMAGE_DIR=None
     INFO=None
-    MANIPULATOR_CLASSES={}
+    MANIPULATORS={}
     
     @classmethod
-    def add_manipulator(cls, klass,prefix):
-        cls.MANIPULATOR_CLASSES[prefix]=klass
+    def add_manipulator(cls, prefix, klass, api_version='2.0'):
+        cls.MANIPULATORS[prefix]={'klass': klass, 'api_version': api_version}
 
     def __init__(self, request, client_address, server):
         # Add some local attributes for this subclass (seems we have to 
@@ -60,7 +60,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("<html><head><title>iiif_testserver</title></head><body>\n")
         self.wfile.write("<h1>iiif_testserver on %s:%s</h1>\n" %(IIIFRequestHandler.HOST,IIIFRequestHandler.PORT))
-        prefixes = sorted(IIIFRequestHandler.MANIPULATOR_CLASSES.keys())
+        prefixes = sorted(IIIFRequestHandler.MANIPULATORS.keys())
         files = os.listdir(IIIFRequestHandler.IMAGE_DIR)
         self.wfile.write("<table>\n")
         self.wfile.write("<tr><th></th>")
@@ -109,18 +109,19 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_index_page()
             return
         # Now assume we have an iiif request
-        m = re.match(r'/(\w+)(/.*)$', self.path)
+        m = re.match(r'/([\w\._]+)(/.*)$', self.path)
         if (m):
             prefix = m.group(1)
-            if (prefix in IIIFRequestHandler.MANIPULATOR_CLASSES):
-                self.iiif = IIIFRequest(baseurl='/'+prefix+'/')
-                self.manipulator = IIIFRequestHandler.MANIPULATOR_CLASSES[prefix]()
+            if (prefix in IIIFRequestHandler.MANIPULATORS):
+                v = IIIFRequestHandler.MANIPULATORS[prefix]['api_version']
+                self.iiif = IIIFRequest(baseurl='/'+prefix+'/',api_version=v)
+                self.manipulator = IIIFRequestHandler.MANIPULATORS[prefix]['klass'](api_version=v)
             else:
                 # 404 - unrecognized prefix
-                self.send_404_response("Not Found - prefix /%s/ is not known" + (prefix))
+                self.send_404_response("Not Found - prefix /%s/ is not known" % (prefix))
                 return
         else:
-            # 404 - unknwn prefix/path structure
+            # 404 - unrecognized path structure
             self.send_404_response("Not Found - path structure not recognized")
             return
         try:
@@ -216,21 +217,28 @@ def run(host='', port=8888, image_dir='img', info=None,
 
 conf = IIIFConfig()
 # Import a set of manipulators and define prefixes for them
-if (conf.get('test','run_dummy')):
-    from iiif.manipulator import IIIFManipulator
-    prefix=prefix=conf.get('test','dummy_prefix')
-    IIIFRequestHandler.add_manipulator( klass=IIIFManipulator,prefix=prefix )
-    print "Installing IIIFManipulator at /%s/" % (prefix)
-if (conf.get('test','run_pil')):
-    from iiif.manipulator_pil import IIIFManipulatorPIL
-    prefix=conf.get('test','pil_prefix')
-    print "Installing IIIFManipulatorPIL at /%s/" % (prefix)
-    IIIFRequestHandler.add_manipulator( klass=IIIFManipulatorPIL,prefix=prefix )
-if (conf.get('test','run_netpbm')):
-    from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
-    prefix=conf.get('test','netpbm_prefix')
-    print "Installing IIIFManipulatorNetpbm at /%s/" % (prefix)
-    IIIFRequestHandler.add_manipulator( klass=IIIFManipulatorNetpbm,prefix=prefix )
+for section in conf.get_test_sections():
+    prefix = conf.get(section,'prefix')
+    if (prefix.find('/')>=0):
+        print "Prefix must not contain slash, %s in section %s ignored" % (prefix,section)
+        continue
+    klass_name = conf.get(section,'klass')
+    api_version = conf.get(section,'api_version')
+    klass=None
+    if (klass_name=='pil'):
+        from iiif.manipulator_pil import IIIFManipulatorPIL
+        klass=IIIFManipulatorPIL
+    elif (klass_name=='netpbm'):
+        from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
+        klass=IIIFManipulatorNetpbm
+    elif (klass_name=='dummy'):
+        from iiif.manipulator import IIIFManipulator
+        klass=IIIFManipulator
+    else:
+        print "Unknown manipulator type %s in section %s, ignoring" % (klass_name,section)
+        continue
+    print "Installing %s IIIFManipulator at /%s/ v%s" % (klass_name,prefix,api_version)
+    IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version )
 
 info={}
 for option in conf.conf.options('info'):
@@ -238,7 +246,7 @@ for option in conf.conf.options('info'):
     info[option] = conf.get('info',option)
 print "info = " + str(info)
 
-run(host=conf.get('test','server_host'),
-    port=int(conf.get('test','server_port')),
-    image_dir=conf.get('test','image_dir'),
+run(host=conf.get('test_server','server_host'),
+    port=int(conf.get('test_server','server_port')),
+    image_dir=conf.get('test_server','image_dir'),
     info=info)

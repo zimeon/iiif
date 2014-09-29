@@ -21,7 +21,7 @@ setup(
     author='Simeon Warner',
     author_email='simeon.warner@cornell.edu',
     packages=['iiif'],
-    scripts=['bin/iiif_static.py'],
+    scripts=['iiif_static.py','iiif_testserver.py'],
     classifiers=["Development Status :: 3 - Alpha",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

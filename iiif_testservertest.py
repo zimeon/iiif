@@ -72,11 +72,10 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/full/1.0,1.0/0/color'), 'code400' )        
         self.assertEqual( self.get(id+'/full/1.1,1.1/0/color'), 'code400' )        
         # Bad rotation
-        self.assertEqual( self.get(id+'/full/pct:101/0/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/pct:101/-1/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/pct:101/-0.001/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/pct:101/361/color'), 'code400' )        
-        self.assertEqual( self.get(id+'/full/pct:101/360.1/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/full/-1/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/full/-0.001/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/full/361/color'), 'code400' )        
+        self.assertEqual( self.get(id+'/full/full/360.1/color'), 'code400' )        
         # Bad color
         self.assertEqual( self.get(id+'/full/pct:100/0/bogus'), 'code400' )        
         # Bad format

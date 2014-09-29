@@ -120,7 +120,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         # Rotate
         #simeon@ice ~>cat m2.pnm | pnmrotate 123.456 > m3.pnm
         #pnmrotate: angle must be between -90 and 90 and it is CCW not CW
-        rot=self.rotation_to_apply()
+        (mirror,rot)=self.rotation_to_apply(no_mirror=True) #FIXME - add mirroring
         if (rot==0.0):
             #print "rotation: no rotation"
             self.tmpfile=infile

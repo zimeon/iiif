@@ -7,7 +7,7 @@ useful will still happen.
 import ConfigParser
 import os
 
-I3F_CONF = 'etc/iiif.conf'
+IIIF_CONF = 'etc/iiif.conf'
 
 DEFAULTS = {
     'info' : {
@@ -17,17 +17,35 @@ DEFAULTS = {
         'formats': '[ "jpg", "png" ]',
         'qualities': '[ "native", "color" ]',
         },
-    'test' : {
+    'test_server' : {
         'server_host': '',
         'server_port': '8000',
         'image_dir': 'testimages',
-        'run_dummy': '1',
-        'dummy_prefix': 'dummy',
-        'run_pil': '1',
-        'pil_prefix': 'pil',
-        'run_netpbm': '',
-        'netpbm_prefix': 'netpbm',
         },
+    'test1' : {
+        'prefix': '1.1_dummy',
+        'klass': 'dummy',
+        'api_version': '1.1'
+        },
+    'test2' : {
+        'prefix': '2.0_dummy',
+        'klass': 'dummy',
+        'api_version': '2.0'
+        },
+    'test3' : {
+        'prefix': '1.1_pil',
+        'klass': 'pil',
+        'api_version': '1.0'
+        },
+    'test4' : {
+        'prefix': '2.0_pil',
+        'klass': 'pil',
+        'api_version': '2.0'
+        }
+#    'test2' : {
+#        'run_netpbm': '',
+#        'netpbm_prefix': 'netpbm',
+#        },
 }
 
 class IIIFConfig(object):
@@ -35,7 +53,7 @@ class IIIFConfig(object):
     def __init__(self,conf_file=None):
         if (conf_file is None):
             root = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-            conf_file = os.path.join(root, I3F_CONF)
+            conf_file = os.path.join(root, IIIF_CONF)
         self.conf = ConfigParser.ConfigParser()
         # set defaults
         for section in DEFAULTS.keys():
@@ -44,6 +62,17 @@ class IIIFConfig(object):
                 self.conf.set(section,option,DEFAULTS[section][option])
         # read config if present
         self.conf.read(conf_file)
+
+    def get_test_sections(self):
+        """Return a list of test section names
+
+        Will look at all section names that start test but are not test_server
+        """
+        test_sections = []
+        for section in self.conf.sections():
+            if (section.startswith('test') and section!='test_server'):
+                test_sections.append(section)
+        return(test_sections)
 
     def get(self, section, option, raw=False, vars=None):
         """Wrapper for get(..) in ConfigParser"""

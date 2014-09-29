@@ -28,8 +28,8 @@ class IIIFManipulatorPIL(IIIFManipulator):
     filecmd = None
     pnmdir = None
 
-    def __init__(self):
-        super(IIIFManipulatorPIL, self).__init__()
+    def __init__(self, **kwargs):
+        super(IIIFManipulatorPIL, self).__init__(**kwargs)
         # Does not support jp2 output
         self.complianceLevel="http://iiif.example.org/compliance/level/0"
         self.outtmp = None
@@ -66,12 +66,19 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.height = h
 
     def do_rotation(self):
-        rot=self.rotation_to_apply()
-        if (rot==0.0):
+        (mirror,rot)=self.rotation_to_apply()
+        if (not mirror and rot==0.0):
             self.logger.info("rotation: no rotation (nop)")
         else:
-            self.logger.info("rotation: by %f degrees clockwise" % (rot))
-            self.image = self.image.rotate( -rot, expand=True )
+            #FIXME - with PIL one can use the transpose() method to do 90deg
+            #FIXME - rotations as well as mirroring. This would be more efficient
+            #FIXME - for these cases than mirror _then_ rotate.
+            if (mirror):
+                self.logger.info("rotation: mirror (about vertical axis)")
+                self.image = self.image.transpose( Image.FLIP_LEFT_RIGHT )
+            if (rot!=0.0):
+                self.logger.info("rotation: by %f degrees clockwise" % (rot))
+                self.image = self.image.rotate( -rot, expand=True )
 
     def do_quality(self):
         quality=self.quality_to_apply()
