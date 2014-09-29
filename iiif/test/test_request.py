@@ -76,8 +76,7 @@ data  = {
 
 class TestAll(unittest.TestCase):
 
-    def test02_parse_region(self):
-        print "parse_region tests..."
+    def test01_parse_region(self):
         r = IIIFRequest()
         r.region=None
         r.parse_region()
@@ -105,67 +104,86 @@ class TestAll(unittest.TestCase):
         self.assertFalse(r.region_full)
         self.assertTrue(r.region_pct)
         self.assertEqual(r.region_xywh, [0.0,0.0,100.0,100.0])
-        # bad ones
+
+    def test02_parse_region_bad(self):
+        r = IIIFRequest()
         r.region='pct:0,0,50,1000'
         self.assertRaises( IIIFError, r.parse_region )
         r.region='pct:-10,0,50,100'
         self.assertRaises( IIIFError, r.parse_region )
 
-    def test02_parse_size(self):
-        print "parse_size tests..."
+    def test03_parse_size(self):
         r = IIIFRequest()
-        r.size='pct:100'
-        r.parse_size()
+        r.parse_size('pct:100')
         self.assertEqual(r.size_pct, 100.0)
         self.assertFalse(r.size_bang)
-        r.size='1,2'
-        r.parse_size()
+        r.parse_size('1,2')
         self.assertFalse(r.size_pct)
         self.assertFalse(r.size_bang)
         self.assertEqual(r.size_wh, (1,2))
-        r.size='3,'
-        r.parse_size()
+        r.parse_size('3,')
         self.assertFalse(r.size_pct)
         self.assertFalse(r.size_bang)
         self.assertEqual(r.size_wh, (3,None))
-        r.size=',4'
-        r.parse_size()
+        r.parse_size(',4')
         self.assertFalse(r.size_pct)
         self.assertFalse(r.size_bang)
         self.assertEqual(r.size_wh, (None,4))
-        r.size='!5,6'
-        r.parse_size()
+        r.parse_size('!5,6')
         self.assertFalse(r.size_pct)
         self.assertTrue(r.size_bang)
         self.assertEqual(r.size_wh, (5,6))
 
-    def test03_parse_rotation(self):
-        print "parse_rotation tests..."
+    def test04_parse_size_bad(self):
         r = IIIFRequest()
-        r.rotation='0'
-        r.parse_rotation()
+        self.assertRaises( IIIFError, r.parse_size, ',0.0' )
+        self.assertRaises( IIIFError, r.parse_size, '0.0,' )
+        self.assertRaises( IIIFError, r.parse_size, '1.0,1.0' )
+        self.assertRaises( IIIFError, r.parse_size, '1,1,1' )
+
+    def test05_parse_rotation(self):
+        r = IIIFRequest()
+        r.parse_rotation('0')
+        self.assertEqual(r.rotation_mirror, False)
         self.assertEqual(r.rotation_deg, 0.0)
-        r.rotation='0.0000'
-        r.parse_rotation()
+        r.parse_rotation('0.0000')
+        self.assertEqual(r.rotation_mirror, False)
         self.assertEqual(r.rotation_deg, 0.0)
-        r.rotation='180'
-        r.parse_rotation()
+        r.parse_rotation('0.000001')
+        self.assertEqual(r.rotation_mirror, False)
+        self.assertEqual(r.rotation_deg, 0.000001)
+        r.parse_rotation('180')
+        self.assertEqual(r.rotation_mirror, False)
         self.assertEqual(r.rotation_deg, 180.0)
-        r.rotation='180'
-        r.parse_rotation()
-        self.assertEqual(r.rotation_deg, 180.0)
-        # bad ones
+        r.parse_rotation('360')
+        self.assertEqual(r.rotation_mirror, False)
+        self.assertEqual(r.rotation_deg, 0.0)
+        r.parse_rotation('!0')
+        self.assertEqual(r.rotation_mirror, True)
+        self.assertEqual(r.rotation_deg, 0.0)
+        r.parse_rotation('!0.000')
+        self.assertEqual(r.rotation_mirror, True)
+        self.assertEqual(r.rotation_deg, 0.0)
+        r.parse_rotation('!123.45678')
+        self.assertEqual(r.rotation_mirror, True)
+        self.assertEqual(r.rotation_deg, 123.45678)
+
+    def test06_parse_rotation_bad(self):
+        r = IIIFRequest()
         r.rotation='-1'
         self.assertRaises( IIIFError, r.parse_rotation )
         r.rotation='-0.0000001'
         self.assertRaises( IIIFError, r.parse_rotation )
-        r.rotation='360.1'
+        r.rotation='360.0000001'
         self.assertRaises( IIIFError, r.parse_rotation )
         r.rotation='abc'
         self.assertRaises( IIIFError, r.parse_rotation )
+        r.rotation='1!'
+        self.assertRaises( IIIFError, r.parse_rotation )
+        r.rotation='!!4'
+        self.assertRaises( IIIFError, r.parse_rotation )
 
-    def test04_parse_quality(self):
-        print "parse_quality tests..."
+    def test07_parse_quality(self):
         r = IIIFRequest()
         r.quality=None
         r.parse_quality()
@@ -179,16 +197,16 @@ class TestAll(unittest.TestCase):
         r.quality='grey'
         r.parse_quality()
         self.assertEqual(r.quality_val, 'grey')
-        # bad ones
+
+    def test08_parse_quality_bad(self):
+        r = IIIFRequest()
         r.quality='does_not_exist'
         self.assertRaises( IIIFError, r.parse_quality )
         # bad ones
         r.quality=''
         self.assertRaises( IIIFError, r.parse_quality )
 
-
-    def test1_encode(self):
-        print "Encoding tests..."
+    def test10_encode(self):
         for tname in sorted(data.iterkeys()):
             tdata=data[tname]
             print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
@@ -196,8 +214,7 @@ class TestAll(unittest.TestCase):
             self.assertEqual(iiif.url(),data[tname][1])
         print
   
-    def test2_decode(self):
-        print "Decoding tests..."
+    def test11_decode(self):
         for tname in sorted(data.iterkeys()):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
@@ -208,9 +225,17 @@ class TestAll(unittest.TestCase):
                 self.assertEqual(tstr,pstr)
         print
 
-    def test3_decode_except(self):
+    def test12_decode_except(self):
         self.assertRaises(IIIFError, IIIFRequest().split_url, ("bogus"))
         self.assertRaises(IIIFError, IIIFRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
+
+    def test20_parse_w_comma_h(self):
+        r = IIIFRequest()
+        self.assertEquals( r._parse_w_comma_h('1,2','a'), (1,2) )
+
+    def test21_parse_w_comma_h_bad(self):
+        r = IIIFRequest()
+        self.assertRaises( IIIFError, r._parse_w_comma_h, '1.0,1.0', 'size' )
 
     def pstr(self,p):
         s=''
@@ -219,7 +244,6 @@ class TestAll(unittest.TestCase):
                 s += k+'='+str(p[k])+' '
         return(s)
 
-        
 # If run from command line, do tests
 if __name__ == '__main__':
     unittest.main()

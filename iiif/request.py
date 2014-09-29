@@ -55,6 +55,7 @@ class IIIFRequest:
         self.size_full = False
         self.size_pct = None
         self.size_bang = None
+        self.rotation_mirror = False
         self.rotation_deg = 0.0 
 
     def set(self, **params):
@@ -92,7 +93,7 @@ class IIIFRequest:
             if self.region:
                 region = self.region
             elif self.region_xywh:
-                region = "%d,%d,%d,%d" % (self.region_xywh[0],self.region_xywh[1],self.region_xywh[2],self.region_xywh[3]) #FIXME - how to get tiple from list
+                region = "%d,%d,%d,%d" % list(self.region_xywh)
             else:
                 region = "full"
             if self.size:
@@ -239,7 +240,7 @@ class IIIFRequest:
                            text="Zero size region specified (%s))."%xywh)
         self.region_xywh=values
 
-    def parse_size(self):
+    def parse_size(self,size=None):
         """Parse the size component of the path
 
         /full/ -> self.size_full = True
@@ -257,6 +258,8 @@ class IIIFRequest:
               # scale to w by h
         Returns (None,None) if no scaling is required.
         """
+        if (size is not None):
+            self.size = size
         self.size_pct=None
         self.size_bang=False
         self.size_full=False
@@ -280,13 +283,14 @@ class IIIFRequest:
                 raise IIIFError(code=400,parameter="size",
                                text="Base size percentage, must be > 0.0, got %f."%(self.size_pct))
         else:
-            bang_match = re.match('!(.*)$',self.size)
-            if (bang_match is not None):
+            if (self.size[0]=='!'):
                 # Have "!w,h" form
-                (mw,mh)=self._parse_w_comma_h(bang_match.group(1),'size')
+                size_no_bang=self.size[1:]
+                (mw,mh)=self._parse_w_comma_h(size_no_bang,'size')
                 if (mw is None or mh is None):
                     raise IIIFError(code=400,parameter="size",
                                    text="Illegal size requested: both w,h must be specified in !w,h requests.")
+                self.size_wh=(mw,mh)
                 self.size_bang=True
             else:
                 # Must now be "w,h", "w," or ",h"
@@ -298,23 +302,22 @@ class IIIFRequest:
                 raise IIIFError(code=400,parameter='size',
                                text="Size parameters request zero size result image.")
 
-    def _parse_w_comma_h(self,str,param):
+    def _parse_w_comma_h(self,whstr,param):
         """ Utility to parse "w,h" "w," or ",h" values
         
         Returns (w,h) where w,h are either None or ineteger. Will
         throw a ValueError if there is a problem with one or both.
         """
-        (wstr,hstr) = string.split(str, ',', 2)
         try:
+            (wstr,hstr) = string.split(whstr, ',', 2)
             w = self._parse_non_negative_int(wstr,'w')
             h = self._parse_non_negative_int(hstr,'h')
         except ValueError as e:
             raise IIIFError(code=400,parameter=param,
-                           text="Illegal parameter value (%s)." % str(e) )
+                            text="Illegal %s value (%s)." % (param,str(e)) )
         if (w is None and h is None):
             raise IIIFError(code=400,parameter=param,
-                           text="Must specify at least one of w,h.")
-        self.size_wh=(w,h)
+                            text="Must specify at least one of w,h for %s." % (param))
         return(w,h)
 
     def _parse_non_negative_int(self,istr,name):
@@ -333,15 +336,26 @@ class IIIFRequest:
             raise ValueError("Illegal negative value for %s" % (name))
         return(i)
 
-    def parse_rotation(self):
+    def parse_rotation(self, rotation=None):
         """ Check and interpret rotation
 
-        Sets self.rotation_deg to a floating point number 0 <= angle < 360. Includes
-        translation of 360 to 0.
+        Uses value of self.rotation at starting point unless rotation parameter
+        is specified in the call. Sets self.rotation_deg to a floating point 
+        number 0 <= angle < 360. Includes translation of 360 to 0. If there is 
+        a prefix bang (!) then self.rotation_mirror will be set True, otherwise
+        it will be False.
         """
+        if (rotation is not None):
+            self.rotation = rotation
+        self.rotation_deg=0.0
+        self.rotation_mirror=False
         if (self.rotation is None):
-            self.rotation_deg=0.0
             return
+        # Look for ! prefix first
+        if (self.rotation[0]=='!'):
+            self.rotation_mirror=True
+            self.rotation=self.rotation[1:]
+        # Interpret value now
         try:
             self.rotation_deg=float(self.rotation)
         except ValueError:
