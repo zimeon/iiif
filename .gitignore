@@ -7,3 +7,4 @@ ts.py
 build
 dist
 MANIFEST
+iiif.egg-info
