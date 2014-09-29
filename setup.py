@@ -19,7 +19,7 @@ setup(
     name='iiif',
     version=version,
     author='Simeon Warner',
-    author_email='simeon.warner@cornel.edu',
+    author_email='simeon.warner@cornell.edu',
     packages=['iiif'],
     scripts=['bin/iiif_static.py'],
     classifiers=["Development Status :: 3 - Alpha",
