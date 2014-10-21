@@ -121,9 +121,15 @@ class IIIFManipulator(object):
 
     def do_quality(self):
         # Quality
-        if (self.quality_to_apply() != "native"):
-            raise IIIFError(code=501,parameter="native",
-                            text="Null manipulator supports only color=color.")
+        if (self.api_version == '1.0' or
+            self.api_version == '1.1'):
+            if (self.quality_to_apply() != "native"):
+                raise IIIFError(code=501,parameter="native",
+                                text="Null manipulator supports only color=native.")
+        else:
+            if (self.quality_to_apply() != "default"):
+                raise IIIFError(code=501,parameter="default",
+                                text="Null manipulator supports only color=default.")
 
     def do_format(self):
         # Format (the last step)
@@ -254,12 +260,17 @@ class IIIFManipulator(object):
         return(self.request.rotation_mirror,rotation)
 
     def quality_to_apply(self):
-        """Value of color parameter to use in processing request
+        """Value of quality parameter to use in processing request
 
-        Simple substitution of 'native' for default.
+        Simple substitution of 'native' or 'default' if not quality
+        parameter is specified.
         """
         if (self.request.quality is None):
-            return('native')
+            if (self.api_version == '1.0' or
+                self.api_version == '1.1'):
+                return('native')
+            else:
+                return('default')
         return(self.request.quality)
 
     def cleanup(self):
