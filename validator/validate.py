@@ -69,14 +69,15 @@ for testname in tests:
             e = result.exception
             bad += 1
             logging.error("%s FAIL"%test_str)
-            logging.info("  got: %s\n  expected: %s\n  type: %s"%(e.got,e.expected,e.type))
+            logging.error("  url: %s\n  got: %s\n  expected: %s\n  type: %s"%(result.urls,e.got,e.expected,e.type))
         else:
             logging.warning("%s PASS"%test_str)
             logging.info("  url: %s\n  tests: %s\n"%(result.urls,result.tests))
     except Exception as e:
         #raise
         #info = {'test' : testname, 'status': 'internal-error', 'url':e.url, 'msg':str(e)}
-        logging.warning("%s FAIL"%test_str)
-        logging.warning("  exception: %s\n"%(str(e)))
+        bad += 1
+        logging.error("%s FAIL"%test_str)
+        logging.error("  exception: %s\n"%(str(e)))
 logging.warning("Done (%d tests, %d failures)" % (n,bad))
 exit(bad)
