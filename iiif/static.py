@@ -12,7 +12,7 @@ from iiif.manipulator_pil import IIIFManipulatorPIL
 from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
 
-class IIIFStatic:
+class IIIFStatic(object):
     """Provide static generation of IIIF images
 
     Simplest, using source image as model for directory which
