@@ -1,7 +1,7 @@
 """IIIF Image Information Response
 
 Model for IIIF Image AAPI 'Image Information Response'.
-Default version is 2.0 but also supports 1.1.
+Default version is 2.0 but also supports 1.1 and 1.0
 """
 
 import sys
@@ -39,6 +39,19 @@ def _parse_profile(info,json_data):
 
 # Configuration information for API versions
 CONF = {
+    '1.0': {
+        'params': ['identifier','protocol','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile'],
+        'array_params': set(['scale_factors','formats','qualities']),
+        'complex_params': {
+            'scale_factors': _parse_int_array,
+            'formats': _parse_noop, #array of str
+            'qualities': _parse_noop, #array of str
+            },
+        'profile_prefix': "http://library.stanford.edu/iiif/image-api/compliance.html#level",
+        'profile_suffix': "",
+        'protocol': None,
+        'required_params': ['identifier','width','height','profile'],
+        },
     '1.1': {
         'params': ['identifier','protocol','width','height','scale_factors','tile_width','tile_height','formats','qualities','profile'],
         'array_params': set(['scale_factors','formats','qualities']),
@@ -73,8 +86,9 @@ CONF = {
 class IIIFInfo(object):
 
     def __init__(self,api_version='2.0',profile=None,level=1,conf=None,
+                 server_and_prefix='',
                  identifier=None,width=None,height=None,tiles=None,
-                 sizes=None,service=None,
+                 sizes=None,service=None,id=None,
                  # legacy params from 1.1
                  scale_factors=None,tile_width=None,tile_height=None,
                  formats=None,qualities=None,
@@ -100,6 +114,7 @@ class IIIFInfo(object):
         else:
             self.level = level
         # explicit settings
+        self.server_and_prefix = server_and_prefix
         self.identifier = identifier
         self.width = width
         self.height = height
@@ -119,6 +134,32 @@ class IIIFInfo(object):
                     self.__dict__[option]=eval(conf[option]) #FIXME - avoid eval
                 else:
                     self.__dict__[option]=conf[option]
+        if (id is not None):
+            self.id = id
+
+    @property
+    def id(self):
+        id = ''
+        if (self.server_and_prefix is not None and
+            self.server_and_prefix!=''):
+            id += self.server_and_prefix + '/'
+        if (self.identifier is not None):    
+            id += self.identifier
+        return id
+
+    @id.setter
+    def id(self,value):
+        """Split into server_and_prefix and identifier"""
+        i = value.rfind('/')
+        if (i>0):
+            self.server_and_prefix=value[:i]
+            self.identifier=value[(i+1):]
+        elif (i==0):
+            self.server_and_prefix=''
+            self.identifier=value[(i+1):]
+        else:
+            self.server_and_prefix=''
+            self.identifier=value
 
     def set_version_info(self, api_version=None):
         """Set up normal values for given api_version
@@ -133,7 +174,8 @@ class IIIFInfo(object):
         self.complex_params = CONF[api_version]['complex_params']
         for a in ('context','profile_prefix','profile_suffix',
                   'protocol','required_params'):
-            self.set(a,CONF[api_version][a])
+            if (a in CONF[api_version]):
+                self.set(a,CONF[api_version][a])
 
     @property
     def level(self):
@@ -173,11 +215,10 @@ class IIIFInfo(object):
         """
         errors = []
         for param in self.required_params:
-            if (param not in self.__dict__ or
-                self.__dict__[param] is None):
+            if (not hasattr(self,param) or getattr(self,param) is None):
                 errors.append("missing %s parameter" % (param))
         if (len(errors)>0):
-            raise Exception("Bad data for inso.json: "+", ".join(errors))
+            raise Exception("Bad data for info.json: "+", ".join(errors))
         return True
 
     def as_json(self, validate=True):
@@ -194,9 +235,13 @@ class IIIFInfo(object):
         if (validate):
             self.validate()
         json_dict = {}
-        json_dict['@context']=self.context
+        if (self.api_version>'1.0'):
+            json_dict['@context']=self.context
         if (self.identifier):
-            json_dict['@id']=self.identifier
+            if (self.api_version=='1.0'):
+                json_dict['identifier']=self.identifier # local id
+            else:
+                json_dict['@id']=self.id # URI
         for param in self.params:
             if (param in self.__dict__ and 
                 self.__dict__[param] is not None and
@@ -213,30 +258,35 @@ class IIIFInfo(object):
         then an exception will be raised.
         """
         j = json.load(fh)
-        self.context = j['@context']
-        # Determine API version from context
-        api_version_read = None
-        for v in CONF:
-            if (self.context == CONF[v]['context']):
-                api_version_read = v
-        if (api_version_read is None):
-            if (api_version is not None):
-                self.api_version = api_version
+        self.context=None
+        if (self.api_version!='1.0'):
+            self.context = j['@context']
+            # Determine API version from context
+            api_version_read = None
+            for v in CONF:
+                if (v>'1.0' and self.context==CONF[v]['context']):
+                    api_version_read = v
+            if (api_version_read is None):
+                if (api_version is not None):
+                    self.api_version = api_version
+                else:
+                    raise Exception("Unknown @context, cannot determine API version (%s)"%(self.context))
             else:
-                raise Exception("Unknown @context, cannot determine API version (%s)"%(self.context))
-        else:
-            if (api_version is not None and
-                api_version != api_version_read):
-                raise Exception("Expected API version '%s' but got context for API version '%s'" % (api_version,api_version_read))
-            else:
-                self.api_version = api_version_read
+                if (api_version is not None and
+                    api_version != api_version_read):
+                    raise Exception("Expected API version '%s' but got context for API version '%s'" % (api_version,api_version_read))
+                else:
+                    self.api_version = api_version_read
         self.set_version_info()
         #
-        self.id = j['@id']
+        if (self.api_version=='1.0'):
+            self.id = j['identifier']
+        else:
+            self.id = j['@id']
         for param in self.params:
-            if (param == 'indentifier'):
-                # has no meaning in info.json, @id is used instead
-                continue
+            if (param == 'indentifier' or
+                param == '@id'):
+                continue #dealt with above
             if (param in j):
                 if (param in self.complex_params):
                     # use function ref in complex_params to parse
