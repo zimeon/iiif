@@ -986,6 +986,7 @@ class TestSuite(object):
     def test_jsonld(self, result):
         """{"label":"JSON-LD Media Type","level":1,"category":7,"versions":["2.0"]}"""         
         url = result.make_info_url()
+        result.urls.append(url)
         hdrs = {'Accept': 'application/ld+json'}
         try:
             r = urllib2.Request(url, headers=hdrs)
@@ -1047,6 +1048,7 @@ class TestSuite(object):
     def test_baseurl_redirect(self, result):
         """{"label":"Base URL Redirects","level":1,"category":7,"versions":["2.0"]}""" 
         url = result.make_info_url()
+        result.urls.append(url)
         url = url.replace('/info.json', '')
         try:
             r = urllib2.Request(url)
@@ -1190,6 +1192,7 @@ class ImageAPI(object):
 
     def fetch(self, url):
         # print url
+        self.urls.append(url)
         try:
             wh = urllib2.urlopen(url)
         except urllib2.HTTPError, e:
@@ -1202,7 +1205,6 @@ class ImageAPI(object):
         self.last_status = wh.code
         self.last_url = url
         wh.close()
-        self.urls.append(url)
         return(data)
 
     def make_url(self, params={}):
@@ -1280,8 +1282,9 @@ class ImageAPI(object):
 class Validator(object):
 
     def __init__(self):
-        sys.stderr.write('init on Validator\n');
-        sys.stderr.flush()
+        #sys.stderr.write('init on Validator\n');
+        #sys.stderr.flush()
+        pass
 
     def handle_test(self, testname):
 
