@@ -55,7 +55,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     
     def send_index_page(self, file='index.html'):
         """Send an HTML file as response"""
-        self.send_response(404)
+        self.send_response(200)
         self.send_header('Content-Type','text/html')
         self.end_headers()
         self.wfile.write("<html><head><title>iiif_testserver</title></head><body>\n")
@@ -92,6 +92,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(content)
 
+    def add_cors_header(self):
+        """All responses should have CORS header"""
+        self.send_header('Access-control-allow-origin','*')
+
     def add_compliance_header(self):
         if (self.compliance_level is not None):
             self.send_header('Link','<'+self.compliance_level+'>;rel="compliesTo"')
@@ -109,9 +113,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_index_page()
             return
         # Now assume we have an iiif request
-        m = re.match(r'/([\w\._]+)(/.*)$', self.path)
+        m = re.match(r'/([\w\._]+)/(.*)$', self.path)
         if (m):
             prefix = m.group(1)
+            self.path = m.group(2)
             if (prefix in IIIFRequestHandler.MANIPULATORS):
                 v = IIIFRequestHandler.MANIPULATORS[prefix]['api_version']
                 self.iiif = IIIFRequest(baseurl='/'+prefix+'/',api_version=v)
@@ -136,6 +141,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 #                downlocal_filename += '.' + self.iiif.ouput_format 
 #            self.send_header('Content-Disposition','inline;filename='+download_filename)
             self.add_compliance_header()
+            self.add_cors_header()
             self.end_headers()
             while (1):
                 buffer = of.read(8192)
@@ -157,7 +163,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         iiif=self.iiif
         if (len(self.path)>1024):
             raise IIIFError(code=414,
-                           text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
+                            text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
         print "GET " + self.path
         try:
             iiif.parse_url(self.path)
