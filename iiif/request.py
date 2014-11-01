@@ -10,7 +10,7 @@ import string
 
 from error import IIIFError
 
-class IIIFRequest:
+class IIIFRequest(object):
     """ Implement IIIF request URL syntax
     
     There are two URL forms defined in section 2:
@@ -23,27 +23,28 @@ class IIIFRequest:
     then a relative URL will be created or parsed.
     """
 
-    def __init__(self, **params):
+    def __init__(self, api_version='2.0', **params):
         """Create Request object and optionally set any attributes via 
-        named parameters
+        named parameters.
 
+        Current API version assumed ('2.0') if not specified. If another API
+        version is to be used then this should be set on creation via the
+        api_version parameter.
+ 
         Unless specified the baseurl will be set to nothing ("").
         """
-        self.clear()
-        self.region_full=False
-        self.region_pct=False
-        self.region_xywh=None # (x,y,w,h)
-        self.size_wh=None     # (w,h)
-        #
         self.baseurl = ''
+        self.api_version = api_version
+        self.clear()
         self.set(**params)
 
     def clear(self):
-        """ Clear all data that might pertain to an individual iiif URL
+        """ Clear all data that might pertain to an individual IIIF URL
 
-        Does not change/reset the baseurl which might be useful in a
-        sequence of calls.
+        Does not change/reset the baseurl or API version which might be 
+        useful in a sequence of calls.
         """
+        # API parameters
         self.identifier = None
         self.region = None
         self.size = None
@@ -51,16 +52,41 @@ class IIIFRequest:
         self.quality = None
         self.format = None
         self.info = None
-        # Other flags
+        # Derived data and flags
+        self.region_full = False
+        self.region_pct = False
+        self.region_xywh = None # (x,y,w,h)
         self.size_full = False
         self.size_pct = None
         self.size_bang = None
+        self.size_wh = None     # (w,h)
         self.rotation_mirror = False
         self.rotation_deg = 0.0 
 
+    @property
+    def api_version(self):
+        """ Get api_version value """
+        return self._api_version
+
+    @api_version.setter
+    def api_version(self,v):
+        """ Set the api_version and associated configurations """
+        self._api_version=v
+        if (self._api_version>='2.0'):
+            self.default_quality = 'default'
+            self.allowed_qualities = ['default','color','bitonal','gray']
+        else: # versions 1.0 and 1.1
+            self.default_quality = 'native'
+            self.allowed_qualities = ['native','color','bitonal','grey']
+
     def set(self, **params):
-        # FIXME - maybe make this safe an allow only setting valid attributes
-        self.__dict__.update(**params)
+        """ Set one of the allowed request parameters
+
+        Will silently ignore any unknown parameters.
+        """
+        for k in ('identifier','region','size','rotation','quality','format','info'):
+            if (k in params):
+                setattr(self, k, params[k])
 
     def quote(self, path_segment):
         """ Quote parameters in IIIF URLs
@@ -103,7 +129,7 @@ class IIIFRequest:
             else:
                 size = "full" 
             rotation = self.rotation if self.rotation else "0"
-            quality = self.quality if self.quality else "native"
+            quality = self.quality if self.quality else self.default_quality
             # parameterized form
             path += self.quote(region) + "/" +\
                     self.quote(size) + "/" +\
@@ -153,7 +179,7 @@ class IIIFRequest:
         # Break up by path segments, count to decide format
         segs = string.split( url, '/', 5)
         if (len(segs) > 5):
-            raise(IIIFError(code=400,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
+            raise(IIIFError(code=404,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
             self.identifier = urllib.unquote(segs[0])
             self.region = urllib.unquote(segs[1])
@@ -375,10 +401,10 @@ class IIIFRequest:
         default. Checks for the three valid values else throws and IIIFError.
         """
         if (self.quality is None):
-            self.quality_val='native'
-        elif (self.quality not in ['native','color','bitonal','grey']):
+            self.quality_val=self.default_quality
+        elif (self.quality not in self.allowed_qualities):
             raise IIIFError(code=400,parameter="quality",
-                           text="The quality parameter must be 'native', 'color', 'bitonal' or 'grey', got '%s'."%(self.quality))
+                            text="The quality parameter must be '%s', got '%s'."%("', '".join(self.allowed_qualities),self.quality))
         else:
             self.quality_val=self.quality
 
