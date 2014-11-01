@@ -7,13 +7,19 @@ requested.
 
 import BaseHTTPServer
 import re
+import optparse
 import os
 import os.path
+import sys
 
 from iiif.config import IIIFConfig
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest
 from iiif.info import IIIFInfo
+
+def no_op(self,format,*args):
+    """Functions that does nothing - no-op"""
+    pass
 
 class IIIFRequestException(Exception):
     def __init__(self, value):
@@ -21,7 +27,7 @@ class IIIFRequestException(Exception):
     def __str__(self):
         return repr(self.value)
 
-class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
 
     # Class data
     HOST=None
@@ -45,6 +51,16 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # is not new style class
         #super(IIIFRequestHandler, self).__init__(request, client_address, server)
         BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request, client_address, server)
+
+    @property
+    def server_and_prefix(self):
+        """Return URI composed of scheme, server, port, and prefix"""
+        uri = "http://"+self.HOST
+        if (self.PORT!=80):
+            uri += ':'+str(self.PORT)
+        if (self.prefix):
+            uri += '/'+self.prefix
+        return uri
 
     def send_404_response(self, content='Resource Not Found'):
         """Send a plain 404 for URLs not under a known IIIF endpoint prefix"""
@@ -115,15 +131,15 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         # Now assume we have an iiif request
         m = re.match(r'/([\w\._]+)/(.*)$', self.path)
         if (m):
-            prefix = m.group(1)
+            self.prefix = m.group(1)
             self.path = m.group(2)
-            if (prefix in IIIFRequestHandler.MANIPULATORS):
-                v = IIIFRequestHandler.MANIPULATORS[prefix]['api_version']
-                self.iiif = IIIFRequest(baseurl='/'+prefix+'/',api_version=v)
-                self.manipulator = IIIFRequestHandler.MANIPULATORS[prefix]['klass'](api_version=v)
+            if (self.prefix in IIIFRequestHandler.MANIPULATORS):
+                self.api_version = IIIFRequestHandler.MANIPULATORS[self.prefix]['api_version']
+                self.iiif = IIIFRequest(baseurl='/'+self.prefix+'/',api_version=self.api_version)
+                self.manipulator = IIIFRequestHandler.MANIPULATORS[self.prefix]['klass'](api_version=self.api_version)
             else:
                 # 404 - unrecognized prefix
-                self.send_404_response("Not Found - prefix /%s/ is not known" % (prefix))
+                self.send_404_response("Not Found - prefix /%s/ is not known" % (self.prefix))
                 return
         else:
             # 404 - unrecognized path structure
@@ -150,13 +166,16 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.wfile.write(buffer)
         except IIIFError as e:
             if (self.debug):
-                e.text += " Request parameters: " + str(self.iiif)
+                #e.test = 'hello'
+                #e.text = str(self.iiif)
+                e.text = " Request parameters: "+str(self.iiif)
             self.error_response(e.code, str(e))
         except Exception as ue:
             # Anything else becomes a 500 Internal Server Error
             e = IIIFError(code=500,text="Something went wrong... %s.\n"%(str(ue)))
-            if (self.debug):
-                e.text += " Request parameters: " + str(self.iiif)
+            sys.stderr.write(str(ue)+"\n")
+            #if (self.debug):
+            #    e.text = " Request parameters: "+str(self.iiif)
             self.error_response(e.code, str(e))
 
     def do_GET_body(self):
@@ -164,7 +183,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if (len(self.path)>1024):
             raise IIIFError(code=414,
                             text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
-        print "GET " + self.path
+        #print "GET " + self.path
         try:
             iiif.parse_url(self.path)
         except IIIFRequestException as e:
@@ -175,7 +194,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except Exception as e:
             # Something completely unexpected => 500
             raise IIIFError(code=500,
-                           text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
+                            text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
         # URL path parsed OK, now determine how to handle request
         if (re.match('[\w\.\-]+$',iiif.identifier)):
             file = os.path.join(IIIFRequestHandler.IMAGE_DIR,iiif.identifier)
@@ -196,7 +215,8 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.manipulator.srcfile=file
             self.manipulator.do_first()
             # most of info.json comes from config, a few things specific to image
-            i = IIIFInfo(conf=IIIFRequestHandler.INFO)
+            i = IIIFInfo(conf=IIIFRequestHandler.INFO,api_version=self.api_version)
+            i.server_and_prefix = self.server_and_prefix
             i.identifier = self.iiif.identifier
             i.width = self.manipulator.width
             i.height = self.manipulator.height
@@ -206,7 +226,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             (outfile,mime_type)=self.manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
 
-def run(host='', port=8888, image_dir='img', info=None,
+def run(host='localhost', port=8888, image_dir='img', info=None,
         server_class=BaseHTTPServer.HTTPServer,
         handler_class=IIIFRequestHandler):
     """Run webserver forever
@@ -221,43 +241,60 @@ def run(host='', port=8888, image_dir='img', info=None,
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
 
-conf = IIIFConfig()
-# Import a set of manipulators and define prefixes for them
-for section in conf.get_test_sections():
-    prefix = conf.get(section,'prefix')
-    if (prefix.find('/')>=0):
-        print "Prefix must not contain slash, %s in section %s ignored" % (prefix,section)
-        continue
-    klass_name = conf.get(section,'klass')
-    api_version = conf.get(section,'api_version')
-    klass=None
-    if (klass_name=='pil'):
-        from iiif.manipulator_pil import IIIFManipulatorPIL
-        klass=IIIFManipulatorPIL
-    elif (klass_name=='netpbm'):
-        from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
-        klass=IIIFManipulatorNetpbm
-    elif (klass_name=='dummy'):
-        from iiif.manipulator import IIIFManipulator
-        klass=IIIFManipulator
-    else:
-        print "Unknown manipulator type %s in section %s, ignoring" % (klass_name,section)
-        continue
-    print "Installing %s IIIFManipulator at /%s/ v%s" % (klass_name,prefix,api_version)
-    IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version )
+def main():
+    # Options and arguments
+    p = optparse.OptionParser(description='IIIF Image Testserver')
+    p.add_option('--verbose', '-v', action='store_true',
+                 help="Be verbose")
+    p.add_option('--quiet','-q', action='store_true',
+                 help="Minimal output only")
+    (opt, args) = p.parse_args()
 
-info={}
-for option in conf.conf.options('info'):
-    print "got %s = %s" % (option,conf.get('info',option))
-    info[option] = conf.get('info',option)
-print "info = " + str(info)
+    if (opt.quiet):
+        # Add no_op function as logger to silence
+        IIIFRequestHandler.log_message=no_op
 
-pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
-with open(pidfile,'w') as fh:
-    fh.write("%d\n" % os.getpid())
-    fh.close()
+    conf = IIIFConfig()
+    # Import a set of manipulators and define prefixes for them
+    for section in conf.get_test_sections():
+        prefix = conf.get(section,'prefix')
+        if (prefix.find('/')>=0):
+            print "Prefix must not contain slash, %s in section %s ignored" % (prefix,section)
+            continue
+        klass_name = conf.get(section,'klass')
+        api_version = conf.get(section,'api_version')
+        klass=None
+        if (klass_name=='pil'):
+            from iiif.manipulator_pil import IIIFManipulatorPIL
+            klass=IIIFManipulatorPIL
+        elif (klass_name=='netpbm'):
+            from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
+            klass=IIIFManipulatorNetpbm
+        elif (klass_name=='dummy'):
+            from iiif.manipulator import IIIFManipulator
+            klass=IIIFManipulator
+        else:
+            print "Unknown manipulator type %s in section %s, ignoring" % (klass_name,section)
+            continue
+        print "Installing %s IIIFManipulator at /%s/ v%s" % (klass_name,prefix,api_version)
+        IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version )
 
-run(host=conf.get('test_server','server_host'),
-    port=int(conf.get('test_server','server_port')),
-    image_dir=conf.get('test_server','image_dir'),
-    info=info)
+    info={}
+    for option in conf.conf.options('info'):
+        print "got %s = %s" % (option,conf.get('info',option))
+        info[option] = conf.get('info',option)
+    print "info = " + str(info)
+
+    pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
+    with open(pidfile,'w') as fh:
+        fh.write("%d\n" % os.getpid())
+        fh.close()
+
+    run(host=conf.get('test_server','server_host','localhost'),
+        port=int(conf.get('test_server','server_port','8000')),
+        image_dir=conf.get('test_server','image_dir'),
+        info=info)
+
+if __name__ == "__main__":
+    main()
+
