@@ -6,7 +6,7 @@
 import unittest
 from urllib2 import *
 
-baseurl='http://localhost:8000/pil/'
+baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
 
@@ -46,8 +46,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get('1param'), 'code400' )
         self.assertEqual( self.get('1param/2/3'), 'code400' )
         self.assertEqual( self.get('1param/2/3/4'), 'code400' )
-        self.assertEqual( self.get('1param/2/3/4/5/6'), 'code400' )
-        self.assertEqual( self.get('1param/2/3/4/5/6/7'), 'code400' )
+        self.assertEqual( self.get('1param/2/3/4/5/6'), 'code404' )
+        self.assertEqual( self.get('1param/2/3/4/5/6/7'), 'code404' )
         # Simple bogus params
         self.assertEqual( self.get('bad-id/full/pct:100/0/color'), 'code404' )
         self.assertEqual( self.get(id+'/bogus-profile'), 'code400' )
