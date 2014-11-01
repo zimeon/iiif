@@ -35,7 +35,7 @@ DEFAULTS = {
     'test3' : {
         'prefix': '1.1_pil',
         'klass': 'pil',
-        'api_version': '1.0'
+        'api_version': '1.1'
         },
     'test4' : {
         'prefix': '2.0_pil',
@@ -74,6 +74,9 @@ class IIIFConfig(object):
                 test_sections.append(section)
         return(test_sections)
 
-    def get(self, section, option, raw=False, vars=None):
+    def get(self, section, option, default=None, raw=False, vars=None):
         """Wrapper for get(..) in ConfigParser"""
-        return self.conf.get(section,option,raw,vars)
+        value = self.conf.get(section,option,raw,vars)
+        if (value is '' and default is not None):
+            return default
+        return value
