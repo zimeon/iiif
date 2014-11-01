@@ -252,6 +252,11 @@ for option in conf.conf.options('info'):
     info[option] = conf.get('info',option)
 print "info = " + str(info)
 
+pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
+with open(pidfile,'w') as fh:
+    fh.write("%d\n" % os.getpid())
+    fh.close()
+
 run(host=conf.get('test_server','server_host'),
     port=int(conf.get('test_server','server_port')),
     image_dir=conf.get('test_server','image_dir'),
