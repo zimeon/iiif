@@ -9,7 +9,7 @@ install:
   - python setup.py install
   - sudo apt-get update
   - sudo apt-get install libmagic-dev
-  - pip install bottle python-magic
+  - pip install bottle python-magic lxml
 # command to run tests
 script:
   - py.test
