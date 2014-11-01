@@ -89,7 +89,7 @@ class TestAll(unittest.TestCase):
 
     def test20_write_example_in_spec(self):
         i = IIIFInfo(
-            identifier="http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+            id="http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
             #"protocol" : "http://iiif.io/api/image",
             width=6000,
             height=4000,

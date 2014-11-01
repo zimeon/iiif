@@ -7,7 +7,7 @@ class TestAll(unittest.TestCase):
 
     def test01_minmal(self):
         # Just do the trivial JSON test
-        ir = IIIFInfo(identifier="http://example.com/i1",api_version='1.1')
+        ir = IIIFInfo(server_and_prefix="http://example.com",identifier="i1",api_version='1.1')
         self.assertEqual( ir.as_json(validate=False), '{\n  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1"\n}' )
         ir.width=100
         ir.height=200
