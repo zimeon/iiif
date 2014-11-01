@@ -7,5 +7,10 @@ python:
 install:
   - pip install Pillow
   - python setup.py install
+  - sudo apt-get update
+  - sudo apt-get install libmagic-dev
+  - pip install bottle python-magic
 # command to run tests
-script: py.test
+script:
+  - py.test
+  - ./run_validate.sh
