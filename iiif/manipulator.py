@@ -121,15 +121,14 @@ class IIIFManipulator(object):
 
     def do_quality(self):
         # Quality
-        if (self.api_version == '1.0' or
-            self.api_version == '1.1'):
-            if (self.quality_to_apply() != "native"):
-                raise IIIFError(code=501,parameter="native",
-                                text="Null manipulator supports only color=native.")
-        else:
+        if (self.api_version>='2.0'):
             if (self.quality_to_apply() != "default"):
                 raise IIIFError(code=501,parameter="default",
-                                text="Null manipulator supports only color=default.")
+                                text="Null manipulator supports only quality=default.")
+        else: # versions 1.0 and 1.1
+            if (self.quality_to_apply() != "native"):
+                raise IIIFError(code=501,parameter="native",
+                                text="Null manipulator supports only quality=native.")
 
     def do_format(self):
         # Format (the last step)
@@ -262,12 +261,11 @@ class IIIFManipulator(object):
     def quality_to_apply(self):
         """Value of quality parameter to use in processing request
 
-        Simple substitution of 'native' or 'default' if not quality
+        Simple substitution of 'native' or 'default' if no quality
         parameter is specified.
         """
         if (self.request.quality is None):
-            if (self.api_version == '1.0' or
-                self.api_version == '1.1'):
+            if (self.api_version <= '1.1'):
                 return('native')
             else:
                 return('default')

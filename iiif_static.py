@@ -27,7 +27,7 @@ def main():
                  help="destination directory")
     p.add_option('--tilesize', '-t', action='store', type='int',
                  help="tilesize in pixels [512 default]")
-    p.add_option('--api-version', '--api','-a', action='store',
+    p.add_option('--api-version', '--api','-a', action='store', default='1.1',
                  help="API version, may be 1.1 [default] or 2.0") 
     p.add_option('--dryrun', '-n', action='store_true',
                  help="do not write anything, say what would be done")

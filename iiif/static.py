@@ -37,9 +37,9 @@ class IIIFStatic(object):
         self.tilesize=tilesize if tilesize is not None else 512
         self.api_version=api_version if api_version is not None else '1.1'
         if (self.api_version=='1'):
-            self.apr_version='1.1'
+            self.api_version='1.1'
         elif (self.api_version=='2'):
-            self.apr_version='2.0'
+            self.api_version='2.0'
         self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger('iiif_static')
 
@@ -73,10 +73,11 @@ class IIIFStatic(object):
         if (self.identifier is None):
             (self.identifier,ext) = os.path.splitext(os.path.basename(self.dst))
         # Write info.json
+        qualities = ['default'] if (self.api_version>'1.1') else ['native']
         info=IIIFInfo(level=0, identifier=self.identifier,
                       width=width, height=height, scale_factors=scale_factors,
                       tile_width=self.tilesize, tile_height=self.tilesize,
-                      formats=['jpg'], qualities=['native'],
+                      formats=['jpg'], qualities=qualities,
                       api_version=self.api_version)
         json_file=os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
@@ -133,7 +134,7 @@ class IIIFStatic(object):
                 self.generate_tile('full',[sw,sh])
 
     def generate_tile(self,region,size):
-        r = IIIFRequest(identifier=self.identifier)
+        r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
         if (region == 'full'):
             r.region_full = True
         else:
@@ -144,7 +145,7 @@ class IIIFStatic(object):
         print "%s / %s" % (self.dst,path)
         # Generate...
         if (not self.dryrun):
-            m = IIIFManipulatorPIL()
+            m = IIIFManipulatorPIL(api_version=self.api_version)
             m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
 
     def setup_destination(self, src):

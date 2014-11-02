@@ -127,7 +127,7 @@ class IIIFRequest(object):
             if self.region:
                 region = self.region
             elif self.region_xywh:
-                region = "%d,%d,%d,%d" % list(self.region_xywh)
+                region = "%d,%d,%d,%d" % tuple(self.region_xywh)
             else:
                 region = "full"
             if self.size:
