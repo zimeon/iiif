@@ -116,7 +116,45 @@ class TestAll(unittest.TestCase):
         example_json = json.load( open('test_info/2.0/info_from_spec.json') )
         self.maxDiff = 4000
         self.assertEqual( reparsed_json, example_json )
-        
+
+    def test21_write_profile(self):
+        i = IIIFInfo(
+            id="http://example.org/svc/a",width=1,height=2,
+            profile='pfl', formats=["fmt1", "fmt2"])
+        j = json.loads( i.as_json() )
+        self.assertEqual( len(j['profile']), 2 )
+        self.assertEqual( j['profile'][0], 'pfl' )
+        self.assertEqual( j['profile'][1], {'formats':['fmt1','fmt2']} )
+        i = IIIFInfo(
+            id="http://example.org/svc/a",width=1,height=2,
+            profile='pfl', qualities=None)
+        j = json.loads( i.as_json() )
+        self.assertEqual( len(j['profile']), 1 )
+        self.assertEqual( j['profile'][0], 'pfl' )
+        i = IIIFInfo(
+            id="http://example.org/svc/a",width=1,height=2,
+            profile='pfl', qualities=['q1','q2','q0'])
+        j = json.loads( i.as_json() )
+        self.assertEqual( len(j['profile']), 2 )
+        self.assertEqual( j['profile'][0], 'pfl' )
+        self.assertEqual( j['profile'][1], {'qualities':['q1','q2','q0']} )
+        i = IIIFInfo(
+            id="http://example.org/svc/a",width=1,height=2,
+            profile='pfl', supports=['a','b'])
+        j = json.loads( i.as_json() )
+        self.assertEqual( len(j['profile']), 2 )
+        self.assertEqual( j['profile'][0], 'pfl' )
+        self.assertEqual( j['profile'][1], {'supports':['a','b']} )
+        i = IIIFInfo(
+            id="http://example.org/svc/a",width=1,height=2,
+            profile='pfl', formats=["fmt1", "fmt2"],
+            qualities=['q1','q2','q0'], supports=['a','b'])
+        j = json.loads( i.as_json() )
+        self.assertEqual( len(j['profile']), 2 )
+        self.assertEqual( j['profile'][0], 'pfl' )
+        self.assertEqual( j['profile'][1]['formats'], ['fmt1','fmt2'] )
+        self.assertEqual( j['profile'][1]['qualities'], ['q1','q2','q0'] )
+        self.assertEqual( j['profile'][1]['supports'], ['a','b'] )
 
 # If run from command line, do tests
 if __name__ == '__main__':

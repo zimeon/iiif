@@ -68,7 +68,7 @@ CONF = {
         },
     '2.0': {
         'params': ['identifier','protocol','width','height','profile','sizes','tiles','service'],
-        'array_params': set(['sizes','tiles','service','scale_factors']), #scale_factors isn't in API but used internally
+        'array_params': set(['sizes','tiles','service','scale_factors','formats','qualities','supports']), #scale_factors isn't in API but used internally
         'complex_params': {
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
@@ -259,9 +259,9 @@ class IIIFInfo(object):
                 d = {}
                 if (self.formats is not None):
                     d['formats']=self.formats
-                if (self.formats is not None):
+                if (self.qualities is not None):
                     d['qualities']=self.qualities
-                if (self.formats is not None):
+                if (self.supports is not None):
                     d['supports']=self.supports
                 if (len(d)>0):
                     json_dict['profile'].append(d)
