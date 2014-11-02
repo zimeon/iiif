@@ -104,17 +104,17 @@ class IIIFManipulatorPIL(IIIFManipulator):
             format = 'jpeg';
         else:
             raise IIIFError(code=415, parameter='format',
-                           text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
+                            text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
 
         if (self.outfile is None):
             # Create temp
             f = tempfile.NamedTemporaryFile(delete=False)
             self.outfile=f.name
             self.outtmp=f.name
-            self.image.save(f,format='png')
+            self.image.save(f,format=format)
         else:
             # Save to specified location
-            self.image.save(self.outfile,format='jpeg')
+            self.image.save(self.outfile,format=format)
 
     def cleanup(self):
         if (self.outtmp is not None):
