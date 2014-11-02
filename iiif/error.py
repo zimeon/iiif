@@ -16,10 +16,12 @@ I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
 
 class IIIFError:
 
-    def __init__(self,code=500,parameter='unknown',text=None):
+    def __init__(self,code=500,parameter='unknown',text='',headers=None):
         self.code=code
         self.parameter=parameter
         self.text=text
+        self.headers=headers if (headers is not None) else []
+        self.content_type='text/xml'
         self.pretty_xml=True
 
     def __repr__(self):

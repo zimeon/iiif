@@ -52,9 +52,6 @@ data  = {
     '10_info': [
         {'identifier':'id1', 'info':True, 'format':'json' },
         'id1/info.json'],
-    '11_info': [
-        {'identifier':'id1', 'info':True, 'format':'xml' },
-        'id1/info.xml'],
     }
 
 class TestAll(unittest.TestCase):

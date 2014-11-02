@@ -10,6 +10,10 @@ import string
 
 from error import IIIFError
 
+class IIIFRequestBaseURI(Exception):
+    """ Subclass of Exception to indicate request for base URI """
+    pass
+
 class IIIFRequest(object):
     """ Implement IIIF request URL syntax
     
@@ -17,6 +21,10 @@ class IIIFRequest(object):
     http[s]://server/[prefix/]identifier/region/size/rotation/quality[.format]
     or
     http[s]://server/[prefix/]identifier/info.format
+
+    We also detect and throw a special IIIFRequestBaseURI exception then
+    the naked base URI is requested:
+    http[s]://server/[prefix/]identifier(/?)
 
     The attribites of objects of this class follow the names here except that
     baseurl is used for "http[s]://server/[prefix/]". If baseurl is not set 
@@ -168,14 +176,6 @@ class IIIFRequest(object):
             if (num != 1):
                 raise(IIIFError("URL does not match baseurl (server/prefix)."))
             url=path
-        # Look for optional .fmt at end, must start with letter. Note that we 
-        # want to catch the case of a dot and no format (format='') which is
-        # different from no dot (format=None)
-        m = re.match( "(.+)\.([a-zA-Z]\w*)$", url)
-        if (m):
-            # There is a format string at end, chop off and store
-            url = m.group(1)
-            self.format = ( m.group(2) if (m.group(2) is not None) else '')
         # Break up by path segments, count to decide format
         segs = string.split( url, '/', 5)
         if (len(segs) > 5):
@@ -185,18 +185,41 @@ class IIIFRequest(object):
             self.region = urllib.unquote(segs[1])
             self.size  = urllib.unquote(segs[2])
             self.rotation = urllib.unquote(segs[3])
-            self.quality = urllib.unquote(segs[4])
+            self.quality = self.strip_format(urllib.unquote(segs[4]))
             self.info = False
         elif (len(segs) == 2):
             self.identifier = urllib.unquote(segs[0])
-            if (urllib.unquote(segs[1]) != "info"):
+            info_name = self.strip_format(urllib.unquote(segs[1]))
+            if (info_name != "info"):
                 raise(IIIFError(code=400,text="Badly formed information request, must be info.json or info.xml"))
-            if (self.format not in ("json","xml")):
-                raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
+            if (self.api_version=='1.0'):
+                if (self.format not in ['json','xml']):
+                    raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
+            elif (self.format!='json'):
+                raise(IIIFError(code=400,text="Bad information request format, must be json"))
             self.info = True
+        elif (len(segs) == 1):
+            self.identifier = urllib.unquote(segs[0])
+            raise(IIIFRequestBaseURI())
         else:
             raise(IIIFError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
         return(self)
+
+    def strip_format(self,str_and_format):
+        """ Look for optional .fmt at end
+
+        The format must start with letter. Note that we want to catch 
+        the case of a dot and no format (format='') which is different 
+        from no dot (format=None)
+        
+        Sets self.format as side effect, returns possibly modified string
+        """
+        m = re.match( "(.+)\.([a-zA-Z]\w*)$", str_and_format)
+        if (m):
+            # There is a format string at end, chop off and store
+            str_and_format = m.group(1)
+            self.format = ( m.group(2) if (m.group(2) is not None) else '')
+        return(str_and_format)
 
     def parse_parameters(self):
         """ Parse the parameters of a parameterized request
@@ -236,7 +259,7 @@ class IIIFRequest(object):
         str_values = string.split(xywh, ',', 5)
         if (len(str_values) != 4):
             raise IIIFError(code=400,parameter="region",
-                           text="Bad number of values in region specification, must be x,y,w,h but got %d value(s) from '%s'"%(len(str_values),xywh))
+                            text="Bad number of values in region specification, must be x,y,w,h but got %d value(s) from '%s'"%(len(str_values),xywh))
         values=[]
         for str_value in str_values:
             # Must be either integer (not pct) or interger/float (pct)
@@ -249,21 +272,21 @@ class IIIFRequest(object):
                                    text="Bad floating point value for percentage in region (%s)."%str_value)
                 if (value>100.0):
                     raise IIIFError(code=400,parameter="region",
-                                   text="Percentage over value over 100.0 in region (%s)."%str_value)
+                                    text="Percentage over value over 100.0 in region (%s)."%str_value)
             else:
                 try:
                     value=int(str_value)
                 except ValueError:
                     raise IIIFError(code=400,parameter="region",
-                                   text="Bad integer value in region (%s)."%str_value)
+                                    text="Bad integer value in region (%s)."%str_value)
             if (value<0):
                 raise IIIFError(code=400,parameter="region",
-                               text="Negative values not allowed in region (%s)."%str_value)
+                                text="Negative values not allowed in region (%s)."%str_value)
             values.append(value)
         # Zero size region is w or h are zero (careful that they may be float)
         if (values[2]==0.0 or values[3]==0.0):
             raise IIIFError(code=400,parameter="region",
-                           text="Zero size region specified (%s))."%xywh)
+                            text="Zero size region specified (%s))."%xywh)
         self.region_xywh=values
 
     def parse_size(self,size=None):
@@ -300,14 +323,14 @@ class IIIFRequest(object):
                 self.size_pct=float(pct_str)
             except ValueError:
                 raise IIIFError(code=400,parameter="size",
-                               text="Percentage size value must be a number, got '%s'."%(pct_str))
+                                text="Percentage size value must be a number, got '%s'."%(pct_str))
 # FIXME - current spec places no upper limit on size
 #            if (self.size_pct<0.0 or self.size_pct>100.0):
 #                raise IIIFError(code=400,parameter="size",
 #                               text="Illegal percentage size, must be 0 <= pct <= 100.")
             if (self.size_pct<0.0):
                 raise IIIFError(code=400,parameter="size",
-                               text="Base size percentage, must be > 0.0, got %f."%(self.size_pct))
+                                text="Base size percentage, must be > 0.0, got %f."%(self.size_pct))
         else:
             if (self.size[0]=='!'):
                 # Have "!w,h" form
@@ -315,7 +338,7 @@ class IIIFRequest(object):
                 (mw,mh)=self._parse_w_comma_h(size_no_bang,'size')
                 if (mw is None or mh is None):
                     raise IIIFError(code=400,parameter="size",
-                                   text="Illegal size requested: both w,h must be specified in !w,h requests.")
+                                    text="Illegal size requested: both w,h must be specified in !w,h requests.")
                 self.size_wh=(mw,mh)
                 self.size_bang=True
             else:
@@ -326,7 +349,7 @@ class IIIFRequest(object):
             if ( ( w is not None and w<=0) or 
                  ( h is not None and h<=0) ):
                 raise IIIFError(code=400,parameter='size',
-                               text="Size parameters request zero size result image.")
+                                text="Size parameters request zero size result image.")
 
     def _parse_w_comma_h(self,whstr,param):
         """ Utility to parse "w,h" "w," or ",h" values
@@ -386,10 +409,10 @@ class IIIFRequest(object):
             self.rotation_deg=float(self.rotation)
         except ValueError:
             raise IIIFError(code=400,parameter="rotation",
-                           text="Bad rotation value, must be a number, got '%s'."%(self.rotation))
+                            text="Bad rotation value, must be a number, got '%s'."%(self.rotation))
         if (self.rotation_deg<0.0 or self.rotation_deg>360.0):
             raise IIIFError(code=400,parameter="rotation",
-                           text="Illegal rotation value, must be 0 <= rotation <= 360, got %f."%(self.rotation_deg))
+                            text="Illegal rotation value, must be 0 <= rotation <= 360, got %f."%(self.rotation_deg))
         elif (self.rotation_deg==360.0):
             # The spec admits 360 as valid, but change to 0
             self.rotation_deg=0.0

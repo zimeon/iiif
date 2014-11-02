@@ -11,10 +11,11 @@ import optparse
 import os
 import os.path
 import sys
+import urllib
 
 from iiif.config import IIIFConfig
 from iiif.error import IIIFError
-from iiif.request import IIIFRequest
+from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 def no_op(self,format,*args):
@@ -55,12 +56,6 @@ def do_conneg(accept,supported):
         if (mime_type in supported):
             return(mime_type)
     return(None)
-
-class IIIFRequestException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
 
 class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
 
@@ -134,14 +129,19 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         self.wfile.write("</table<\n")
         self.wfile.write("</html>\n")
         
-    """Minimal implementation of HTTP request handler to do iiif GET
-    """
-    def error_response(self,code,content=''):
-        self.send_response(code)
-        self.send_header('Content-Type','text/xml')
+    def write_error_response(self,e):
+        """ Write response for an IIIFError e
+
+        Looks also to see whether an extra attribute e.headers is set to
+        a dict with extra header fields
+        """
+        self.send_response(e.code)
+        for header in e.headers:
+            self.send_header(header,e.headers[header])
+        self.send_header('Content-Type',e.content_type)
         self.add_compliance_header()
         self.end_headers()
-        self.wfile.write(content)
+        self.wfile.write(str(e))
 
     def add_cors_header(self):
         """All responses should have CORS header"""
@@ -200,18 +200,12 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                     break
                 self.wfile.write(buffer)
         except IIIFError as e:
-            if (self.debug):
-                #e.test = 'hello'
-                #e.text = str(self.iiif)
-                e.text = " Request parameters: "+str(self.iiif)
-            self.error_response(e.code, str(e))
+            e.text += " Request parameters: "+str(self.iiif)
+            self.write_error_response(e)
         except Exception as ue:
             # Anything else becomes a 500 Internal Server Error
-            e = IIIFError(code=500,text="Something went wrong... %s.\n"%(str(ue)))
             sys.stderr.write(str(ue)+"\n")
-            #if (self.debug):
-            #    e.text = " Request parameters: "+str(self.iiif)
-            self.error_response(e.code, str(e))
+            self.write_error_response(IIIFError(code=500,text="Something went wrong... %s.\n"%(str(ue))))
 
     def do_GET_body(self):
         iiif=self.iiif
@@ -221,11 +215,13 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         #print "GET " + self.path
         try:
             iiif.parse_url(self.path)
-        except IIIFRequestException as e:
-            # Most conditions would thow an IIIFError which is handled
-            # elsewhere, catch others and rethrow
-            raise IIIFError(code=400,
-                            text="Bad request: " + str(e) + "\n") 
+        except IIIFRequestBaseURI as e:
+            info_uri = self.server_and_prefix + '/' + urllib.quote(self.iiif.identifier) + '/info.json'
+            raise IIIFError(code=303, 
+                            headers={'Location': info_uri})
+        except IIIFError as e:
+            # Pass through
+            raise e
         except Exception as e:
             # Something completely unexpected => 500
             raise IIIFError(code=500,
@@ -239,10 +235,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                     if (os.path.isfile(os.path.join(IIIFRequestHandler.IMAGE_DIR,image_file))):
                         images_available += "  "+image_file+"\n"
                 raise IIIFError(code=404,parameter="identifier",
-                               text="Image resource '"+iiif.identifier+"' not found. Local image files available:\n" + images_available)
+                                text="Image resource '"+iiif.identifier+"' not found. Local image files available:\n" + images_available)
         else:
             raise IIIFError(code=404,parameter="identifier",
-                           text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
+                            text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
         # 
         self.compliance_level=self.manipulator.complianceLevel
         if (self.iiif.info):

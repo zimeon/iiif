@@ -11,7 +11,7 @@ Simeon Warner - 2012-03-23, 2012-04-13
 import unittest
 
 from iiif.error import IIIFError
-from iiif.request import IIIFRequest
+from iiif.request import IIIFRequest,IIIFRequestBaseURI
 
 # Data for test. Format is
 # name : [ {args}, 'canonical_url', 'alternate_form1', ... ]
@@ -226,8 +226,11 @@ class TestAll(unittest.TestCase):
         print
 
     def test12_decode_except(self):
-        self.assertRaises(IIIFError, IIIFRequest(api_version='1.0').split_url, ("bogus"))
-        self.assertRaises(IIIFError, IIIFRequest(api_version='1.0').split_url, ("id1/all/270/!pct%3A75.23.jpg"))
+        self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id"))
+        self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id%2Ffsdjkh"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/bogus"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
 
     def test20_parse_w_comma_h(self):
         r = IIIFRequest(api_version='1.0')

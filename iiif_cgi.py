@@ -22,13 +22,6 @@ SHELL_SETUP = '' #'export LD_LIBRARY_PATH='+os.path.join(HOME_DIR,'opt/usr/lib')
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest
 
-class IIIFRequestException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
-
-
 class CGI_responder(object):
     def send_response(self,code,text=''):
         print "Status: %s %s\r" % (str(code),text)
@@ -132,11 +125,6 @@ class IIIFRequestHandler(CGI_responder):
         #   print "GET " + self.path
         try:
             iiif.parse_url(self.path)
-        except IIIFRequestException as e:
-            # Most conditions would thow an IIIFError which is handled
-            # elsewhere, catch others and rethrow
-            raise IIIFError(code=400,
-                           text="Bad request: " + str(e) + "\n") 
         except Exception as e:
             # Something completely unexpected => 500
             raise IIIFError(code=500,

@@ -12,7 +12,7 @@ Simeon Warner - 2012-03-23, 2012-04-13
 import unittest
 
 from iiif.error import IIIFError
-from iiif.request import IIIFRequest
+from iiif.request import IIIFRequest,IIIFRequestBaseURI
 
 # Data for test. Format is
 # name : [ {args}, 'canonical_url', 'alternate_form1', ... ]
@@ -70,9 +70,6 @@ data  = {
     '50_info': [
         {'identifier':'id1', 'info':True, 'format':'json' },
         'id1/info.json'],
-    '51_info': [
-        {'identifier':'id1', 'info':True, 'format':'xml' },
-        'id1/info.xml'],
     }
 
 class TestAll(unittest.TestCase):
@@ -227,7 +224,10 @@ class TestAll(unittest.TestCase):
         print
 
     def test12_decode_except(self):
-        self.assertRaises(IIIFError, IIIFRequest().split_url, ("bogus"))
+        self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id"))
+        self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id%2Ffsdjkh"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/"))
+        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/bogus"))
         self.assertRaises(IIIFError, IIIFRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
 
     def test20_parse_w_comma_h(self):
