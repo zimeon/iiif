@@ -68,7 +68,7 @@ CONF = {
         },
     '2.0': {
         'params': ['identifier','protocol','width','height','profile','sizes','tiles','service'],
-        'array_params': set(['sizes','tiles','service','scale_factors']), #profile should be too, scale_factors isn't in API but used internally
+        'array_params': set(['sizes','tiles','service','scale_factors']), #scale_factors isn't in API but used internally
         'complex_params': {
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
@@ -91,7 +91,10 @@ class IIIFInfo(object):
                  sizes=None,service=None,id=None,
                  # legacy params from 1.1
                  scale_factors=None,tile_width=None,tile_height=None,
+                 # 1.1 and 2.0
                  formats=None,qualities=None,
+                 # 2.0 only
+                 supports=None
                  ):
         """Create IIIFInfo object
 
@@ -125,8 +128,11 @@ class IIIFInfo(object):
         self.scale_factors = scale_factors
         self.tile_width = tile_width
         self.tile_height = tile_height
+        # 1.1 and 2.0
         self.formats = formats
         self.qualities = qualities
+        # 2.0 only
+        self.supports = supports
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
@@ -230,22 +236,41 @@ class IIIFInfo(object):
         if (self.api_version=='2.0' and not self.tiles and
             self.tile_width and self.scale_factors):
             # make 2.0 tiles data from 1.1 like data
-            self.tiles = [ { 'width': self.tile_width,
+            self.tiles = [ { 'width': int(self.tile_width), #FIXME - int() is fudge, data should be int
                              'scaleFactors': self.scale_factors } ]
         if (validate):
             self.validate()
         json_dict = {}
         if (self.api_version>'1.0'):
             json_dict['@context']=self.context
+        params_to_write = set(self.params)
+        params_to_write.discard('identifier')
         if (self.identifier):
             if (self.api_version=='1.0'):
                 json_dict['identifier']=self.identifier # local id
             else:
                 json_dict['@id']=self.id # URI
-        for param in self.params:
-            if (param in self.__dict__ and 
-                self.__dict__[param] is not None and
-                param!='identifier'):
+        params_to_write.discard('profile')
+        if (self.profile):
+            if (self.api_version<'2.0'):
+                json_dict['profile']=self.profile
+            else:
+                json_dict['profile']=[self.profile] #FIXME - need to support extra profile features
+                d = {}
+                if (self.formats is not None):
+                    d['formats']=self.formats
+                if (self.formats is not None):
+                    d['qualities']=self.qualities
+                if (self.formats is not None):
+                    d['supports']=self.supports
+                if (len(d)>0):
+                    json_dict['profile'].append(d)
+                params_to_write.discard('formats')
+                params_to_write.discard('qualities')
+                params_to_write.discard('supports')
+        for param in params_to_write:
+            if (hasattr(self,param) and 
+                self.__dict__[param] is not None):
                 json_dict[param] = self.__dict__[param]
         return( json.dumps(json_dict, sort_keys=True, indent=2 ) )
 

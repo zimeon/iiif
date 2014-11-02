@@ -35,7 +35,7 @@ class IIIFError:
         e_parameter.text = self.parameter
         e_parameter.tail = spacing
         root.append(e_parameter)
-        if (self.text is not None):
+        if (self.text):
             e_text = Element( 'text', {} )
             e_text.text = self.text
             e_text.tail = spacing

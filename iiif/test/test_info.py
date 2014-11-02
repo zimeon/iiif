@@ -10,10 +10,10 @@ class TestAll(unittest.TestCase):
         # Just do the trivial JSON test
         # ?? should this empty case raise and error instead?
         ir = IIIFInfo(identifier="http://example.com/i1")
-        self.assertEqual( ir.as_json(validate=False), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image"\n}' )
+        self.assertEqual( ir.as_json(validate=False), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/2/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image"\n}' )
         ir.width=100
         ir.height=200
-        self.assertEqual( ir.as_json(), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://iiif.io/api/image/2/level1.json", \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}' )
+        self.assertEqual( ir.as_json(), '{\n  "@context": "http://iiif.io/api/image/2/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": [\n    "http://iiif.io/api/image/2/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}' )
 
     def test02_scale_factor(self):
         ir = IIIFInfo(width=199,height=299,tile_width=100,tile_height=100,scale_factors=[1,2])
@@ -101,16 +101,10 @@ class TestAll(unittest.TestCase):
             tiles=[
                 {"width" : 512, "scaleFactors" : [1,2,4,8,16]}
                 ],
-            profile=[
-                "http://iiif.io/api/image/2/level2.json",
-                {
-                    "formats" : [ "gif", "pdf" ],
-                    "qualities" : [ "color", "gray" ],
-                    "supports" : [
-                        "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
-                        ]
-                    }
-                ],
+            profile="http://iiif.io/api/image/2/level2.json",
+            formats = [ "gif", "pdf" ],
+            qualities = [ "color", "gray" ],
+            supports = [ "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/" ],
             service={
                 "@context": "http://iiif.io/api/annex/service/physdim/1/context.json",
                 "profile": "http://iiif.io/api/annex/service/physdim",
