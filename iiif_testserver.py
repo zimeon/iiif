@@ -21,6 +21,28 @@ def no_op(self,format,*args):
     """Functions that does nothing - no-op"""
     pass
 
+def parse_accept_header(accept):
+    """Parse the Accept header *accept*, returning a list with pairs of
+    (media_type, q_value), ordered by q values.
+    
+    Taken from <https://djangosnippets.org/snippets/1042/>
+    """
+    result = []
+    for media_range in accept.split(","):
+        parts = media_range.split(";")
+        media_type = parts.pop(0)
+        media_params = []
+        q = 1.0
+        for part in parts:
+            (key, value) = part.lstrip().split("=", 1)
+            if key == "q":
+                q = float(value)
+            else:
+                media_params.append((key, value))
+        result.append((media_type, tuple(media_params), q))
+    result.sort(lambda x, y: -cmp(x[2], y[2]))
+    return result
+
 class IIIFRequestException(Exception):
     def __init__(self, value):
         self.value = value
@@ -190,7 +212,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             # Most conditions would thow an IIIFError which is handled
             # elsewhere, catch others and rethrow
             raise IIIFError(code=400,
-                           text="Bad request: " + str(e) + "\n") 
+                            text="Bad request: " + str(e) + "\n") 
         except Exception as e:
             # Something completely unexpected => 500
             raise IIIFError(code=500,
@@ -223,6 +245,25 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             import StringIO
             return(StringIO.StringIO(i.as_json()),"application/json")
         else:
+            if (self.api_version<'2.0' and
+                self.iiif.format is None and
+                'Accept' in self.headers):
+                # In 1.0 and 1.1 conneg was specified as an alternative to format, see:
+                # http://iiif.io/api/image/1.0/#format
+                # http://iiif.io/api/image/1.1/#parameters-format
+                try:
+                    # KLUDGE: not doing proper conneg, just taking first entry
+                    # which has highest q value. Should have a list of supported formats
+                    # for the given manipulator and then play the matching game..
+                    accept = parse_accept_header(self.headers['Accept'])[0][0]
+                    formats = { 'image/jpeg': 'jpg', 'image/tiff': 'tif',
+                                'image/png': 'png', 'image/gif': 'gif',
+                                'image/jp2': 'jps', 'application/pdf': 'pdf' }
+                    # Ignore Accept header if not recognized, should this be an error instead?
+                    if (accept in formats):
+                        self.iiif.format = formats[accept]
+                except IndexError as e:
+                    pass
             (outfile,mime_type)=self.manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
 
