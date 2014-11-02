@@ -7,45 +7,44 @@ integration tests of IIIF servers. Command line options specify
 parameters of the server, the API version to be tested and the 
 expected compliance level. Exit code is zero for success, non-zero 
 otherwise (number of failed tests).
-
-TO-DO:
-
-  * Need change in validator.py so it doesn't run "application = apache()"
-  * Want nice way to turn off print of URLs
-
 """
+
+#kuldge to fix mode of validator.py
+import os
+os.environ['VALIDATOR_AS_MODULE']='1'
 from validator import ValidationInfo,TestSuite,ImageAPI
 import logging
 import optparse
 import sys
 
 # Options and arguments
-p = optparse.OptionParser(description='IIIF Command Line Validator')
+p = optparse.OptionParser(description='IIIF Command Line Validator',
+                          usage='usage: %prog -s SERVER -p PREFIX -i IDENTIFIER [options]  (-h for help)')
 p.add_option('--identifier','-i', action='store',
-             help="Identifier to run tests for")
-p.add_option('--server','-s', action='store', default='localhost',
-             help="Server name of IIIF service")
+             help="identifier to run tests for")
+p.add_option('--server','-s', action='store', default='localhost:8000',
+             help="server name of IIIF service, including port if not port 80 (default localhost:8000)")
 p.add_option('--prefix','-p', action='store', default='',
-             help="Prefix of IIIF service on server")
+             help="prefix of IIIF service on server (default none)")
 p.add_option('--scheme', action='store', default='http',
-             help="Scheme (http or https)")
+             help="scheme (http or https, default http)")
 p.add_option('--auth','-a', action='store', default='',
-             help="Auth info for service")
+             help="auth info for service (default none)")
 p.add_option('--version', action='store', default='2.0',
-             help="IIIF API version")
+             help="IIIF API version to test for (default 2.0)")
 p.add_option('--level', action='store', type='int', default=1,
-             help="Compliance level to test (default 1)")
+             help="compliance level to test (default 1)")
 p.add_option('--verbose', '-v', action='store_true',
-             help="Be verbose")
+             help="be verbose")
 p.add_option('--quiet','-q', action='store_true',
-             help="Minimal output only")
+             help="minimal output only for errors")
 (opt, args) = p.parse_args()
 
 # Logging/output
 level = (logging.INFO if opt.verbose else (logging.ERROR if opt.quiet else logging.WARNING))
 logging.basicConfig(level=level,format='%(message)s')
 
-# Sanity checks
+# Sanity check
 if (not opt.identifier):
     logging.error("No identifier specified, aborting (-h for help)") 
     exit(99)
@@ -63,7 +62,8 @@ for testname in tests:
     try:
         info = ValidationInfo()
         testSuite = TestSuite(info) 
-        result = ImageAPI(opt.identifier, opt.server, opt.prefix, opt.scheme, opt.auth, opt.version)
+        result = ImageAPI(opt.identifier, opt.server, opt.prefix, opt.scheme, opt.auth, opt.version, 
+                          debug=False)
         testSuite.run_test(testname, result)
         if result.exception:
             e = result.exception
@@ -74,8 +74,6 @@ for testname in tests:
             logging.warning("%s PASS"%test_str)
             logging.info("  url: %s\n  tests: %s\n"%(result.urls,result.tests))
     except Exception as e:
-        #raise
-        #info = {'test' : testname, 'status': 'internal-error', 'url':e.url, 'msg':str(e)}
         bad += 1
         logging.error("%s FAIL"%test_str)
         logging.error("  exception: %s\n"%(str(e)))
