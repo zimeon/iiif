@@ -43,6 +43,19 @@ def parse_accept_header(accept):
     result.sort(lambda x, y: -cmp(x[2], y[2]))
     return result
 
+def do_conneg(accept,supported):
+    """Parse accept header and look for preferred type in supported list
+
+    accept parameter is HTTP header, supported is a list of MIME types
+    supported by the server. Returns the supported MIME type with highest
+    q value in request, else None.
+    """
+    for result in parse_accept_header(accept):
+        mime_type=result[0]
+        if (mime_type in supported):
+            return(mime_type)
+    return(None)
+
 class IIIFRequestException(Exception):
     def __init__(self, value):
         self.value = value
@@ -233,6 +246,13 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         # 
         self.compliance_level=self.manipulator.complianceLevel
         if (self.iiif.info):
+            # For version 2.0 the server must return json-ld MIME type if that
+            # format is requested. Implement for 1.1 also.
+            # http://iiif.io/api/image/2.0/#information-request
+            mime_type = "application/json"
+            if (self.api_version>='1.1' and
+                'Accept' in self.headers):
+                mime_type = do_conneg(self.headers['Accept'],['application/ld+json']) or mime_type
             # get size
             self.manipulator.srcfile=file
             self.manipulator.do_first()
@@ -243,7 +263,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.width = self.manipulator.width
             i.height = self.manipulator.height
             import StringIO
-            return(StringIO.StringIO(i.as_json()),"application/json")
+            return(StringIO.StringIO(i.as_json()),mime_type)
         else:
             if (self.api_version<'2.0' and
                 self.iiif.format is None and
@@ -251,19 +271,13 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                 # In 1.0 and 1.1 conneg was specified as an alternative to format, see:
                 # http://iiif.io/api/image/1.0/#format
                 # http://iiif.io/api/image/1.1/#parameters-format
-                try:
-                    # KLUDGE: not doing proper conneg, just taking first entry
-                    # which has highest q value. Should have a list of supported formats
-                    # for the given manipulator and then play the matching game..
-                    accept = parse_accept_header(self.headers['Accept'])[0][0]
-                    formats = { 'image/jpeg': 'jpg', 'image/tiff': 'tif',
-                                'image/png': 'png', 'image/gif': 'gif',
-                                'image/jp2': 'jps', 'application/pdf': 'pdf' }
-                    # Ignore Accept header if not recognized, should this be an error instead?
-                    if (accept in formats):
-                        self.iiif.format = formats[accept]
-                except IndexError as e:
-                    pass
+                formats = { 'image/jpeg': 'jpg', 'image/tiff': 'tif',
+                            'image/png': 'png', 'image/gif': 'gif',
+                            'image/jp2': 'jps', 'application/pdf': 'pdf' }
+                accept = do_conneg( self.headers['Accept'], formats.keys() )
+                # Ignore Accept header if not recognized, should this be an error instead?
+                if (accept in formats):
+                    self.iiif.format = formats[accept]
             (outfile,mime_type)=self.manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
 
