@@ -345,7 +345,7 @@ class Validator(object):
 
     def __init__(self,debug=True):
         if (debug):
-            sys.stderr.write('init on Validator\n');
+            sys.stderr.write('init on Validator\n')
             sys.stderr.flush()
 
     def handle_test(self, testname):
@@ -361,7 +361,7 @@ class Validator(object):
             return "No such test: %s" % testname
 
         server = request.query.get('server', '')
-        server = server.strip();
+        server = server.strip()
         if server.startswith('https://'):
             scheme = 'https'
             server = server.replace('https://', '')
