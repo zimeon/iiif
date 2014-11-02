@@ -1,41 +1,29 @@
 
-import json
 from functools import partial
 from bottle import Bottle, route, run, request, response, abort, error
 
-import uuid
-import urllib, urllib2, urlparse
+# Black Module Magic to get tests in the right place
+import tests
+from tests import *
+all_tests = tests.__all__
+g = globals()
+for t in all_tests:
+    setattr(tests, t, g[t])
+    del globals()[t]
 
+from tests.test import ValidatorError
+
+import urllib2
+import json
 import StringIO
-import os, sys, re
+import sys
 import random
-import math
-
-from lxml import etree
-import magic
+import os
 
 try:
     from PIL import Image, ImageDraw
 except:
     import Image, ImageDraw
-
-class ValidatorError(Exception):
-    def __init__(self, type, got, expected, result=None):
-        self.type = type
-        self.got = got
-        self.expected = expected
-        if result != None:
-            self.url = result.last_url
-            self.headers = result.last_headers
-            self.status = result.last_status
-        else:
-            self.url = None
-            self.headers = None
-            self.status = None
-                
-    def __str__(self):
-        return "Expected %r for %s; Got: %r" % (self.expected, self.type, self.got)
-
 
 class ValidationInfo(object):
     def __init__(self):
@@ -106,973 +94,42 @@ class TestSuite(object):
         self.validationInfo = info
 
     def has_test(self, test):
-        return hasattr(self, 'test_%s' % test)
+        return hasattr(tests, test)
           
     def list_tests(self, version=""):
-        """Find tests from json data in documentation for each test_* method"""
-        all = dir(self)
-        tests = {}
-        for t in all:
-            if t.startswith('test_'):
-                # Introspection for the win
-                fn = getattr(self, t)
-                doc = fn.__doc__
-                try:
-                    data = json.loads(doc)
-                except:
-                    sys.stderr.write('failed to load data for test: %s\n' % t )
-                    sys.stderr.flush()
-                    data = {}
-                name = t[5:]
-                if version and data.has_key('versions') and not version in data['versions']:
-                    continue
-                if data.has_key('level') and type(data['level']) == dict:
-                    # If not version, need to make a choice... make it max()
-                    if version:
-                        data['level'] = data['level'][version]
-                    else:
-                        data['level'] = max(data['level'].values())
-
-                tests[name] = data
-        return tests
+        allt = {}
+        for t in all_tests:
+            testm = getattr(tests, t)  # Module
+            oname = "test_%s" % t
+            oname = oname.replace("_", " ").title().replace(" ", "_")
+            testc = getattr(testm, oname) # Class
+            data = testc.make_info(version)
+            if data:
+                allt[t] = data
+        return allt
 
     def run_test(self, test, result):   
 
-        fn = getattr(self, 'test_%s' % test)        
-        doc = fn.__doc__
+        testm = getattr(tests, test)
+        oname = "test_%s" % test
+        oname = oname.replace("_", " ").title().replace(" ", "_")
+        testc = getattr(testm, oname)
+        test = testc(self.validationInfo)
+
+        result.test_info = test.make_info(result.version)
+
         try:
-            data = json.loads(doc)
-            result.test_info = data
-        except:
-            result.test_info = {}
-        try:
-            return fn(result)
+            return test.run(result)
         except ValidatorError, e:
             result.exception = e
             return result
-
-
-    #--------------------------------------------------------------------------
-                
-    def test_info_json(self, result):
-        """{"label":"Check Image Information","level":0,"category":1,"versions":["1.0","1.1","2.0"]}"""
-        # Does server have info.json
-        try:
-            info = result.get_info()
-
-            self.validationInfo.check('required-field: width', info.has_key('width'), True, result)
-            self.validationInfo.check('required-field: height', info.has_key('height'), True, result)
-            self.validationInfo.check('type-is-int: height', type(info['height']) == int, True, result)
-            self.validationInfo.check('type-is-int: width', type(info['width']) == int, True, result)
-
-            # Now switch on version
-            if result.version == "1.0":
-                self.validationInfo.check('required-field: identifier', info.has_key('identifier'), True, result)                
-            else:
-
-                self.validationInfo.check('required-field: @id', info.has_key('@id'), True, result)
-                self.validationInfo.check('type-is-uri: @id', info['@id'].startswith('http'), True, result)
-
-                self.validationInfo.check('required-field: @context', info.has_key('@context'), True, result)
-                if result.version == "1.1":
-                    self.validationInfo.check('correct-context', info['@context'], 
-                        ["http://library.stanford.edu/iiif/image-api/1.1/context.json", "http://iiif.io/api/image/1/context.json"], result)
-                elif result.version[0] == "2":
-                    self.validationInfo.check('correct-context', info['@context'], "http://iiif.io/api/image/2/context.json", result)
-                
-                if int(result.version[0]) >= 2:
-                    self.validationInfo.check('required-field: protocol', info.has_key('protocol'), True, result)
-                    self.validationInfo.check('correct-protocol', info['protocol'], 'http://iiif.io/api/image', result)
-
-                if result.version[0] == "2":
-                    self.validationInfo.check('required-field: profile', info.has_key('profile'), True, result)
-                    profs = info['profile']
-                    self.validationInfo.check('is-list', type(profs), list, result)
-                    self.validationInfo.check('profile-compliance', profs[0].startswith('http://iiif.io/api/image/2/level'), True, result)
-
-                    if info.has_key('sizes'):
-                        sizes = info['sizes']
-                        self.validationInfo.check('is-list', type(sizes), list, result)
-                        for sz in sizes:
-                            self.validationInfo.check('is-object', type(sz), dict, result)
-                            self.validationInfo.check('required-field: height', sz.has_key('height'), True, result)
-                            self.validationInfo.check('required-field: width', sz.has_key('width'), True, result)
-                            self.validationInfo.check('type-is-int: height', type(sz['height']), int, result)
-                            self.validationInfo.check('type-is-int: width', type(sz['width']), int, result)
-
-                    if info.has_key('tiles'):
-                        tiles = info['tiles']
-                        self.validationInfo.check('is-list', type(tiles), list, result)
-                        for t in tiles:
-                            self.validationInfo.check('is-object', type(t), dict, result)
-                            self.validationInfo.check('required-field: scaleFactors', t.has_key('scaleFactors'), True, result) 
-                            self.validationInfo.check('required-field: width', t.has_key('width'), True, result)                        
-                            self.validationInfo.check('type-is-int: width', type(t['width']), int, result)
-
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            ct = result.last_headers['content-type']
-            scidx = ct.find(';')
-            if scidx > -1:
-                ct = ct[:scidx]
-            self.validationInfo.check('content-type', result.last_headers['content-type'], ['application/json', 'application/ld+json'], result)
-            raise
-    
-    def test_info_xml(self, result):
-        """{"label":"Check Image Information (XML)","level":0,"category":1,"versions":["1.0"]}"""        
-        url = result.make_info_url('xml')
-        try:
-            data = result.fetch(url)
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            self.validationInfo.check('format', result.last_headers['content-type'], ['application/xml', 'text/xml'], result)
-            raise
-        try:
-            dom = etree.XML(data)
-        except:
-            raise ValidatorError('format', 'XML', 'Unknown', result)
-
-        ns = { 'i':'http://library.stanford.edu/iiif/image-api/ns/'}
-        self.validationInfo.check('required-field: /info', len(dom.xpath('/i:info', namespaces=ns)), 1, result)
-        self.validationInfo.check('required-field: /info/identifier', len(dom.xpath('/i:info/i:identifier', namespaces=ns)), 1, result)
-        self.validationInfo.check('required-field: /info/height', len(dom.xpath('/i:info/i:height', namespaces=ns)), 1, result)
-        self.validationInfo.check('required-field: /info/width', len(dom.xpath('/i:info/i:width', namespaces=ns)), 1, result)
-        return result
-
-
-    def test_id_error_random(self, result):
-        """{"label":"Random identifier gives 404","level":1,"category":1,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            url = result.make_url({'identifier': str(uuid.uuid1())})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 404, result)
-            return result
-        except:
-            raise
-        
-    
-    def test_id_error_unescaped(self, result):
-        """{"label":"Unescaped identifier gives 400","level":1,"category":1,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            url = result.make_url({'identifier': '[frob]'})
-            url = url.replace('%5B', '[')
-            url = url.replace('%5D', ']')
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, [400, 404], result)
-            return result   
-        except:
-            raise
-    
-    def test_id_error_escapedslash(self, result):
-        """{"label":"Forward slash gives 404","level":1,"category":1,"versions":["1.0","1.1","2.0"]}"""        
-        try:
-            url = result.make_url({'identifier': 'a/b'})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 404, result)
-            return result            
-        except:
-            raise
-    
-     
-    def test_id_basic(self, result):
-        """{"label":"Image is returned","level":0,"category":1,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            url = result.make_url(params={})
-            data = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 200, result)
-            img = result.make_image(data)
-            return result
-        except:
-            raise
-            
-    def test_id_escaped(self, result):
-        """{"label":"Escaped characters processed","level":1,"category":1,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            idf = result.identifier.replace('-', '%2D')
-            url = result.make_url({'identifier':idf})
-            data = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 200, result)
-            img = result.make_image(data)
-            return result
-        except:
-            raise  
-
-    def test_id_squares(self, result):
-        # Note this tests from the full image, not by requesting regions
-        """{"label":"Correct image returned","level":0,"category":1,"versions":["1.0","1.1","2.0"]}"""        
-        try:
-            url = result.make_url({'format':'jpg'})
-            data = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 200, result)            
-            img = result.make_image(data) 
-            # Now test some squares for correct color
-
-            match = 0
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * 100 + 13;
-                yi = y * 100 + 13;
-                box = (xi,yi,xi+74,yi+74)
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)
-            if match >= 4:
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result)
-        except:
-            raise        
-        
-    def test_region_error_random(self, result):
-        """{"label":"Random region gives 400","level":1,"category":2,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            url = result.make_url({'region': self.validationInfo.make_randomstring(6)})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 400, result)
-            return result          
-        except:
-            # self.validationInfo.check('status', result.last_status, 200)
-            raise
-    
-    def test_region_pixels(self, result):
-        """{"label":"Region specified by pixels","level":1,"category":2,"versions":["1.0","1.1","2.0"]}"""
-        try:
-            match = 0
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)           
-
-                ix = x*100+13
-                iy = y*100+13
-                hw = 74
-                params = {'region' :'%s,%s,%s,%s' % (ix,iy, hw, hw)}
-                img = result.get_image(params)
-                ok = self.validationInfo.do_test_square(img,x,y, result)
-                if ok:
-                    match += 1
-            if match >= 4:         
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result)
-        except:
-            # self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-            
-    def test_region_percent(self, result):
-        """{"label":"Region specified by percent","level":2,"category":2,"versions":["1.0","1.1","2.0"]}"""        
-        try:
-            match = 0
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                params = {'region' : 'pct:%s,%s,9,9' % (x*10+1, y*10+1)}
-                img = result.get_image(params)                           
-                ok = self.validationInfo.do_test_square(img,x,y, result)
-                if ok:
-                    match += 1
-            if match >= 4:         
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result)
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-
-    def test_size_error_random(self, result):
-        """{"label":"Random size gives 400","level":1,"category":3,"versions":["1.0","1.1","2.0"]}"""        
-        try:
-            url = result.make_url({'size': self.validationInfo.make_randomstring(6)})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 400, result)
-            return result             
-        except:
-            raise
-    
-    def test_size_wc(self, result):
-        """{"label":"Size specified by w,","level":1,"category":3,"versions":["1.0","1.1","2.0"]}"""           
-        try:
-            s = random.randint(450,750)
-            params = {'size': '%s,' % s}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (s,s), result)
-
-            # Find square size
-            sqs = int(s/1000.0 * 100)
-            match = 0
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqs + 13;
-                yi = y * sqs + 13;
-                box = (xi,yi,xi+(sqs-13),yi+(sqs-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)
-            if match >= 4:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result)          
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-           
-    def test_size_ch(self, result):
-        """{"label":"Size specified by ,h","level":1,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            s = random.randint(450,750)
-            params = {'size': ',%s' % s}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (s,s), result)
-
-            # Find square size
-            sqs = int(s/1000.0 * 100)
-            match = 0            
-
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqs + 13;
-                yi = y * sqs + 13;
-                box = (xi,yi,xi+(sqs-13),yi+(sqs-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)      
-            if match >= 4:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result)           
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise        
-
-    def test_size_percent(self, result):
-        """{"label":"Size specified by percent","level":1,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            s = random.randint(45,75)
-            params = {'size': 'pct:%s' % s}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (s*10,s*10), result)
-
-            match = 0
-            # Find square size
-            sqs = s
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqs + 13;
-                yi = y * sqs + 13;
-                box = (xi,yi,xi+(sqs-13),yi+(sqs-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)      
-            if match >= 4:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result) 
-           
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise   
-
-    def test_size_wh(self, result):
-        """{"label":"Size specified by w,h","level":2,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            w = random.randint(350,750)
-            h = random.randint(350,750)
-            params = {'size': '%s,%s' % (w,h)}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (w,h), result)
-
-            match = 0
-            sqsw = int(w/1000.0 * 100)
-            sqsh = int(h/1000.0 * 100)
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqsw + 13;
-                yi = y * sqsh + 13;
-                box = (xi,yi,xi+(sqsw-13),yi+(sqsh-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)      
-            if match >= 4:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result) 
-   
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-    
-    def test_size_bwh(self, result):
-        """{"label":"Size specified by !w,h","level":2,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            w = random.randint(350,750)
-            h = random.randint(350,750)
-            s = min(w,h)
-            params = {'size': '!%s,%s' % (w,h)}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (s,s), result)
-
-            match = 0
-            sqs = int(s/1000.0 * 100)
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqs + 13;
-                yi = y * sqs + 13;
-                box = (xi,yi,xi+(sqs-13),yi+(sqs-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)      
-            if match >= 3:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result) 
-               
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-    def test_size_up(self, result):
-        """{"label":"Size greater than 100%","level":3,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            s = random.randint(1100,2000)
-            params = {'size': ',%s' % s}
-            img = result.get_image(params)
-            self.validationInfo.check('size', img.size, (s,s), result)
-
-            match = 0
-            sqs = int(s/1000.0 * 100)
-            for i in range(5):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                xi = x * sqs + 13;
-                yi = y * sqs + 13;
-                box = (xi,yi,xi+(sqs-13),yi+(sqs-13))
-                sqr = img.crop(box)
-                ok = self.validationInfo.do_test_square(sqr, x, y, result)
-                if ok:
-                    match += 1
-                else:
-                    error = (x,y)      
-            if match >= 3:           
-                return result
-            else:
-                raise ValidatorError('color', 1,0, result) 
-        except:
-            self.validationInfo.check('status', result.last_status, 200)
-            raise
-
-    def test_size_region(self, result):
-        """{"label":"Region at specified size","level":1,"category":3,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            # ask for a random region, at a random size < 100
-            for i in range(5):
-                s = random.randint(35,90)
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                params = {'size': '%s,%s' % (s,s)}
-                params['region'] = '%s,%s,100,100' % (x*100, y*100)
-                img = result.get_image(params)
-                if img.size != (s,s):
-                    raise ValidatorError('size', img.size, (s,s), result)        
-                ok = self.validationInfo.do_test_square(img,x,y, result)
-                if not ok:
-                    raise ValidatorError('color', 1, self.validationInfo.colorInfo[0][0], result)            
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-    
-    def test_rot_error_random(self, result):
-        """{"label":"Random rotation gives 400","level":1,"category":4,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            url = result.make_url({'rotation': self.validationInfo.make_randomstring(4)})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 400, result)
-            return result
-        except:
-            raise
-    
-    def test_rot_full_basic(self, result):
-        """{"label":"Rotation by 90 degree values","level":{"1.0":1, "1.1":1, "2.0":2},"category":4,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            params = {'rotation': '180'}
-            img = result.get_image(params)
-            s = 1000
-            if not img.size[0] in [s-1, s, s+1]:
-                raise ValidatorError('size', img.size, (s,s))  
-            # Test 0,0 vs 9,9
-            box = (12,12,76,76)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 9, 9, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[9][9], result)
-            box = (912,912,976,976)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 0, 0, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[0][0], result)
-
-            params = {'rotation': '90'}
-            img = result.get_image(params)
-            s = 1000
-            if not img.size[0] in [s-1, s, s+1]:
-                raise ValidatorError('size', img.size, (s,s))  
-            # Test 0,0 vs 9,0
-            box = (12,12,76,76)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 0, 9, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[9][9], result)
-            box = (912,912,976,976)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 9, 0, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[0][0], result)
-
-            params = {'rotation': '270'}
-            img = result.get_image(params)
-            s = 1000
-            if not img.size[0] in [s-1, s, s+1]:
-                raise ValidatorError('size', img.size, (s,s))  
-            # Test 0,0 vs 9,0
-            box = (12,12,76,76)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 9, 0, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[9][9], result)
-            box = (912,912,976,976)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 0, 9, result)
-            if not ok:
-                raise ValidatorError('color', 1, self.validationInfo.colorInfo[0][0], result)
-
-            return result 
-
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise  
-
-    def test_rot_full_non90(self, result):
-        """{"label":"Rotation by non 90 degree values","level":3,"category":4,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            r = random.randint(1,359)
-            params = {'rotation': '%s' % r}
-            img = result.get_image(params)
-            # not sure how to test, other than we got an image       
-            return result            
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-    
-    def test_rot_region_basic(self, result):
-        """{"label":"Rotation of region by 90 degree values","level":{"1.0":1, "1.1":1, "2.0":2},"category":4,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            s = 76
-            # ask for a random region, at a random size < 100
-            for i in range(4):
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                # XXX should do non 180
-                params = {'rotation': '180'}
-                params['region'] = '%s,%s,%s,%s' % (x*100+13, y*100+13,s,s)
-                img = result.get_image(params)
-                if not img.size[0] in [s-1, s, s+1]:   # allow some leeway for rotation
-                    raise ValidatorError('size', img.size, (s,s))        
-                ok = self.validationInfo.do_test_square(img,x,y, result)
-                if not ok:
-                    raise ValidatorError('color', 1, self.validationInfo.colorInfo[0][0], result)            
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-    
-    def test_rot_region_non90(self, result):
-        """{"label":"Rotation by non 90 degree values","level":3,"category":4,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            # ask for a random region, at a random size < 100
-            for i in range(4):
-                r = random.randint(1,359)
-                x = random.randint(0,9)
-                y = random.randint(0,9)
-                params = {'rotation': '%s'%r}
-                params['region'] = '%s,%s,100,100' % (x*100, y*100)
-                img = result.get_image(params)
-                # not sure how to test
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-
-
-    def test_rot_mirror(self, result):
-        """{"label":"Mirroring","level":3,"category":4,"versions":["2.0"]}""" 
-        try:
-            params = {'rotation': '!0'}
-            img = result.get_image(params)
-            s = 1000
-            if not img.size[0] in [s-1, s, s+1]:
-                raise ValidatorError('size', img.size, (s,s))  
-
-            #0,0 vs 9,0
-            box = (12,12,76,76)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 9, 0, result)
-            if not ok:
-                raise ValidatorError('mirror', 1, self.validationInfo.colorInfo[9][9], result)
-
-            # 9,9 vs 0,9
-            box = (912,912,976,976)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 0, 9, result)
-            if not ok:
-                raise ValidatorError('mirror', 1, self.validationInfo.colorInfo[0][0], result)             
-            return result             
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-
-    def test_rot_mirror_180(self, result):
-        """{"label":"Mirroring plus 180 rotation","level":3,"category":4,"versions":["2.0"]}""" 
-        try:
-            params = {'rotation': '!180'}
-            img = result.get_image(params)
-            s = 1000
-            if not img.size[0] in [s-1, s, s+1]:
-                raise ValidatorError('size', img.size, (s,s))  
-
-            #0,0 vs 9,9
-            box = (12,12,76,76)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 0, 9, result)
-            if not ok:
-                raise ValidatorError('mirror', 1, self.validationInfo.colorInfo[9][9], result)
-
-            # 9,9 vs 0,0
-            box = (912,912,976,976)
-            sqr = img.crop(box)
-            ok = self.validationInfo.do_test_square(sqr, 9, 0, result)
-            if not ok:
-                raise ValidatorError('mirror', 1, self.validationInfo.colorInfo[0][0], result)             
-            return result             
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-    
-    def test_quality_error_random(self, result):
-        """{"label":"Random quality gives 400","level":1,"category":5,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            url = result.make_url({'quality': self.validationInfo.make_randomstring(6)})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, 400, result)
-            return result 
-        except:
-            raise
-    
-    def test_quality_color(self, result):
-        """{"label":"Color quality","level":2,"category":5,"versions":["1.0","1.1","2.0"]}"""           
-        try:
-            params = {'quality': 'color'}
-            img = result.get_image(params)
-            self.validationInfo.check('quality', img.mode, 'RGB', result)
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-
-    def test_quality_grey(self, result):
-        """{"label":"Gray/Grey quality","level":2,"category":5,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            params = {'quality': 'grey'}
-            img = result.get_image(params)
-            # self.validationInfo.check('quality', img.mode, 'L', result)
-
-            cols = img.getcolors()
-            if img.mode == 1:
-                return self.validationInfo.check('quality', 1,0, result)
-            elif img.mode == 'L':
-                return self.validationInfo.check('quality', 1, 1, result)
-            else:
-                # check vast majority of px are triples with v similar r,g,b
-                ttl = 0
-                for c in cols:
-                    if (abs(c[1][0] - c[1][1]) < 5 and abs(c[1][1] - c[1][2]) < 5):
-                        ttl += c[0]
-                if ttl > 650000:
-                    return self.validationInfo.check('quality', 1,1, result)
-                else:
-                    return self.validationInfo.check('quality', 1,0, result)
-
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise    
-
-    def test_quality_bitonal(self, result):
-        """{"label":"Bitonal quality","level":2,"category":5,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            params = {'quality': 'bitonal', 'format':'png'}
-            img = result.get_image(params)
-
-            cols = img.getcolors()
-            # cols should be [(x, 0), (y,255)] or [(x,(0,0,0)), (y,(255,255,255))]
-            if img.mode == '1' or img.mode == 'L':
-                return self.validationInfo.check('quality', 1, 1, result)
-            else:
-                # check vast majority of px are 0,0,0 or 255,255,255
-                okpx = sum([x[0] for x in cols if sum(x[1]) < 15 or sum(x[1]) > 750])
-                if okpx > 650000:
-                    return self.validationInfo.check('quality', 1,1, result)
-                else:
-                    return self.validationInfo.check('quality', 1,0, result)
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-            
-    def test_format_error_random(self, result):
-        """{"label":"Random format gives 400","level":1,"category":6,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            url = result.make_url({'format': self.validationInfo.make_randomstring(3)})
-            error = result.fetch(url)
-            self.validationInfo.check('status', result.last_status, [400, 415, 503], result)
-            return result
-        except:
-            raise
-
-        
-    def test_format_jpg(self, result):
-        """{"label":"JPG format","level":{"1.0":1, "1.1":1, "2.0":0},"category":6,"versions":["1.0","1.1","2.0"]}"""            
-        try:
-            params = {'format': 'jpg'}
-            img = result.get_image(params)
-            self.validationInfo.check('quality', img.format, 'JPEG', result)
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-    def test_format_png(self, result):
-        """{"label":"PNG format","level":2,"category":6,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            params = {'format': 'png'}
-            img = result.get_image(params)
-            self.validationInfo.check('quality', img.format, 'PNG', result)
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-    
-    def test_format_gif(self, result):
-        """{"label":"GIF format","level":3,"category":6,"versions":["1.0","1.1","2.0"]}"""          
-        try:
-            params = {'format': 'gif'}
-            img = result.get_image(params)
-            self.validationInfo.check('quality', img.format, 'GIF', result)
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise 
-
-    def test_format_tif(self, result):
-        """{"label":"TIFF format","level":3,"category":6,"versions":["1.0","1.1","2.0"]}"""   
-        try:
-            params = {'format': 'tif'}
-            img = result.get_image(params)
-            self.validationInfo.check('quality', img.format, 'TIFF', result)
-            return result
-        except:
-            self.validationInfo.check('status', result.last_status, 200, result)
-            raise
-
-
-    def test_format_pdf(self, result):
-        """{"label":"PDF format","level":3,"category":6,"versions":["1.0","1.1","2.0"]}"""   
-
-        params = {'format': 'pdf'}
-        url = result.make_url(params)
-        # Need as plain string for magic
-        wh = urllib.urlopen(url)
-        img = wh.read()
-        wh.close()
-
-        with magic.Magic() as m:
-            info = m.id_buffer(img)
-            if not info.startswith('PDF document'):
-                # Not JP2
-                raise ValidatorError('format', info, 'PDF', result)
-            else:
-                result.tests.append('format')
-                return result
-
-    def test_format_jp2(self, result):
-        """{"label":"JPEG2000 format","level":{"1.0": 2, "1.1": 3, "2.0": 3},"category":6,"versions":["1.0", "1.1", "2.0"]}"""   
-
-        params = {'format': 'jp2'}
-        url = result.make_url(params)
-        # Need as plain string for magic
-        wh = urllib.urlopen(url)
-        img = wh.read()
-        wh.close()
-
-        with magic.Magic() as m:
-            info = m.id_buffer(img)
-            if not info.startswith('JPEG 2000'):
-                # Not JP2
-                raise ValidatorError('format', info, 'JPEG 2000', result)
-            else:
-                result.tests.append('format')
-                return result
-
-    def test_format_webp(self, result):
-        """{"label":"WebP format","level":3,"category":6,"versions":["2.0"]}"""           
-
-        # chrs 8:12 == "WEBP"
-        params = {'format': 'webp'}
-        url = result.make_url(params)
-        # Need as plain string for magic
-        wh = urllib.urlopen(url)
-        img = wh.read()
-        wh.close()
-        if img[8:12] != "WEBP":
-            raise ValidatorError('format', 'unknown', 'WEBP', result)
-        else:
-            result.tests.append('format')
-            return result
-
-    def test_format_conneg(self, result):
-        """{"label":"Negotiated format","level":1,"category":7,"versions":["1.0","1.1"]}"""          
-        url = result.make_url(params={})
-        hdrs = {'Accept': 'image/png;q=1.0'}
-        try:
-            r = urllib2.Request(url, headers=hdrs)
-            wh = urllib2.urlopen(r)
-            img = wh.read()   
-            wh.close()
-        except urllib2.HTTPError, e:
-            wh = e
-        ct = wh.headers['content-type']
-        result.last_url = url
-        result.last_headers = wh.headers.dict
-        result.last_status = wh.code
-        result.urls.append(url)
-        self.validationInfo.check('format', ct, 'image/png', result)
-        return result
-
-    def test_jsonld(self, result):
-        """{"label":"JSON-LD Media Type","level":1,"category":7,"versions":["2.0"]}"""         
-        url = result.make_info_url()
-        result.urls.append(url)
-        hdrs = {'Accept': 'application/ld+json'}
-        try:
-            r = urllib2.Request(url, headers=hdrs)
-            wh = urllib2.urlopen(r)
-            img = wh.read()   
-            wh.close()
-        except urllib2.HTTPError, e:
-            wh = e
-        ct = wh.headers['content-type']
-        self.validationInfo.check('json-ld', ct, 'application/ld+json', result)
-        return result
-        
-    def test_linkheader_profile(self, result):
-        """{"label":"Profile Link Header","level":3,"category":7,"versions":["1.0","1.1","2.0"]}"""          
-        url = result.make_url(params={})
-        data = result.fetch(url)
-        try:
-            lh = result.last_headers['link']
-        except KeyError:
-            raise ValidatorError('profile', '', 'URI', result)
-        links = result.parse_links(lh)
-        profile = result.get_uri_for_rel(links, 'profile')
-        if not profile:
-            raise ValidatorError('profile', '', 'URI', result)
-        elif result.version == "1.0" and not profile.startswith('http://library.stanford.edu/iiif/image-api/compliance.html'):
-            raise ValidatorError('profile', profile, 'URI', result)
-        elif result.version == "1.1" and not profile.startswith('http://library.stanford.edu/iiif/image-api/1.1/compliance.html'):
-            raise ValidatorError('profile', profile, 'URI', result)
-        elif result.version == "2.0" and not profile.startswith('http://iiif.io/api/image/2/'):
-            raise ValidatorError('profile', profile, 'URI', result)            
-        else:
-            result.tests.append('linkheader')
-            return result
-
-    def test_CORS(self, result):
-        """{"label":"Cross Origin Headers","level":1,"category":7,"versions":["1.0", "1.1", "2.0"]}"""  
-        info = result.get_info();
-        cors = result.last_headers.get('access-control-allow-origin', '')
-        self.validationInfo.check('CORS', cors, '*', result)
-        return result
-
-    def test_linkheader_canonical(self, result):
-        """{"label":"Canonical Link Header","level":3,"category":7,"versions":["2.0"]}"""  
-
-        url = result.make_url(params={})
-        data = result.fetch(url)
-        try:
-            lh = result.last_headers['link']
-        except KeyError:
-            raise ValidatorError('canonical', '', 'URI', result)
-        links = result.parse_links(lh)
-        canonical = result.get_uri_for_rel(links, 'canonical')
-        if not canonical:
-            raise ValidatorError('canonical', '', 'URI', result)
-        else:
-            result.tests.append('linkheader')
-            return result
-
-    def test_baseurl_redirect(self, result):
-        """{"label":"Base URL Redirects","level":1,"category":7,"versions":["2.0"]}""" 
-        url = result.make_info_url()
-        result.urls.append(url)
-        url = url.replace('/info.json', '')
-        try:
-            r = urllib2.Request(url)
-            wh = urllib2.urlopen(r)
-            img = wh.read()   
-            wh.close()
-        except urllib2.HTTPError, e:
-            wh = e        
-
-        u = wh.geturl()
-        if u == url:
-            # we didn't redirect
-            raise ValidatorError('redirect', '', 'URI', result)
-        else:
-            # we must have redirected if our url is not what was requested
-            result.tests.append('redirect')
-            return result
-
-
+ 
 class ImageAPI(object):
 
-    def __init__(self, identifier, server, prefix="", scheme="http", auth="", version="2.0"):
+    def __init__(self, identifier, server, prefix="", scheme="http", auth="", version="2.0", debug=True):
 
         self.iiifNS = "{http://library.stanford.edu/iiif/image-api/ns/}"
+        self.debug = debug
 
         self.scheme = scheme
         self.server = server
@@ -1192,7 +249,6 @@ class ImageAPI(object):
 
     def fetch(self, url):
         # print url
-        self.urls.append(url)
         try:
             wh = urllib2.urlopen(url)
         except urllib2.HTTPError, e:
@@ -1205,6 +261,7 @@ class ImageAPI(object):
         self.last_status = wh.code
         self.last_url = url
         wh.close()
+        self.urls.append(url)
         return(data)
 
     def make_url(self, params={}):
@@ -1232,7 +289,8 @@ class ImageAPI(object):
 
         order = ('prefix','identifier','region','size','rotation','quality')
 
-        params['prefix'] = '/'.join(self.prefix) if (self.prefix) else None
+        if 'prefix' in params:
+            params['prefix'] = '/'.join(self.prefix)
         url = '/'.join(params.get(p) for p in order if params.get(p) is not None)
 
         if params.get('format') is not None:
@@ -1241,7 +299,8 @@ class ImageAPI(object):
         scheme = params.get('scheme', self.scheme)
         server = params.get('server', self.server)
         url = "%s://%s/%s" % (scheme, server, url)
-        #print url
+        if (self.debug):
+            print url
         return url
 
     def make_image(self, data):
@@ -1257,7 +316,10 @@ class ImageAPI(object):
 
     def make_info_url(self, format='json'):
         params = {'server':self.server, 'identifier':self.identifier, 'scheme':self.scheme}
-        parts = self.prefix[:]
+        if self.prefix:
+            parts = self.prefix[:]
+        else:
+            parts = []
         parts.extend([self.identifier, 'info'])
         url = '%s.%s' %  ('/'.join(parts), format)
         scheme = params.get('scheme', self.scheme)
@@ -1271,20 +333,20 @@ class ImageAPI(object):
             idata = self.fetch(url) 
         except:
             # uhoh
-            return {}
+            return None
         try:
             info = json.loads(idata)
         except:
-            return {}
+            return None
         return info
 
 
 class Validator(object):
 
-    def __init__(self):
-        #sys.stderr.write('init on Validator\n');
-        #sys.stderr.flush()
-        pass
+    def __init__(self,debug=True):
+        if (debug):
+            sys.stderr.write('init on Validator\n');
+            sys.stderr.flush()
 
     def handle_test(self, testname):
 
@@ -1403,7 +465,7 @@ class Validator(object):
 
 
 def apache():
-    v = Validator();
+    v = Validator()
     return v.get_bottle_app()
 
 def main():
@@ -1413,5 +475,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-else:
+elif (not os.getenv('VALIDATOR_AS_MODULE')):
     application = apache()
