@@ -13,3 +13,5 @@ install:
 script:
   - py.test
   - ./run_validate.sh
+after_success:
+  - coveralls
