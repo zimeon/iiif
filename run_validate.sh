@@ -10,15 +10,13 @@
 ./iiif_testserver.py --quiet 2>&1 > /dev/null &
 
 # Run validations against test server
-cd validator
 errors=0
-./validate.py -s localhost:8000 -p 1.1_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 1 --quiet
+iiif-validate.py -s localhost:8000 -p 1.1_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 1 --quiet
 ((errors+=$?))
-./validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 1 --quiet
+iiif-validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 1 --quiet
 ((errors+=$?))
 
 # Kill test server
-cd ..
 kill `cat iiif_testserver.pid`
 
 echo "$0 finished (total of $errors errors)"

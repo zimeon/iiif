@@ -5,11 +5,10 @@ python:
 # command to install dependencies
 # need "python setup.py install" to install resync so that client tests work
 install:
-  - pip install Pillow
-  - python setup.py install
   - sudo apt-get update
   - sudo apt-get install libmagic-dev
-  - pip install bottle python-magic lxml
+  - pip install Pillow iiif_validator
+  - python setup.py install
 # command to run tests
 script:
   - py.test
