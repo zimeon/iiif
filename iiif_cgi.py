@@ -15,12 +15,13 @@ import traceback
 # These will likely need to be change for any installation
 HOME_DIR = os.path.normpath(os.path.join(os.getcwd(),'..'))
 TMP_DIR = os.path.join(HOME_DIR,'tmp')
-TESTIMAGE_DIR = os.path.join(HOME_DIR,'iiif/testimages')
+TESTIMAGE_DIR = os.path.join(HOME_DIR,'testimages')
 PNM_DIR = os.path.join(HOME_DIR,'opt/usr/bin')
 SHELL_SETUP = '' #'export LD_LIBRARY_PATH='+os.path.join(HOME_DIR,'opt/usr/lib')+'; ';
 
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest
+from iiif.info import IIIFInfo
 
 class CGI_responder(object):
     def send_response(self,code,text=''):
@@ -36,24 +37,8 @@ class CGI_responder(object):
 #class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class IIIFRequestHandler(CGI_responder):
 
-    """Class variable as dictionary of named profiles
-
-    In this server we implement named profiles as a dictionary
-    of IIIF objects which specify parameterized requests indexed
-    by profile name. This limits named profiles to things that
-    can be specified as a parameterized request. The specification
-    has no such limitation.
-    """
-    named_profiles={ }
     manipulator_class=None
 
-    @classmethod
-    def loadProfile(cls,profile,iiif_request_attributes):
-        """Load a named profile into the IIIFRequestHandler class
-        """
-        cls.named_profiles[profile]=iiif_request_attributes
-
-       
 #    def __init__(self, request, client_address, server):
     def __init__(self):
         # Add some local attributes for this subclass (seems we have to 
@@ -121,27 +106,17 @@ class IIIFRequestHandler(CGI_responder):
         iiif=self.iiif
         if (len(self.path)>1024):
             raise IIIFError(code=414,
-                           text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
-        #   print "GET " + self.path
+                            text="URI Too Long: Max 1024 chars, got %d\n" % len(self.path))
         try:
+            # self.path has leading / then identifier/params...
+            self.path = self.path.lstrip('/')
+            sys.stderr.write("path = %s"%(self.path))
             iiif.parse_url(self.path)
         except Exception as e:
             # Something completely unexpected => 500
             raise IIIFError(code=500,
-                           text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
-        # URL path parsed OK, now determine how to handle request
-        if (iiif.profile is not None):
-            # this is named-profile request
-            if (iiif.profile in self.named_profiles):
-                # substitute named-profile parameters for current request
-                id = iiif.identifier
-                iiif.parse_url('/dummyid'+self.named_profiles[iiif.profile])
-                iiif.identifier = id
-            else:
-                raise IIIFError(code=400,
-                               text="Named-profile %s not implemented" % (iiif.profile) )
-        # Now we have a full iiif request either through direct specification
-        # of parameters or through translation of a named-profile request
+                            text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
+        # Now we have a full iiif request
         if (re.match('[\w\.\-]+$',iiif.identifier)):
             file = os.path.join(TESTIMAGE_DIR,iiif.identifier)
             if (not os.path.isfile(file)):
@@ -154,21 +129,32 @@ class IIIFRequestHandler(CGI_responder):
         else:
             raise IIIFError(code=404,parameter="identifier",
                            text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
+        # Now know image is OK
         manipulator = IIIFRequestHandler.manipulator_class()
-        self.complianceLevel=manipulator.complianceLevel;
-        (outfile,mime_type)=manipulator.derive(file,iiif)
         # Stash manipulator object so we can cleanup after reading file
         self.manipulator=manipulator
-        return(open(outfile,'r'),mime_type)
+        self.complianceLevel=manipulator.complianceLevel;
+        if (iiif.info):
+            # get size
+            manipulator.srcfile=file
+            manipulator.do_first()
+            # most of info.json comes from config, a few things
+            # specific to image
+            i = IIIFInfo()
+            i.identifier = self.iiif.identifier
+            i.width = manipulator.width
+            i.height = manipulator.height
+            import StringIO
+            return(StringIO.StringIO(i.as_json()),"application/json")
+        else:
+            (outfile,mime_type)=manipulator.derive(file,iiif)
+            return(open(outfile,'r'),mime_type)
                
-IIIFRequestHandler.loadProfile( 'unmodified', '/full/pct:100/0/color' )
-IIIFRequestHandler.loadProfile( 'thumb', '/full/!32,32/0/color' )
-
 #print "Content-type: text/plain\r\n\r"
 #print "hello"
 #exit(0)
 myname = ( os.environ['SCRIPT_NAME'] if ('SCRIPT_NAME' in os.environ) else '/iiif_dummy.cgi')
-sys.stderr = sys.stdout
+#sys.stderr = sys.stdout
 if (re.match(myname,'/iiif_dummy') is not None):
     from iiif.manipulator_dummy import IIIFManipulatorDummy
     IIIFRequestHandler.manipulator_class = IIIFManipulatorDummy

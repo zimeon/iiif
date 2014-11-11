@@ -278,4 +278,4 @@ class IIIFManipulator(object):
         read. Intended to handle any clean up of temporary files or such. 
         This method empty in base class.
         """
-        return()
+        pass
