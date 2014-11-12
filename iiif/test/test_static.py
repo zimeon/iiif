@@ -57,12 +57,12 @@ class TestAll(unittest.TestCase):
             # dst path is file
             s.dst=os.path.join(tmp,'exists1')
             open(s.dst, 'w').close()
-            self.assertTrue( Exception, s.setup_destination )
+            self.assertRaises( Exception, s.setup_destination )
             # dst and identifier, path is file
             s.identifier='exists2'
             s.dst=tmp
             open(os.path.join(s.dst,s.identifier), 'w').close()
-            self.assertTrue( Exception, s.setup_destination )
+            self.assertRaises( Exception, s.setup_destination )
             # dst and identifier, both dirs exist and OK
             s.outd=None
             s.dst=tmp
