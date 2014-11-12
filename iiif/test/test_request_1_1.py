@@ -244,6 +244,3 @@ class TestAll(unittest.TestCase):
                 s += k+'='+str(p[k])+' '
         return(s)
 
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()

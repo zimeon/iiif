@@ -10,7 +10,3 @@ class TestAll(unittest.TestCase):
         self.assertEqual( c.get('info','tile_width'), '256')
         self.assertEqual( c.get('info','tile_height'), '256')
         self.assertEqual( c.get('info','scale_factors'), '[1,2,4,8]')
-
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()

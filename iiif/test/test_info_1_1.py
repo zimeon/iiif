@@ -81,7 +81,3 @@ class TestAll(unittest.TestCase):
         i = IIIFInfo()
         fh = open('test_info/1.1/info_bad_context.json')
         self.assertRaises( Exception, i.read, fh )
-
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()

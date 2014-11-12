@@ -155,7 +155,3 @@ class TestAll(unittest.TestCase):
         self.assertEqual( j['profile'][1]['formats'], ['fmt1','fmt2'] )
         self.assertEqual( j['profile'][1]['qualities'], ['q1','q2','q0'] )
         self.assertEqual( j['profile'][1]['supports'], ['a','b'] )
-
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()
