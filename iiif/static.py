@@ -27,15 +27,12 @@ class IIIFStatic(object):
         sg.generate("image2.jpg")
         sg.generate("image3.jpg")
 
-    If prefix is set then this is appended as another path element on dst
-    to specify the output directory.
     """
 
-    def __init__(self, src=None, dst=None, prefix=None, tilesize=None, 
+    def __init__(self, src=None, dst=None, tilesize=None, 
                  api_version=None, dryrun=None):
         self.src=src
         self.dst=dst
-        self.prefix=prefix
         self.tilesize=tilesize if tilesize is not None else 512
         self.api_version=api_version if api_version is not None else '1.1'
         if (self.api_version=='1'):
@@ -75,8 +72,6 @@ class IIIFStatic(object):
             scale_factors.append(factor)
         # Setup destination and IIIF identifier
         self.setup_destination()
-        if (self.identifier is None):
-            (self.identifier,ext) = os.path.splitext(os.path.basename(self.dst))
         # Write info.json
         qualities = ['default'] if (self.api_version>'1.1') else ['native']
         info=IIIFInfo(level=0, identifier=self.identifier,
@@ -84,10 +79,10 @@ class IIIFStatic(object):
                       tile_width=self.tilesize, tile_height=self.tilesize,
                       formats=['jpg'], qualities=qualities,
                       api_version=self.api_version)
-        json_file=os.path.join(self.dst,self.identifier,'info.json')
+        json_file=os.path.join(self.outd,self.identifier,'info.json')
         if (self.dryrun):
             print "dryrun mode, would write the following files:"
-            print "%s / %s" % (self.dst, os.path.join(self.identifier,'info.json'))
+            print "%s / %s" % (self.outd, os.path.join(self.identifier,'info.json'))
             self.logger.info(info.as_json())
         else:
             with open(json_file,'w') as f:
@@ -147,31 +142,42 @@ class IIIFStatic(object):
         r.size_wh=size # [sw,sh]
         r.format='jpg'
         path = r.url()
-        print "%s / %s" % (self.dst,path)
+        print "%s / %s" % (self.outd,path)
         # Generate...
         if (not self.dryrun):
             m = IIIFManipulatorPIL(api_version=self.api_version)
-            m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
+            m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.outd,path))        
 
     def setup_destination(self):
-        """Setup output directory based on self.dst and self.prefix
+        """Setup output directory based on self.dst and self.identifier
 
         Returns the output directory name on success, raises and exception on
         failure. 
         """
         outd = self.dst
-        if (self.dst is None):
-            # derive output dir from src
-            (outd, junk) = os.path.splitext(self.src)
-        if (self.prefix):
-            outd = os.path.join(outd,self.prefix)
+        if (not self.dst):
+            raise Exception("No destination directory specified!")
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
             pass
-        elif (os.path.isfile(self.outd)):
-            raise Exception("Can't write to directory %s: a file of that name exists"%(self.outd))
+        elif (os.path.isfile(outd)):
+            raise Exception("Can't write to directory %s: a file of that name exists"%(outd))
         else:
             os.makedirs(outd)
-        # Now chop off 'identifier' directory
-        (self.outd, self.identifier) = os.path.split(self.dst)
-        self.logger.info("Output directory %s" % (self.outd))
+        # Now have outd, do we have a separate identifier?
+        if (self.identifier):
+            # Yes, create that subdir if necessary
+            id_path=os.path.join(outd,self.identifier)
+            if (os.path.isdir(id_path)):
+                # Nothing for now, perhaps should delete?
+                pass
+            elif (os.path.isfile(id_path)):
+                raise Exception("Can't write to directory %s: a file of that name exists"%(id_path))
+            else:
+                os.makedirs(id_path)
+            self.outd=outd
+        else:
+            # No separate identifier, split off the last path segment
+            # of outd to be the identifier
+            (self.outd, self.identifier) = os.path.split(outd)
+        self.logger.info("Output directory %s, identifier %s" % (self.outd,self.identifier))
