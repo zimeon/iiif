@@ -1,4 +1,4 @@
-"""Test code for iiif_error.py"""
+"""Test code for iiif.error"""
 import unittest
 
 from iiif.error import IIIFError

@@ -26,6 +26,9 @@ class IIIFStatic(object):
         sg = IIIFStatic(dst="outdir")
         sg.generate("image2.jpg")
         sg.generate("image3.jpg")
+
+    If prefix is set then this is appended as another path element on dst
+    to specify the output directory.
     """
 
     def __init__(self, src=None, dst=None, prefix=None, tilesize=None, 
@@ -33,7 +36,6 @@ class IIIFStatic(object):
         self.src=src
         self.dst=dst
         self.prefix=prefix
-        self.identifier=None
         self.tilesize=tilesize if tilesize is not None else 512
         self.api_version=api_version if api_version is not None else '1.1'
         if (self.api_version=='1'):
@@ -42,6 +44,9 @@ class IIIFStatic(object):
             self.api_version='2.0'
         self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger('iiif_static')
+        # used internally:
+        self.outd=None
+        self.identifier=None
 
     def generate(self, src=None, dst=None, tilesize=None):
         # Use params to override object attributes
@@ -69,7 +74,7 @@ class IIIFStatic(object):
             factor = factor+factor
             scale_factors.append(factor)
         # Setup destination and IIIF identifier
-        self.setup_destination(self.src)
+        self.setup_destination()
         if (self.identifier is None):
             (self.identifier,ext) = os.path.splitext(os.path.basename(self.dst))
         # Write info.json
@@ -148,16 +153,25 @@ class IIIFStatic(object):
             m = IIIFManipulatorPIL(api_version=self.api_version)
             m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))        
 
-    def setup_destination(self, src):
+    def setup_destination(self):
+        """Setup output directory based on self.dst and self.prefix
+
+        Returns the output directory name on success, raises and exception on
+        failure. 
+        """
+        outd = self.dst
         if (self.dst is None):
-            (self.dst, junk) = os.path.splitext(src)
-        if (os.path.isdir(self.dst)):
-            # Nothin for now, perhaps should delete?
+            # derive output dir from src
+            (outd, junk) = os.path.splitext(self.src)
+        if (self.prefix):
+            outd = os.path.join(outd,self.prefix)
+        if (os.path.isdir(outd)):
+            # Nothing for now, perhaps should delete?
             pass
-        elif (os.path.isfile(self.dst)):
-            raise Exception("Can't write to directory %s: a file of that name exists"%(self.dst))
+        elif (os.path.isfile(self.outd)):
+            raise Exception("Can't write to directory %s: a file of that name exists"%(self.outd))
         else:
-            os.makedirs(self.dst)
-        # Now chop off identifier directory
-        (self.dst, self.identifier) = os.path.split(self.dst)
-        self.logger.info("Output directory %s" % (self.dst))
+            os.makedirs(outd)
+        # Now chop off 'identifier' directory
+        (self.outd, self.identifier) = os.path.split(self.dst)
+        self.logger.info("Output directory %s" % (self.outd))
