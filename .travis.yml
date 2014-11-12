@@ -7,11 +7,12 @@ python:
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev
-  - pip install Pillow iiif_validator
+  - pip install Pillow iiif_validator coverage
   - python setup.py install
 # command to run tests
 script:
   - py.test
   - ./run_validate.sh
+  - coverage run --source=iiif setup.py test
 after_success:
   - coveralls
