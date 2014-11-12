@@ -1,6 +1,9 @@
 iiif changelog
 ==============
 
+2014-11-11 v0.5.0
+- Supports IIIF API v2.0 and v1.1 at level 1
+
 2014-09-17 v0.4.2
 - Tidy tests, checked against python 2.6 and 2.7
 - Still needs work to support recently released IIIF API v2.0
