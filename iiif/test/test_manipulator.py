@@ -1,4 +1,7 @@
-"""Test code for iiif_error.py"""
+"""Test code for null iiif.manipulator"""
+import os
+import shutil
+import tempfile
 import unittest
 
 from iiif.manipulator import IIIFManipulator
@@ -6,24 +9,20 @@ from iiif.request import IIIFRequest
 
 class TestAll(unittest.TestCase):
 
-    def test001(self):
+    def test01_init(self):
         m = IIIFManipulator()
-        m.request = IIIFRequest()
-        self.assertEqual( m.quality_to_apply(), 'default' )
+        self.assertEqual( m.api_version, '2.0' )
 
-    def test100(self):
-        # v1.0 tests
-        m = IIIFManipulator(api_version='1.0')
-        m.request = IIIFRequest()
-        self.assertEqual( m.quality_to_apply(), 'native' )
-
-    def test110(self):
-        # v1.1 tests
-        m = IIIFManipulator(api_version='1.1')
-        m.request = IIIFRequest()
-        self.assertEqual( m.quality_to_apply(), 'native' )
-
-
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()
+    def test02_derive(self):
+        m = IIIFManipulator()
+        r = IIIFRequest()
+        r.parse_url('id1/full/full/0/default')
+        tmp = tempfile.mkdtemp()
+        outfile = os.path.join(tmp,'testout.png')
+        try:
+            m.derive(srcfile='testimages/test1.png',
+                     request=r, outfile=outfile);
+            self.assertTrue( os.path.isfile(outfile) )
+            self.assertEqual( os.path.getsize(outfile), 65810 )
+        finally:
+            shutil.rmtree(tmp) 
