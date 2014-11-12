@@ -35,7 +35,7 @@ class TestAll(unittest.TestCase):
     def test04_setup_destination(self):
         s=IIIFStatic()
         # no dst
-        self.assertRaises( Exception, s.setup_destination, None )
+        self.assertRaises( Exception, s.setup_destination )
         # now really create dir
         tmp = tempfile.mkdtemp()
         try:
@@ -54,5 +54,21 @@ class TestAll(unittest.TestCase):
             self.assertTrue( os.path.isdir(os.path.join(s.dst,'abc')) )
             self.assertEqual( s.outd, s.dst )
             self.assertEqual( s.identifier, 'abc' )
+            # dst path is file
+            s.dst=os.path.join(tmp,'exists1')
+            open(s.dst, 'w').close()
+            self.assertTrue( Exception, s.setup_destination )
+            # dst and identifier, path is file
+            s.identifier='exists2'
+            s.dst=tmp
+            open(os.path.join(s.dst,s.identifier), 'w').close()
+            self.assertTrue( Exception, s.setup_destination )
+            # dst and identifier, both dirs exist and OK
+            s.outd=None
+            s.dst=tmp
+            s.identifier='id1'
+            os.mkdir( os.path.join(s.dst,s.identifier) )
+            s.setup_destination()
+            self.assertEqual( s.outd, tmp )
         finally:
             shutil.rmtree(tmp) 

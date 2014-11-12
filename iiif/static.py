@@ -45,14 +45,13 @@ class IIIFStatic(object):
         self.outd=None
         self.identifier=None
 
-    def generate(self, src=None, dst=None, tilesize=None):
+    def generate(self, src=None, identifier=None):
+        """Generate static files for one source image"""
         # Use params to override object attributes
         if (src is not None):
             self.src=src
-        if (dst is not None):
-            self.dst=dst
-        if (tilesize is not None):
-            self.tilesize=tilesize
+        if (identifier is not None):
+            self.identifier=identifier
         # Get image details and calculate tiles
         im=IIIFManipulatorPIL()
         im.srcfile=self.src
