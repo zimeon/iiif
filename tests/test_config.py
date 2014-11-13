@@ -1,4 +1,4 @@
-"""Test for iiif/config.py"""
+"""Test for iiif.config"""
 import unittest
 
 from iiif.config import IIIFConfig
@@ -10,3 +10,13 @@ class TestAll(unittest.TestCase):
         self.assertEqual( c.get('info','tile_width'), '256')
         self.assertEqual( c.get('info','tile_height'), '256')
         self.assertEqual( c.get('info','scale_factors'), '[1,2,4,8]')
+
+    def test02_get_test_sections(self):
+        c = IIIFConfig(conf_file='does_no_exist')
+        self.assertEqual( len(c.get_test_sections()), 4 )
+
+    def test03_get(self):
+        c = IIIFConfig(conf_file='does_no_exist')
+        # without and with default
+        self.assertEqual( c.get('info','abc'), '' )
+        self.assertEqual( c.get('info','abc','ghi'), 'ghi' )

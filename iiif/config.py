@@ -75,8 +75,15 @@ class IIIFConfig(object):
         return(test_sections)
 
     def get(self, section, option, default=None, raw=False, vars=None):
-        """Wrapper for get(..) in ConfigParser"""
-        value = self.conf.get(section,option,raw,vars)
-        if (value is '' and default is not None):
-            return default
+        """Wrapper for get(..) in ConfigParser
+
+        Returns either an empty string, or the default value for
+        a parameter that is not included in the config.
+        """
+        try:
+            value = self.conf.get(section,option,raw,vars)
+        except:
+            value = ''
+        if (value=='' and default is not None):
+            value = default
         return value
