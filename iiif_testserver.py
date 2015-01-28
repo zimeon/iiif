@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Crude webserver that services IIIF Image API requests
 
-Relies upon IIIFManipulator object to do any manipulations
+Relies upon IIIFManipulator objects to do any manipulations
 requested.
 """
 
@@ -13,13 +13,15 @@ import os.path
 import sys
 import urllib
 
-from iiif.config import IIIFConfig
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 def no_op(self,format,*args):
-    """Functions that does nothing - no-op"""
+    """Function that does nothing - no-op
+
+    Used to silence logging
+    """
     pass
 
 def parse_accept_header(accept):
@@ -67,8 +69,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
     MANIPULATORS={}
     
     @classmethod
-    def add_manipulator(cls, prefix, klass, api_version='2.0'):
-        cls.MANIPULATORS[prefix]={'klass': klass, 'api_version': api_version}
+    def add_manipulator(cls, prefix, klass, api_version='2.0', auth_type=None):
+        cls.MANIPULATORS[prefix]={'klass': klass, 
+                                  'api_version': api_version,
+                                  'auth_type': auth_type}
 
     def __init__(self, request, client_address, server):
         # Add some local attributes for this subclass (seems we have to 
@@ -92,6 +96,20 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             uri += '/'+self.prefix
         return uri
 
+    @property
+    def json_mime_type(self):
+        """Return the MIME type for a JSON response
+
+        For version 2.0 the server must return json-ld MIME type if that
+        format is requested. Implement for 1.1 also.
+        http://iiif.io/api/image/2.0/#information-request
+        """
+        mime_type = "application/json"
+        if (self.api_version>='1.1' and
+            'Accept' in self.headers):
+            mime_type = do_conneg(self.headers['Accept'],['application/ld+json']) or mime_type
+        return mime_type
+
     def send_404_response(self, content='Resource Not Found'):
         """Send a plain 404 for URLs not under a known IIIF endpoint prefix"""
         self.send_response(404)
@@ -99,36 +117,70 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         self.end_headers()
         self.wfile.write(content)
     
-    def send_index_page(self, file='index.html'):
+    def send_html_page(self,title="Page Title",body=""):
+        """Send an HTML page as response"""
+        self.send_response(200)
+        self.send_header('Content-Type','text/html')
+        self.end_headers()
+        self.wfile.write("<html>\n<head><title>%s</title></head>\n<body>\n" % (title))
+        self.wfile.write("<h1>%s</h1>\n" % (title))
+        self.wfile.write( body )
+        self.wfile.write("</body>\n</html>\n")
+        
+    def send_html_file(self,file=None):
         """Send an HTML file as response"""
         self.send_response(200)
         self.send_header('Content-Type','text/html')
         self.end_headers()
-        self.wfile.write("<html><head><title>iiif_testserver</title></head><body>\n")
-        self.wfile.write("<h1>iiif_testserver on %s:%s</h1>\n" %(IIIFRequestHandler.HOST,IIIFRequestHandler.PORT))
-        prefixes = sorted(IIIFRequestHandler.MANIPULATORS.keys())
+        f = open(file,'r')
+        self.wfile.write( f.read() )
+
+    def send_top_level_index_page(self):
+        """Send an HTML top-level index page as response"""
+        title = "iiif_testserver on %s:%s" % (IIIFRequestHandler.HOST,IIIFRequestHandler.PORT)
+        body = "<ul>\n"
+        for prefix in sorted(IIIFRequestHandler.MANIPULATORS.keys()):
+            body += '<li><a href="%s">%s</a></li>\n' % (prefix,prefix)
+        body += "</ul>\n"
+        return self.send_html_page( title, body )
+
+    def send_prefix_index_page(self, prefix):
+        """Send an HTML index page for a specific prefix as response"""
+        title = "Prefix %s  (from iiif_testserver on %s:%s)" % (prefix,IIIFRequestHandler.HOST,IIIFRequestHandler.PORT)
         files = os.listdir(IIIFRequestHandler.IMAGE_DIR)
-        self.wfile.write("<table>\n")
-        self.wfile.write("<tr><th></th>")
-        for prefix in prefixes:
-            self.wfile.write('<th colspan="2">%s</th>' % (prefix))
-            if (prefix!='dummy'):
-                self.wfile.write("<th>%s 256x256</th>" % (prefix))
-        self.wfile.write("</tr>\n")
+        api_version = IIIFRequestHandler.MANIPULATORS[prefix]['api_version']
+        default = 'default' if api_version>='2.0' else 'native'
+        body = "<table>\n<tr><th></th>"
+        body += '<th colspan="2">%s</th>' % (prefix)
+        if (prefix!='dummy'):
+            body += "<th>%s 256x256</th>" % (prefix)
+        body += "</tr>\n"
         for file in sorted(files):
-            self.wfile.write("<tr><th>%s</th>" % (file))
-            for prefix in prefixes:
-                url = "/%s/%s/full/full/0/native" % (prefix,file)
-                self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
-                info = "/%s/%s/info.json" % (prefix,file)
-                self.wfile.write('<td><a href="%s">%s</a></td>' % (info,info))
-                if (prefix!='dummy'):
-                    url = "/%s/%s/full/256,256/0/native" % (prefix,file)
-                    self.wfile.write('<td><a href="%s">%s</a></td>' % (url,url))
-            self.wfile.write("</tr>\n")
-        self.wfile.write("</table<\n")
-        self.wfile.write("</html>\n")
-        
+            body += "<tr><th>%s</th>" % (file)
+            url = "/%s/%s/full/full/0/%s" % (prefix,file,default)
+            body += '<td><a href="%s">%s</a></td>' % (url,url)
+            info = "/%s/%s/info.json" % (prefix,file)
+            body += '<td><a href="%s">%s</a></td>' % (info,info)
+            if (prefix!='dummy'):
+                url = "/%s/%s/full/256,256/0/%s" % (prefix,file,default)
+                body += '<td><a href="%s">%s</a></td>' % (url,url)
+            body += "</tr>\n"
+        body += "</table<\n"
+        return self.send_html_page( title, body )
+    
+    def send_json_response(self, json, status=200, authn_uri=None):
+        """ Send a JSON response 
+        """
+        self.send_response(status)
+        self.send_header('Content-Type',self.json_mime_type)
+        self.add_compliance_header()
+        self.add_cors_header()
+        if (authn_uri):
+            self.send_header('WWW-Authenticate','Basic realm="a_realm"')
+            #authn_uri)
+        self.end_headers()
+        self.wfile.write(json+"\n") #add CR at end for clarity
+
     def write_error_response(self,e):
         """ Write response for an IIIFError e
 
@@ -161,8 +213,33 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         self.compliance_level=None
         # We take prefix to see whe implementation to use, / is special info
         if (self.path == '/'):
-            self.send_index_page()
-            return
+            return self.send_top_level_index_page()
+        
+        # Test code...
+        if (self.path == '/response_test/401'):
+            # WHAT DOES NULL info.json look like?
+            # https://github.com/IIIF/auth/issues/2
+            self.api_version='2.0'
+            i = IIIFInfo(api_version=self.api_version)
+            i.identifier = 'abc'
+            i.width = 0
+            i.height = 0
+            return self.send_json_response(json=i.as_json(),
+                status=401,
+                authn_uri="http://example.com/authn_here")
+
+        # Is this a request for a prefix index page?
+        m = re.match(r'/([\w\._]+)$', self.path)
+        if (m and m.group(1) in IIIFRequestHandler.MANIPULATORS):
+            return self.send_prefix_index_page(m.group(1))
+
+        # Is this a request for a test page?
+        m = re.match(r'/([\w\._]+)$', self.path)
+        if (m):
+            page_path = os.path.join(IIIFRequestHandler.PAGES_DIR,m.group(1))
+            if (os.path.isfile(page_path)):
+                return self.send_html_file(page_path)
+
         # Now assume we have an iiif request
         m = re.match(r'/([\w\._]+)/(.*)$', self.path)
         if (m):
@@ -184,7 +261,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             (of,mime_type) = self.do_GET_body()
             if (not of):
                 raise IIIFError("Unexpected failure to open result image")
-            self.send_response(200,'OK')
+            self.send_response(200)
             if (mime_type is not None):
                 self.send_header('Content-Type',mime_type)
 #            download_filename = os.path.basename(self.iiif.identifier)
@@ -242,13 +319,6 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         # 
         self.compliance_level=self.manipulator.complianceLevel
         if (self.iiif.info):
-            # For version 2.0 the server must return json-ld MIME type if that
-            # format is requested. Implement for 1.1 also.
-            # http://iiif.io/api/image/2.0/#information-request
-            mime_type = "application/json"
-            if (self.api_version>='1.1' and
-                'Accept' in self.headers):
-                mime_type = do_conneg(self.headers['Accept'],['application/ld+json']) or mime_type
             # get size
             self.manipulator.srcfile=file
             self.manipulator.do_first()
@@ -259,7 +329,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.width = self.manipulator.width
             i.height = self.manipulator.height
             import StringIO
-            return(StringIO.StringIO(i.as_json()),mime_type)
+            return(StringIO.StringIO(i.as_json()),self.json_mime_type)
         else:
             if (self.api_version<'2.0' and
                 self.iiif.format is None and
@@ -277,7 +347,8 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             (outfile,mime_type)=self.manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
 
-def run(host='localhost', port=8888, image_dir='img', info=None,
+def run(host='localhost', port=8888, 
+        image_dir=None, pages_dir=None, info=None,
         server_class=BaseHTTPServer.HTTPServer,
         handler_class=IIIFRequestHandler):
     """Run webserver forever
@@ -288,6 +359,7 @@ def run(host='localhost', port=8888, image_dir='img', info=None,
     handler_class.HOST=host
     handler_class.PORT=port
     handler_class.IMAGE_DIR=image_dir
+    handler_class.PAGES_DIR=pages_dir
     handler_class.INFO=info
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
@@ -295,6 +367,18 @@ def run(host='localhost', port=8888, image_dir='img', info=None,
 def main():
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image Testserver')
+    p.add_option('--host', default='localhost',
+                 help="Server host (default %default)")
+    p.add_option('--port', '-p', type='int', default=8000,
+                 help="Server port (default %default)")
+    p.add_option('--image-dir','-d', default='testimages',
+                 help="Image directory (default %default)")
+    p.add_option('--tile-height', type='int', default=256,
+                 help="Tile height (default %default)")
+    p.add_option('--tile-width', type='int', default=256,
+                 help="Tile width (default %default)")
+    p.add_option('--pages-dir', default='testpages',
+                 help="Test pages directory (default %default)")
     p.add_option('--verbose', '-v', action='store_true',
                  help="Be verbose")
     p.add_option('--quiet','-q', action='store_true',
@@ -305,45 +389,50 @@ def main():
         # Add no_op function as logger to silence
         IIIFRequestHandler.log_message=no_op
 
-    conf = IIIFConfig()
     # Import a set of manipulators and define prefixes for them
-    for section in conf.get_test_sections():
-        prefix = conf.get(section,'prefix')
-        if (prefix.find('/')>=0):
-            print "Prefix must not contain slash, %s in section %s ignored" % (prefix,section)
-            continue
-        klass_name = conf.get(section,'klass')
-        api_version = conf.get(section,'api_version')
-        klass=None
-        if (klass_name=='pil'):
-            from iiif.manipulator_pil import IIIFManipulatorPIL
-            klass=IIIFManipulatorPIL
-        elif (klass_name=='netpbm'):
-            from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
-            klass=IIIFManipulatorNetpbm
-        elif (klass_name=='dummy'):
-            from iiif.manipulator import IIIFManipulator
-            klass=IIIFManipulator
-        else:
-            print "Unknown manipulator type %s in section %s, ignoring" % (klass_name,section)
-            continue
-        print "Installing %s IIIFManipulator at /%s/ v%s" % (klass_name,prefix,api_version)
-        IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version )
+    versions = ['1.0', '1.1', '2.0']
+    klass_names = ['pil','netpbm','dummy']
+    auth_types = ['none']
+    for api_version in versions:
+        for klass_name in klass_names:
+            for auth_type in auth_types:
+                prefix = "%s_%s_%s" % (api_version,klass_name,auth_type)
 
-    info={}
-    for option in conf.conf.options('info'):
-        print "got %s = %s" % (option,conf.get('info',option))
-        info[option] = conf.get('info',option)
-    print "info = " + str(info)
+                klass=None
+                if (klass_name=='pil'):
+                    from iiif.manipulator_pil import IIIFManipulatorPIL
+                    klass=IIIFManipulatorPIL
+                elif (klass_name=='netpbm'):
+                    from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
+                    klass=IIIFManipulatorNetpbm
+                elif (klass_name=='dummy'):
+                    from iiif.manipulator import IIIFManipulator
+                    klass=IIIFManipulator
+                else:
+                    print "Unknown manipulator type %s, ignoring" % (klass_name)
+                    continue
+                print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
+                IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version, auth_type=auth_type )
+
+    info={'tile_height': opt.tile_height,
+          'tile_width': opt.tile_width,
+          'qualities' : [ "native", "color" ],
+          'scale_factors' : [1,2,4,8],
+          'formats' : [ "jpg", "png" ]
+    }
+    for option in info:
+        print "got %s = %s" % (option,info[option])
+    #print "info = " + str(info)
 
     pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
     with open(pidfile,'w') as fh:
         fh.write("%d\n" % os.getpid())
         fh.close()
 
-    run(host=conf.get('test_server','server_host','localhost'),
-        port=int(conf.get('test_server','server_port','8000')),
-        image_dir=conf.get('test_server','image_dir'),
+    run(host=opt.host,
+        port=opt.port,
+        image_dir=opt.image_dir,
+        pages_dir=opt.pages_dir,
         info=info)
 
 if __name__ == "__main__":

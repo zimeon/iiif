@@ -23,11 +23,11 @@ class TestAll(unittest.TestCase):
         i = IIIFInfo(api_version='1.1')
         i.scale_factors = [1,2,3]
         self.assertEqual( i.scale_factors, [1,2,3] )
-        i.set('scale_factors','[4,5,6]')
+        i.set('scale_factors',[4,5,6])
         self.assertEqual( i.scale_factors, [4,5,6] )
 
     def test04_conf(self):
-        conf = { 'tile_width': 999, 'scale_factors': '[9,8,7]' }
+        conf = { 'tile_width': 999, 'scale_factors': [9,8,7] }
         i = IIIFInfo(conf=conf,api_version='1.1')
         self.assertEqual( i.tile_width, 999 )
         self.assertEqual( i.scale_factors, [9,8,7] )

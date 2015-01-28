@@ -30,9 +30,9 @@ done
 
 # Run validations against test server
 errors=0
-iiif-validate.py -s localhost:8000 -p 1.1_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 1 $verbosity
+iiif-validate.py -s localhost:8000 -p 1.1_pil_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 1 $verbosity
 ((errors+=$?))
-iiif-validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 1 $verbosity
+iiif-validate.py -s localhost:8000 -p 2.0_pil_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 1 $verbosity
 ((errors+=$?))
 
 # Kill test server

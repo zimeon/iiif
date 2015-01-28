@@ -168,10 +168,10 @@ class IIIFStatic(object):
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
             pass
-        elif (os.path.isfile(self.outd)):
-            raise Exception("Can't write to directory %s: a file of that name exists"%(self.outd))
+        elif (os.path.isfile(outd)):
+            raise Exception("Can't write to directory %s: a file of that name exists"%(outd))
         else:
             os.makedirs(outd)
         # Now chop off 'identifier' directory
-        (self.outd, self.identifier) = os.path.split(self.dst)
+        (self.outd, self.identifier) = os.path.split(outd)
         self.logger.info("Output directory %s" % (self.outd))
