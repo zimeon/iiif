@@ -3,7 +3,6 @@
 *~
 .DS_store
 iiif_testserver.pid
-ts.py
 # setup stuff
 build
 dist

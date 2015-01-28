@@ -1,4 +1,4 @@
-"""Test encoding and decoding of the request URLs in the IIIF Image API v1.0
+"""Test encoding and decoding of the request URLs in the IIIF Image API v1.1
 
 This test includes only test cases for the table in section 7. See
 iiif_urltest.py for more examples that test other cases and alternative 
@@ -52,9 +52,6 @@ data  = {
     '10_info': [
         {'identifier':'id1', 'info':True, 'format':'json' },
         'id1/info.json'],
-    '11_info': [
-        {'identifier':'id1', 'info':True, 'format':'xml' },
-        'id1/info.xml'],
     }
 
 class TestAll(unittest.TestCase):
@@ -64,7 +61,7 @@ class TestAll(unittest.TestCase):
         for tname in sorted(data.iterkeys()):
             tdata=data[tname]
             print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
-            iiif = IIIFRequest(api_version='1.0',**data[tname][0])
+            iiif = IIIFRequest(api_version='1.1',**data[tname][0])
             self.assertEqual(iiif.url(),data[tname][1])
         print
   
@@ -74,7 +71,7 @@ class TestAll(unittest.TestCase):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
             for turl in data[tname][1:]:
-                iiif = IIIFRequest(api_version='1.0').parse_url(turl)
+                iiif = IIIFRequest(api_version='1.1').parse_url(turl)
                 tstr = self.pstr(iiif.__dict__)
                 print "    <tr>\n      <td>" + tstr + "</td>\n      <td>" + turl + "</td>\n    </tr>"
                 self.assertEqual(tstr,pstr)
@@ -89,7 +86,3 @@ class TestAll(unittest.TestCase):
                 else:
                     s += k+'='+str(p[k])+' '
         return(s)
-        
-# If run from command line, do tests
-if __name__ == '__main__':
-    unittest.main()

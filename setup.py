@@ -39,5 +39,5 @@ setup(
     install_requires=[
         "Pillow"
     ],
-    test_suite="iiif.test",
+    test_suite="tests",
 )
