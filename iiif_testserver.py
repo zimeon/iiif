@@ -168,16 +168,15 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         body += "</table<\n"
         return self.send_html_page( title, body )
     
-    def send_json_response(self, json, status=200, authn_uri=None):
+    def send_json_response(self, json, status=200):
         """ Send a JSON response 
         """
         self.send_response(status)
         self.send_header('Content-Type',self.json_mime_type)
         self.add_compliance_header()
         self.add_cors_header()
-        if (authn_uri):
-            self.send_header('WWW-Authenticate','Basic realm="a_realm"')
-            #authn_uri)
+        if (status==401):
+            self.send_header('WWW-Authenticate','Basic realm="This is HTTP Auth"')
         self.end_headers()
         self.wfile.write(json+"\n") #add CR at end for clarity
 
@@ -216,7 +215,9 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             return self.send_top_level_index_page()
         
         # Test code...
-        if (self.path == '/response_test/401'):
+        m = re.match(r'/response_test/(\d\d\d)$', self.path)
+        if (m):
+            status=int(m.group(1))
             # WHAT DOES NULL info.json look like?
             # https://github.com/IIIF/auth/issues/2
             self.api_version='2.0'
@@ -224,9 +225,11 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.identifier = 'abc'
             i.width = 0
             i.height = 0
-            return self.send_json_response(json=i.as_json(),
-                status=401,
-                authn_uri="http://example.com/authn_here")
+            i.auth_uri = "http://example.com/authn_here"
+            i.service = { '@context': 'http://example.org/auth_context.json',
+                          '@id': i.auth_uri,
+                          'label': "Authenticate here" }
+            return self.send_json_response(json=i.as_json(),status=status)
 
         # Is this a request for a prefix index page?
         m = re.match(r'/([\w\._]+)$', self.path)
