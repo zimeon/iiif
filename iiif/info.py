@@ -1,6 +1,6 @@
 """IIIF Image Information Response
 
-Model for IIIF Image AAPI 'Image Information Response'.
+Model for IIIF Image API 'Image Information Response'.
 Default version is 2.0 but also supports 1.1 and 1.0
 """
 
