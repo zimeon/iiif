@@ -6,12 +6,14 @@ requested.
 """
 
 import BaseHTTPServer
+import base64
 import re
 import optparse
 import os
 import os.path
 import sys
 import urllib
+import urllib2
 
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
@@ -46,6 +48,42 @@ def parse_accept_header(accept):
     result.sort(lambda x, y: -cmp(x[2], y[2]))
     return result
 
+def parse_authorization_header(value):
+    """Parse the Authenticate header
+
+    Returns nothing on failure, opts hash on success with type='basic' or 'digest'
+    and other params.
+
+    <http://nullege.com/codes/search/werkzeug.http.parse_authorization_header>
+    <http://stackoverflow.com/questions/1349367/parse-an-http-request-authorization-header-with-python>
+    <http://bugs.python.org/file34041/0001-Add-an-authorization-header-to-the-initial-request.patch>
+    """
+    try:
+        (auth_type, auth_info) = value.split(' ', 1)
+        auth_type = auth_type.lower()
+    except ValueError as e:
+        return
+    if (auth_type == 'basic'):
+        try:
+            (username, password) = base64.b64decode(auth_info).split(':', 1)
+        except Exception as e:
+            return
+        return {'type':'basic', 'username': username, 'password': password}
+    elif (auth_type == 'digest'):
+        auth_map = urllib2.parse_keqv_list(urllib2.parse_http_list(auth_info))
+        print auth_map
+        for key in 'username', 'realm', 'nonce', 'uri', 'response':
+            if not key in auth_map:
+                return
+            if 'qop' in auth_map:
+                if not auth_map.get('nc') or not auth_map.get('cnonce'):
+                    return
+        auth_map['type']='digest'
+        return auth_map
+    else:
+        # unknown auth type
+        return
+
 def do_conneg(accept,supported):
     """Parse accept header and look for preferred type in supported list
 
@@ -65,7 +103,9 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
     HOST=None
     PORT=None
     IMAGE_DIR=None
+    PAGES_DIR=None
     INFO=None
+    USER_PASS=None
     MANIPULATORS={}
     
     @classmethod
@@ -176,9 +216,26 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         self.add_compliance_header()
         self.add_cors_header()
         if (status==401):
-            self.send_header('WWW-Authenticate','Basic realm="This is HTTP Auth"')
+            self.send_header('WWW-Authenticate','Basic realm="HTTP Basic Auth"')
         self.end_headers()
         self.wfile.write(json+"\n") #add CR at end for clarity
+
+    def send_good_response(self, of, mime_type):
+        """ Normal successful response
+        """
+        if (not of):
+            raise IIIFError("Unexpected failure to open result image")
+        self.send_response(200)
+        if (mime_type is not None):
+            self.send_header('Content-Type',mime_type)
+        self.add_compliance_header()
+        self.add_cors_header()
+        self.end_headers()
+        while (1):
+            buffer = of.read(8192)
+            if (not buffer):
+                break
+            self.wfile.write(buffer)
 
     def write_error_response(self,e):
         """ Write response for an IIIFError e
@@ -225,9 +282,8 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.identifier = 'abc'
             i.width = 0
             i.height = 0
-            i.auth_uri = "http://example.com/authn_here"
             i.service = { '@context': 'http://example.org/auth_context.json',
-                          '@id': i.auth_uri,
+                          '@id': "http://example.com/authn_here",
                           'label': "Authenticate here" }
             return self.send_json_response(json=i.as_json(),status=status)
 
@@ -252,6 +308,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                 self.api_version = IIIFRequestHandler.MANIPULATORS[self.prefix]['api_version']
                 self.iiif = IIIFRequest(baseurl='/'+self.prefix+'/',api_version=self.api_version)
                 self.manipulator = IIIFRequestHandler.MANIPULATORS[self.prefix]['klass'](api_version=self.api_version)
+                self.auth_type = IIIFRequestHandler.MANIPULATORS[self.prefix]['auth_type']
             else:
                 # 404 - unrecognized prefix
                 self.send_404_response("Not Found - prefix /%s/ is not known" % (self.prefix))
@@ -261,24 +318,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             self.send_404_response("Not Found - path structure not recognized")
             return
         try:
-            (of,mime_type) = self.do_GET_body()
-            if (not of):
-                raise IIIFError("Unexpected failure to open result image")
-            self.send_response(200)
-            if (mime_type is not None):
-                self.send_header('Content-Type',mime_type)
-#            download_filename = os.path.basename(self.iiif.identifier)
-#            if (self.iiif.ouput_format):
-#                downlocal_filename += '.' + self.iiif.ouput_format 
-#            self.send_header('Content-Disposition','inline;filename='+download_filename)
-            self.add_compliance_header()
-            self.add_cors_header()
-            self.end_headers()
-            while (1):
-                buffer = of.read(8192)
-                if (not buffer):
-                    break
-                self.wfile.write(buffer)
+            self.do_GET_body()
         except IIIFError as e:
             e.text += " Request parameters: "+str(self.iiif)
             self.write_error_response(e)
@@ -321,6 +361,23 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                             text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
         # 
         self.compliance_level=self.manipulator.complianceLevel
+
+        # Do we have auth?
+        if (self.auth_type == 'basic'):
+            auth_map = parse_authorization_header(self.headers.get('Authorization',''))
+            if (auth_map and auth_map['type']=='basic' and
+                auth_map['username']+':'+auth_map['password']==IIIFRequestHandler.USER_PASS):
+                # authz, continue
+                pass
+            else:
+                # failed, send 401 with null image info, no service link for auth as
+                # basic auth is all done via the WWW-Authenticate header
+                i = IIIFInfo(api_version=self.api_version)
+                i.identifier = 'null'
+                i.width = 0
+                i.height = 0
+                return self.send_json_response(json=i.as_json(),status=401)
+
         if (self.iiif.info):
             # get size
             self.manipulator.srcfile=file
@@ -331,8 +388,7 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.identifier = self.iiif.identifier
             i.width = self.manipulator.width
             i.height = self.manipulator.height
-            import StringIO
-            return(StringIO.StringIO(i.as_json()),self.json_mime_type)
+            return self.send_json_response(i.as_json(),200)
         else:
             if (self.api_version<'2.0' and
                 self.iiif.format is None and
@@ -348,10 +404,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                 if (accept in formats):
                     self.iiif.format = formats[accept]
             (outfile,mime_type)=self.manipulator.derive(file,iiif)
-            return(open(outfile,'r'),mime_type)
+            return self.send_good_response(open(outfile,'r'),mime_type)
 
 def run(host='localhost', port=8888, 
-        image_dir=None, pages_dir=None, info=None,
+        image_dir=None, pages_dir=None, info=None, user_pass=None,
         server_class=BaseHTTPServer.HTTPServer,
         handler_class=IIIFRequestHandler):
     """Run webserver forever
@@ -364,6 +420,7 @@ def run(host='localhost', port=8888,
     handler_class.IMAGE_DIR=image_dir
     handler_class.PAGES_DIR=pages_dir
     handler_class.INFO=info
+    handler_class.USER_PASS=user_pass
     print "Starting webserver on %s:%d\n" % (host,port)
     httpd.serve_forever()
 
@@ -382,6 +439,8 @@ def main():
                  help="Tile width (default %default)")
     p.add_option('--pages-dir', default='testpages',
                  help="Test pages directory (default %default)")
+    p.add_option('--user-pass', default='user:pass',
+                 help="Username colon password need for authentication (default %default)")
     p.add_option('--verbose', '-v', action='store_true',
                  help="Be verbose")
     p.add_option('--quiet','-q', action='store_true',
@@ -395,12 +454,14 @@ def main():
     # Import a set of manipulators and define prefixes for them
     versions = ['1.0', '1.1', '2.0']
     klass_names = ['pil','netpbm','dummy']
-    auth_types = ['none']
+    auth_types = ['none','basic']
     for api_version in versions:
         for klass_name in klass_names:
             for auth_type in auth_types:
+                # auth only for 2.0
+                if (auth_type != 'none' and api_version != '2.0'):
+                    continue
                 prefix = "%s_%s_%s" % (api_version,klass_name,auth_type)
-
                 klass=None
                 if (klass_name=='pil'):
                     from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -436,7 +497,8 @@ def main():
         port=opt.port,
         image_dir=opt.image_dir,
         pages_dir=opt.pages_dir,
-        info=info)
+        info=info,
+        user_pass=opt.user_pass)
 
 if __name__ == "__main__":
     main()
