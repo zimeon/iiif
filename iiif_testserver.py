@@ -7,6 +7,7 @@ requested.
 
 import BaseHTTPServer
 import base64
+import logging 
 import re
 import optparse
 import os
@@ -446,6 +447,9 @@ def main():
     p.add_option('--quiet','-q', action='store_true',
                  help="Minimal output only")
     (opt, args) = p.parse_args()
+
+    logging.basicConfig( format='%(name)s: %(message)s',
+                         level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
 
     if (opt.quiet):
         # Add no_op function as logger to silence
