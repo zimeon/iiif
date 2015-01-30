@@ -172,21 +172,21 @@ class IIIFManipulator(object):
         Returns (None,None,None,None) if no extraction is required.
         """
         if (self.request.region_full or
-            self.request.region_pct==100.0):
+            (self.request.region_pct and 
+             self.request.region_xywh==(0,0,100,100))):
             return(None,None,None,None)
         # Cannot do anything else unless we know size (in self.width and self.height)
         if (self.width<=0 or self.height<=0):
             raise IIIFError(code=501,parameter='region',
                             text="Region parameters require knowledge of image size which is not implemented.")
         pct = self.request.region_pct
-        # Convert pct to real
+        (x,y,w,h)=self.request.region_xywh
+        # Convert pct to pixels based on actual size
         if (pct):
-            x = 0
-            y = 0
-            w = int( (pct / 100.0) * self.width + 0.5)
-            h = int( (pct / 100.0) * self.height + 0.5)
-        else:
-            (x,y,w,h)=self.request.region_xywh
+            x = int( (x / 100.0) * self.width + 0.5)
+            y = int( (y / 100.0) * self.height + 0.5)
+            w = int( (w / 100.0) * self.width + 0.5)
+            h = int( (h / 100.0) * self.height + 0.5)
         # Check if boundary extends beyond image and truncate
         if ((x+w) > self.width):
             w=self.width-x

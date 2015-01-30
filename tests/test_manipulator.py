@@ -125,9 +125,10 @@ class TestAll(unittest.TestCase):
         # 4 None's for full
         m.request.region_full = True
         self.assertEqual( m.region_to_apply(), (None,None,None,None) )
-        # 100 pct
+        # pct:0,0,100,100 -> full
         m.request.region_full = False
-        m.request.region_pct = 100.0
+        m.request.region_pct = True
+        m.request.region_xywh = (0,0,100,100) 
         self.assertEqual( m.region_to_apply(), (None,None,None,None) )
         # negative size -> error
         m.request.region_full = False
@@ -141,8 +142,15 @@ class TestAll(unittest.TestCase):
         # pct no truncation
         m.width = 1000
         m.height = 2000
-        m.request.region_pct = 10.0
+        m.request.region_pct = True
+        m.request.region_xywh = (0,0,10,10)
         self.assertEqual( m.region_to_apply(), (0,0,100,200) )
+        # pct with truncation
+        m.width = 1000
+        m.height = 2000
+        m.request.region_pct = True
+        m.request.region_xywh = (50,50,100,100)
+        self.assertEqual( m.region_to_apply(), (500,1000,500,1000) )
         # x,y,w,h no truncation
         m.width = 1000
         m.height = 2000
@@ -164,7 +172,8 @@ class TestAll(unittest.TestCase):
         # pct works out same as full
         m.width = 1000
         m.height = 2000
-        m.request.region_pct = 100.0001
+        m.request.region_pct = True
+        m.request.region_xywh = (0,0,100.0001,100.0001)
         self.assertEqual( m.region_to_apply(), (None,None,None,None) )
         # x,y,w,h works out same as full
         m.width = 1000
