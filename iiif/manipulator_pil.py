@@ -81,11 +81,18 @@ class IIIFManipulatorPIL(IIIFManipulator):
                 self.image = self.image.rotate( -rot, expand=True )
 
     def do_quality(self):
+        """Apply value of quality parameter
+
+        For PIL docs see 
+        <http://pillow.readthedocs.org/en/latest/reference/Image.html#PIL.Image.Image.convert>
+        """
         quality=self.quality_to_apply()
         if (quality == 'grey'):
-            self.logger.info("quality: grey")
+            self.logger.info("quality: converting to grey")
+            self.image = self.image.convert('L')
         elif (quality == 'bitonal'):
-            self.logger.info("quality: bitonal")
+            self.logger.info("quality: converting to bitonal")
+            self.image = self.image.convert('1')
         else:
             self.logger.info("quality: quality (nop)")
 
