@@ -1,12 +1,15 @@
 """Implementation of IIIF image manipulations using netpbm programs
 
-FIXME - has not been kept up to date with other code
+This manipulator really is very very slow, it writes intermediate files
+in order to keep the manipulations modular. Starting from a JPEG seems
+especially slow. Strictly for play...
 """
 
 import re
 import os
 import os.path
 import glob
+import magic
 import subprocess
 
 from error import IIIFError
@@ -21,17 +24,16 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
     """
 
     tmpdir = '/tmp'
-    filecmd = None
     pnmdir = None
 
-    def __init__(self):
-        super(IIIFManipulatorNetpbm, self).__init__()
+    def __init__(self, **kwargs):
+        super(IIIFManipulatorNetpbm, self).__init__(**kwargs)
         self.complianceLevel="http://iiif.example.org/compliance/level/1"
-        if (self.filecmd is None):
+        if (self.pnmdir is None):
             self.find_binaries()
 
     @classmethod
-    def find_binaries(cls,tmpdir=None,shellsetup=None,filecmd=None,pnmdir=None):
+    def find_binaries(cls,tmpdir=None,shellsetup=None,pnmdir=None):
         """Set instance vars for directory and binar locations
 
         FIXME - should accept params to set things other than defaults
@@ -39,7 +41,6 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         cls.tmpdir = ( '/tmp' if (tmpdir is None) else tmpdir)
         # Shell setup command (e.g set library path)
         cls.shellsetup = ( '' if (shellsetup is None) else shellsetup)
-        cls.filecmd = ( '/usr/bin/file' if (filecmd is None) else filecmd)
         if (pnmdir is None):
             cls.pnmdir = '/usr/bin'
             for dir in ('/usr/local/bin','/sw/bin'):
@@ -49,6 +50,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             cls.pnmdir=pnmdir
         # Recklessly assume everything else under cls.pnmdir
         cls.pngtopnm  = os.path.join( cls.pnmdir , 'pngtopnm' )
+        cls.jpegtopnm = os.path.join( cls.pnmdir , 'jpegtopnm' )
         cls.pnmfile   = os.path.join( cls.pnmdir , 'pnmfile' )
         cls.pnmcut    = os.path.join( cls.pnmdir , 'pnmcut' )
         cls.pnmscale  = os.path.join( cls.pnmdir , 'pnmscale' )
@@ -69,20 +71,21 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         # Convert source file to pnm
         filetype = self.file_type(self.srcfile)
         if (filetype == 'png'):
-            #print "doing png->pnm"
-            #print self.pngtopnm+' '+self.srcfile+' > '+outfile
             if (self.shell_call(self.pngtopnm+' '+self.srcfile+' > '+outfile)):
-                raise IIIFError(text="Oops... got nonzero output from pngtopnm.")
+                raise IIIFError(text="Oops... got error from pngtopnm.")
+        elif (filetype == 'jpg'):
+            if (self.shell_call(self.jpegtopnm+' '+self.srcfile+' > '+outfile)):
+                raise IIIFError(text="Oops... got error from jpegtopnm.")
         else:
             raise IIIFError(code='501',
-                           text='bad input file format')
+                            text='bad input file format (only know how to read png/jpeg)')
         self.tmpfile = outfile
+        # Get size
+        (self.width,self.height)=self.image_size(self.tmpfile)
 
     def do_region(self):
         infile = self.tmpfile
         outfile = self.basename+'.reg'
-        # Get size
-        (self.width,self.height)=self.image_size(infile)
         # Region
         #simeon@ice ~>cat m.pnm | pnmcut 10 10 100 200 > m1.pnm
         (x,y,w,h)=self.region_to_apply()
@@ -145,21 +148,19 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         # Quality (bit-depth):
         quality=self.quality_to_apply()
         if (quality == 'grey'):
-            #print "quality: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
                 raise IIIFError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
         elif (quality == 'bitonal'):
-            #print "quality: grey"
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' | '+self.pamditherbw+' > '+outfile)):
                 raise IIIFError(text="Oops... got nonzero output from ppmtopgm.")
             self.tmpfile=outfile
-        elif (quality == 'quality'):
-            #print "quality: quality"
+        elif ((quality == 'native' and self.api_version<'2.0') or 
+              (quality == 'default' and self.api_version>='2.0')):
             self.tmpfile=infile
         else: 
             raise IIIFError(code=400,parameter='quality',
-                           text="Unknown quality parameter value requested.")
+                            text="Unknown quality parameter value requested.")
 
     def do_format(self):
         infile = self.tmpfile
@@ -196,21 +197,23 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             mime_type="image/jpeg"
         else:
             raise IIIFError(code=415, parameter='format',
-                           text="Unsupported output file format (%s), only png,jpg,tiff are supported."%(fmt))
+                            text="Unsupported output file format (%s), only png,jpg,tiff are supported."%(fmt))
         self.outfile=outfile
         self.output_format=fmt
         self.mime_type=mime_type
 
     def file_type(self,file):
-        return('png')
-        pout = os.popen(self.filecmd+' '+file,'r')
-        fileout=pout.read(200)
-        pout.close()
-        #print "file output = " + fileout
-        if (re.search('PNG image data',fileout)):
+        """Use python-magic to determine file type
+
+        Returns 'png' or 'jpg' on success, nothing on failure.
+        """
+        magic_text = magic.from_file(file)
+        if (re.search('PNG image data',magic_text)):
             return('png')
+        elif (re.search('JPEG image data',magic_text)):
+            return('jpg')
         # failed
-        return(None)
+        return
 
     def image_size(self,pnmfile):
         """Get width and height of pnm file

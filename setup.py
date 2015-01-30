@@ -37,7 +37,8 @@ setup(
     description='IIIF Image API library',
     long_description=open('README').read(),
     install_requires=[
-        "Pillow"
+        "Pillow",
+        "python-magic",
     ],
     test_suite="tests",
 )
