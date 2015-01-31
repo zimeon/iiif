@@ -87,8 +87,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
         <http://pillow.readthedocs.org/en/latest/reference/Image.html#PIL.Image.Image.convert>
         """
         quality=self.quality_to_apply()
-        if (quality == 'grey'):
-            self.logger.info("quality: converting to grey")
+        if (quality == 'grey' or quality == 'gray'):
+            # Checking for 1.1 gray or 20.0 grey elsewhere
+            self.logger.info("quality: converting to gray")
             self.image = self.image.convert('L')
         elif (quality == 'bitonal'):
             self.logger.info("quality: converting to bitonal")
