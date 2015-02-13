@@ -1,6 +1,12 @@
 iiif changelog
 ==============
 
+2015-02-14 v0.5.1
+- Valentines edition, wishing Amy and Ian lasting happiness
+- PIL and netpbm manipulators support IIIF API v2.0 and v1.1 at level 2
+- Improved test coverage using IIIF validator
+  (https://pypi.python.org/pypi/iiif-validator)
+
 2014-11-11 v0.5.0
 - Supports IIIF API v2.0 and v1.1 at level 1
 
@@ -23,7 +29,7 @@ iiif changelog
 - Reorganized, aims for IIIF API v1.0
   (http://www-sul.stanford.edu/iiif/image-api/)
 - PIL library support (IIIFManipulatorPIL) and null tested, the netpbm
-  version (IIIFManipulatorNetpbm) has not been updated/tested and is 
+  version (IIIFManipulatorNetpbm) has not been updated/tested and is
   likely broken.
 - Designed to work with Loris for for Open Seadragon demo
   (https://github.com/zimeon/loris)
@@ -31,4 +37,3 @@ iiif changelog
 
 2012-03-21 v0.1.0
 - First stab at IIIF API v0.1
-
