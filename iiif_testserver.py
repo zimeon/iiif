@@ -388,7 +388,9 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.server_and_prefix = self.server_and_prefix
             i.identifier = self.iiif.identifier
             i.width = self.manipulator.width
-            i.height = self.manipulator.height
+            i.height = self.manipulator.height 
+            i.qualities = [ "native", "color" ] #FIXME - should come from manipulator
+            i.formats = [ "jpg", "png" ] #FIXME - should come from manipulator
             return self.send_json_response(i.as_json(),200)
         else:
             if (self.api_version<'2.0' and
@@ -484,9 +486,7 @@ def main():
 
     info={'tile_height': opt.tile_height,
           'tile_width': opt.tile_width,
-          'qualities' : [ "native", "color" ],
           'scale_factors' : [1,2,4,8],
-          'formats' : [ "jpg", "png" ]
     }
     for option in info:
         print "got %s = %s" % (option,info[option])
