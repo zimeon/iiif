@@ -1,6 +1,6 @@
 """IIIF Image Information Response
 
-Model for IIIF Image AAPI 'Image Information Response'.
+Model for IIIF Image API 'Image Information Response'.
 Default version is 2.0 but also supports 1.1 and 1.0
 """
 
@@ -136,10 +136,7 @@ class IIIFInfo(object):
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
-                if (option in self.array_params):
-                    self.__dict__[option]=eval(conf[option]) #FIXME - avoid eval
-                else:
-                    self.__dict__[option]=conf[option]
+                self.__dict__[option]=conf[option]
         if (id is not None):
             self.id = id
 

@@ -23,9 +23,9 @@ def main():
                               usage='usage: %prog [options] file|path (-h for help)',
                               version='%prog '+__version__ )
 
-    p.add_option('--dst', '-d', action='store',
-                 help="destination directory")
-    p.add_option('--tilesize', '-t', action='store', type='int',
+    p.add_option('--dst', '-d', action='store', default='/tmp',
+                 help="destination directory [/tmp default]")
+    p.add_option('--tilesize', '-t', action='store', type='int', default=512,
                  help="tilesize in pixels [512 default]")
     p.add_option('--api-version', '--api','-a', action='store', default='1.1',
                  help="API version, may be 1.1 [default] or 2.0") 

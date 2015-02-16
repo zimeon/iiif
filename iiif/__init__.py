@@ -1,6 +1,5 @@
 from _version import __version__
 
-from config import IIIFConfig
 from error import IIIFError
 from info import IIIFInfo
 from manipulator import IIIFManipulator

@@ -1,0 +1,38 @@
+<html>
+<head>
+<title>IIIF auth test</title>
+</head>
+<body>
+<h1>IIIF auth test</h1>
+
+<p>JavaScript attempt to read JSON from
+<a id="json_link" href="/response_test/401">/response_test/401</a>
+and parse:</p>
+<script>
+// Based on http://stackoverflow.com/questions/1973140/parsing-json-from-xmlhttprequest-responsejson
+var req = new XMLHttpRequest;  
+req.open('GET', document.getElementById("json_link").href, true);  
+req.onload  = function() { 
+  var ul = document.createElement("ul");
+  var li = document.createElement("li");
+  li.innerHTML = "status = " + req.status.toString();
+  ul.appendChild(li);
+  var li = document.createElement("li");
+  try {
+    json = JSON.parse(req.response);
+    li.innerHTML = "authenticate at " + json.service['@id']; //work only with one service!
+  } catch (err) {
+    li.innerHTML = "failed to parse response as JSON, got " +
+                   req.response.length.toString() + " bytes";
+  }
+  ul.appendChild(li);
+  document.body.appendChild(ul);
+  var pre = document.createElement("pre");
+  pre.innerHTML = req.response;
+  document.body.appendChild(pre);
+}
+req.send(null);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+<html>
+<head>
+<title>IIIF auth test</title>
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+</head>
+<body>
+<h1>IIIF auth test</h1>
+
+<p>Below is the set of top-level key value pairs from JSON use jQuery:</p>
+<script>
+// Based on example code from http://api.jquery.com/jquery.getjson/
+$.getJSON( "/response_test/401", function( data ) {
+  var items = [];
+  $.each( data, function( key, val ) {
+    items.push( "<li>" + key + " : " + val + "</li>" );
+  });
+  $( "<ul/>", {
+    html: items.join( "" )
+  }).appendTo( "body" );
+});
+</script>
+
+</body>
+</html>

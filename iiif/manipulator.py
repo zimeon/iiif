@@ -168,9 +168,12 @@ class IIIFManipulator(object):
               # full image
           else:
               # extract
+
         Returns (None,None,None,None) if no extraction is required.
         """
-        if (self.request.region_full):
+        if (self.request.region_full or
+            (self.request.region_pct and 
+             self.request.region_xywh==(0,0,100,100))):
             return(None,None,None,None)
         # Cannot do anything else unless we know size (in self.width and self.height)
         if (self.width<=0 or self.height<=0):
@@ -178,7 +181,7 @@ class IIIFManipulator(object):
                             text="Region parameters require knowledge of image size which is not implemented.")
         pct = self.request.region_pct
         (x,y,w,h)=self.request.region_xywh
-        # Convert pct to real
+        # Convert pct to pixels based on actual size
         if (pct):
             x = int( (x / 100.0) * self.width + 0.5)
             y = int( (y / 100.0) * self.height + 0.5)
