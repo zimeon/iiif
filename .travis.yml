@@ -2,17 +2,18 @@ language: python
 python:
   - "2.6"
   - "2.7"
-# command to install dependencies
+# commands to install dependencies
 # need "python setup.py install" to install resync so that client tests work
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev
   - pip install Pillow iiif_validator coveralls
   - python setup.py install
-# command to run tests
+# commands to run tests
+# -- use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet
 script:
   - py.test
-  - ./run_validate.sh
+  - ./run_validate.sh -n
   - coverage run --source=iiif setup.py test
 after_success:
   - coveralls

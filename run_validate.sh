@@ -10,9 +10,13 @@
 # See http://tldp.org/LDP/abs/html/arithexp.html for bash arithmetic
 
 verbosity='--quiet'
+test_netpbm=true
 show_test_name=false
-while getopts "vd" opt; do
+while getopts "nvd" opt; do
   case $opt in
+    n)
+      test_netpbm=false
+      ;;
     v)
       verbosity=''
       show_test_name=true
@@ -43,16 +47,18 @@ if $show_test_name; then
 fi
 iiif-validate.py -s localhost:8000 -p 2.0_pil_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 2 $verbosity
 ((errors+=$?))
-if $show_test_name; then
-  echo "Testing netpbm manipulator, API version 1.1"
+if $test_netpbm; then
+  if $show_test_name; then
+    echo "Testing netpbm manipulator, API version 1.1"
+  fi
+  iiif-validate.py -s localhost:8000 -p 1.1_netpbm_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 2 $verbosity
+  ((errors+=$?))
+  if $show_test_name; then
+    echo "Testing netpbm manipulator, API version 2.0"
+  fi
+  iiif-validate.py -s localhost:8000 -p 2.0_netpbm_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 2 $verbosity
+  ((errors+=$?))
 fi
-iiif-validate.py -s localhost:8000 -p 1.1_netpbm_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 2 $verbosity
-((errors+=$?))
-if $show_test_name; then
-  echo "Testing netpbm manipulator, API version 2.0"
-fi
-iiif-validate.py -s localhost:8000 -p 2.0_netpbm_none -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 2 $verbosity
-((errors+=$?))
 
 # Kill test server
 kill `cat iiif_testserver.pid`
