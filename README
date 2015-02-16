@@ -34,13 +34,13 @@ work with Python 2.6 or 2.7.
 <http://pypi.python.org/pypi/iiif>`_ and can be installed with 
 ``pip`` or ``easy_install``. 
 
-**Manual installation from github**::
+**Manual installation from github**
 
-First install `Pillow` (a fork of `PIL`)
+First install `Pillow` (a fork of `PIL`)::
 
     sudo pip install Pillow
 
-and then clone and install from this repository
+and then clone and install from this repository::
 
     cd /tmp
     git clone git://github.com/zimeon/iiif.git
