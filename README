@@ -3,11 +3,11 @@ iiif
 ====
 
 .. image:: https://travis-ci.org/zimeon/iiif.png
-  :target: https://travis-ci.org/zimeon/iiif
+  :target: https://travis-ci.org/zimeon/iiif.svg?branch=0.6.0
   :alt: Build status
 
 .. image:: https://coveralls.io/repos/zimeon/iiif/badge.png
-  :target: https://coveralls.io/r/zimeon/iiif
+  :target: https://coveralls.io/r/zimeon/iiif?branch=0.6.0
   :alt: Test coverage
 
 *iiif* - A Python library implementing the 
