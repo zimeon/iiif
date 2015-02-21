@@ -46,74 +46,49 @@ class TestAll(unittest.TestCase):
 
     def test04_do_region(self):
         m = IIIFManipulator()
-        m.request = IIIFRequest()
-        m.request.region_full=True
-        m.do_region()
+        m.do_region(None,None,None,None)
         # and now without region_full
-        m.width=-1
-        m.height=-1
-        m.request.region_full=False
-        self.assertRaises( IIIFError, m.do_region )
+        self.assertRaises( IIIFError, m.do_region, 1,1,1,1 )
 
     def test05_do_size(self):
         m = IIIFManipulator()
-        m.request = IIIFRequest()
-        m.request.size_pct = 100
-        m.request.size = '100'
-        m.do_size()
-        m.request.size_pct = None
-        m.request.size = 'full'
-        m.do_size()
+        m.do_size(None,None)
         # and raise for not 100 or full
-        m.request.size_pct = None
-        m.request.size = '1,1'
-        self.assertRaises( IIIFError, m.do_size )
+        self.assertRaises( IIIFError, m.do_size, 10,10 )
 
     def test06_do_rotation(self):
         m = IIIFManipulator()
         m.request = IIIFRequest()
-        m.request.rotation_deg = 0.0
-        m.do_rotation()
+        m.do_rotation(False,0.0)
+        # mirror raises
+        self.assertRaises( IIIFError, m.do_rotation, True,0.0 )
         # non 0.0 raises
-        m.request.rotation_deg = 1.0
-        self.assertRaises( IIIFError, m.do_rotation )
+        self.assertRaises( IIIFError, m.do_rotation, False,10.0 )
 
     def test07_do_quality(self):
         m = IIIFManipulator()
-        m.request = IIIFRequest()
         m.api_version = '1.1'
-        m.request.quality = 'native'
-        m.do_quality()
+        m.do_quality('native')
         m.api_version = '2.0'
-        m.request.quality = 'default'
-        m.do_quality()
+        m.do_quality('default')
         # raise it not appropriate no-op
         m.api_version = '1.1'
-        m.request.quality = 'default'
-        self.assertRaises( IIIFError, m.do_quality )
-        m.api_version = '1.1'
-        m.request.quality = 'other'
-        self.assertRaises( IIIFError, m.do_quality )
+        self.assertRaises( IIIFError, m.do_quality, 'default' )
+        self.assertRaises( IIIFError, m.do_quality, 'other' )
         m.api_version = '2.0'
-        m.request.quality = 'native'
-        self.assertRaises( IIIFError, m.do_quality )
-        m.api_version = '2.0'
-        m.request.quality = 'other'
-        self.assertRaises( IIIFError, m.do_quality )
+        self.assertRaises( IIIFError, m.do_quality, 'native' )
+        self.assertRaises( IIIFError, m.do_quality, 'other' )
 
     def test08_do_format(self):
         m = IIIFManipulator()
-        m.request = IIIFRequest()
-        m.request.format = None
         m.srcfile = 'abc'
-        m.do_format()
+        m.do_format(None)
         self.assertEqual( m.outfile, m.srcfile )
         # failure to copy if srcfile and outfile specified same
         m.outfile = m.srcfile
-        self.assertRaises( IIIFError, m.do_format )
+        self.assertRaises( IIIFError, m.do_format, None )
         # any format specified -> raise
-        m.request.format = 'something'
-        self.assertRaises( IIIFError, m.do_format )
+        self.assertRaises( IIIFError, m.do_format, 'something' )
 
     def test09_do_last(self):
         m = IIIFManipulator()
@@ -261,3 +236,8 @@ class TestAll(unittest.TestCase):
         # anything else
         m.request.quality = 'something'
         self.assertEqual( m.quality_to_apply(), 'something' )
+
+    def test14_cleanup(self):
+        m = IIIFManipulator()
+        self.assertEqual( m.cleanup(), None )
+

@@ -42,11 +42,11 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.image=Image.open(self.srcfile)
             self.image.load()
         except Exception as e:
-            raise IIIFError(text=("PIL Image.open(%s) barfed: %s",(self.srcfile,str(e))))
+            raise IIIFError(text=("PIL Image.open(%s) barfed: %s"%(self.srcfile,str(e))))
         (self.width,self.height)=self.image.size
 
-    def do_region(self):
-        (x,y,w,h)=self.region_to_apply()
+    def do_region(self,x,y,w,h):
+        #(x,y,w,h)=self.region_to_apply()
         if (x is None):
             self.logger.info("region: full (nop)")
         else:
@@ -55,8 +55,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.width = w
             self.height = h
 
-    def do_size(self):
-        (w,h)=self.size_to_apply()
+    def do_size(self,w,h):
         if (w is None):
             self.logger.info("size: no scaling (nop)")
         else:
@@ -65,8 +64,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.width = w
             self.height = h
 
-    def do_rotation(self):
-        (mirror,rot)=self.rotation_to_apply()
+    def do_rotation(self,mirror,rot):
         if (not mirror and rot==0.0):
             self.logger.info("rotation: no rotation (nop)")
         else:
@@ -80,13 +78,12 @@ class IIIFManipulatorPIL(IIIFManipulator):
                 self.logger.info("rotation: by %f degrees clockwise" % (rot))
                 self.image = self.image.rotate( -rot, expand=True )
 
-    def do_quality(self):
+    def do_quality(self,quality):
         """Apply value of quality parameter
 
         For PIL docs see 
         <http://pillow.readthedocs.org/en/latest/reference/Image.html#PIL.Image.Image.convert>
         """
-        quality=self.quality_to_apply()
         if (quality == 'grey' or quality == 'gray'):
             # Checking for 1.1 gray or 20.0 grey elsewhere
             self.logger.info("quality: converting to gray")
@@ -97,9 +94,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
         else:
             self.logger.info("quality: quality (nop)")
 
-    def do_format(self):
+    def do_format(self,format):
         # assume tiling apps want jpg...
-        fmt = ( 'jpg' if (self.request.format is None) else self.request.format)
+        fmt = ( 'jpg' if (format is None) else format)
         if (fmt == 'png'):
             self.logger.info("format: png")
             self.mime_type="image/png"
@@ -129,5 +126,5 @@ class IIIFManipulatorPIL(IIIFManipulator):
             try:
                 os.unlink(self.outtmp)
             except OSError as e:
-                # FIXME - should log warning when we have logging...
-                pass
+                self.logger.warn("Failed to cleanup tmp output file %s" % (self.outtmp))
+

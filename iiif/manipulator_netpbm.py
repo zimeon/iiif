@@ -83,12 +83,11 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         # Get size
         (self.width,self.height)=self.image_size(self.tmpfile)
 
-    def do_region(self):
+    def do_region(self,x,y,w,h):
         infile = self.tmpfile
         outfile = self.basename+'.reg'
         # Region
         #simeon@ice ~>cat m.pnm | pnmcut 10 10 100 200 > m1.pnm
-        (x,y,w,h)=self.region_to_apply()
         if (x is None):
             #print "region: full"
             self.tmpfile = infile
@@ -100,12 +99,11 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             self.height=h
             self.tmpfile = outfile
 
-    def do_size(self):
+    def do_size(self,w,h):
         # Size
         # simeon@ice ~>cat m1.pnm | pnmscale -width 50 > m2.pnm
         infile = self.tmpfile
         outfile = self.basename+'.siz'
-        (w,h)=self.size_to_apply()
         if (w is None):
             #print "size: no scaling"
             self.tmpfile=infile
@@ -117,7 +115,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             self.height=h
             self.tmpfile=outfile
 
-    def do_rotation(self):
+    def do_rotation(self,mirror,rot):
         infile = self.tmpfile
         outfile = self.basename+'.rot'
         # NOTE: pnmrotate: angle must be between -90 and 90 and 
@@ -138,7 +136,8 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         # simeon@RottenApple iiif>cat testimages/67352ccc-d1b0-11e1-89ae-279075081939.png  | pngtopnm | pnmrotate -90| pnmscale -width 1000 -height 1000 | pnmtopng > a.png; file a.png; rm a.png
         # a.png: PNG image data, 1000 x 1000, 8-bit/color RGB, non-interlaced
         #
-        (mirror,rot)=self.rotation_to_apply(no_mirror=True) #FIXME - add mirroring
+        # FIXME - add mirroring
+        #
         if (rot==0.0):
             #print "rotation: no rotation"
             self.tmpfile=infile
@@ -163,11 +162,10 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
                 raise IIIFError(text="Oops... failed to fixup size after pnmrotate.")
             self.tmpfile=outfile2
 
-    def do_quality(self):
+    def do_quality(self,quality):
         infile = self.tmpfile
         outfile = self.basename+'.col'
         # Quality (bit-depth):
-        quality=self.quality_to_apply()
         if (quality == 'grey' or quality == 'gray'):
             if (self.shell_call('cat '+infile+' | '+self.ppmtopgm+' > '+outfile)):
                 raise IIIFError(text="Oops... got nonzero output from ppmtopgm.")
@@ -184,7 +182,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             raise IIIFError(code=400,parameter='quality',
                             text="Unknown quality parameter value requested.")
 
-    def do_format(self):
+    def do_format(self,format):
         infile = self.tmpfile
         outfile = self.basename+'.out'
         outfile_jp2 = self.basename+'.jp2'
@@ -195,7 +193,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         #pnmtotiff: Too many colors - proceeding to write a 24-bit RGB file.
         #pnmtotiff: If you want an 8-bit palette file, try doing a 'ppmquant 256'.
         #simeon@ice ~>cat m3.pnm | pnmtopng  > m4.png
-        fmt = ( 'png' if (self.request.format is None) else self.request.format)
+        fmt = ( 'png' if (format is None) else format)
         if (fmt == 'png'):
             #print "format: png"
             if (self.shell_call(self.pnmtopng+' '+infile+' > '+outfile)):

@@ -81,11 +81,15 @@ class IIIFManipulator(object):
                 os.makedirs(dir)
         #
         self.do_first()
-        self.do_region()
-        self.do_size()
-        self.do_rotation()
-        self.do_quality()
-        self.do_format()
+        (x,y,w,h)=self.region_to_apply()
+        self.do_region(x,y,w,h)
+        (w,h) = self.size_to_apply()
+        self.do_size(w,h)
+        (mirror,rot) = self.rotation_to_apply(no_mirror=True)
+        self.do_rotation(mirror,rot)
+        (quality) = self.quality_to_apply()
+        self.do_quality(quality)
+        self.do_format(self.request.format)
         self.do_last()
         return(self.outfile,self.mime_type)
 
@@ -97,42 +101,41 @@ class IIIFManipulator(object):
         self.width=-1  #don't know width of height
         self.height=-1 
 
-    def do_region(self):
+    def do_region(self,x,y,w,h):
         # Region
-        (x,y,w,h)=self.region_to_apply()
         if (x is not None):
             raise IIIFError(code=501,parameter="region",
                             text="Null manipulator supports only region=/full/.")
 
-    def do_size(self):
+    def do_size(self,w,h):
         # Size
-        # (w,h) = self.size_to_apply()
-        if (self.request.size_pct != 100.0 and
-            self.request.size != 'full'):
+        if (w is not None):
             raise IIIFError(code=501,parameter="size",
                             text="Null manipulator supports only size=pct:100 and size=full.")
 
-    def do_rotation(self):
+    def do_rotation(self,mirror,rot):
         # Rotate
-        (mirror,rot) = self.rotation_to_apply(no_mirror=True)
+        if (mirror):
+            raise IIIFError(code=501,parameter="rotation",
+                            text="Null manipulator does not support mirroring.")
         if (rot != 0.0):
             raise IIIFError(code=501,parameter="rotation",
                             text="Null manipulator supports only rotation=(0|360).")
 
-    def do_quality(self):
+    def do_quality(self,quality):
         # Quality
         if (self.api_version>='2.0'):
-            if (self.quality_to_apply() != "default"):
+            if (quality != "default"):
                 raise IIIFError(code=501,parameter="default",
                                 text="Null manipulator supports only quality=default.")
         else: # versions 1.0 and 1.1
-            if (self.quality_to_apply() != "native"):
+            if (quality != "native"):
                 raise IIIFError(code=501,parameter="native",
                                 text="Null manipulator supports only quality=native.")
 
-    def do_format(self):
+    def do_format(self,format):
         # Format (the last step)
-        if (self.request.format is not None):
+        if (format is not None):
             raise IIIFError(code=415,parameter="format",
                             text="Null manipulator does not support specification of output format.")
         # 
@@ -210,7 +213,7 @@ class IIIFManipulator(object):
 
         Returns (None,None) if no scaling is required.
         """
-        if (self.request.size_full):
+        if (self.request.size_full or self.request.size_pct==100.0):
             return(None,None)
         elif (self.request.size_pct is not None):
             w = int(self.width * self.request.size_pct / 100.0 + 0.5)
