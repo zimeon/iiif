@@ -31,7 +31,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def __init__(self, **kwargs):
         super(IIIFManipulatorPIL, self).__init__(**kwargs)
         # Does not support jp2 output
-        self.complianceLevel="http://iiif.example.org/compliance/level/0"
+        self.compliance_level=2
         self.outtmp = None
 
     def do_first(self):

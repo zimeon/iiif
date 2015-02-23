@@ -45,7 +45,7 @@ class IIIFRequestHandler(CGI_responder):
         # do this ahead of calling the base class __init__ because that
         # does not return
         self.debug=True
-        self.complianceLevel=None;
+        self.compliance_uri=None;
         # Cannot use super() because BaseHTTPServer.BaseHTTPRequestHandler 
         # is not new style class
         #super(IIIFRequestHandler, self).__init__(request, client_address, server)
@@ -63,8 +63,8 @@ class IIIFRequestHandler(CGI_responder):
         self.wfile.write(content)
 
     def add_compliance_header(self):
-        if (self.complianceLevel is not None):
-            self.send_header('Link','<'+self.complianceLevel+'>;rel="compliesTo"')
+        if (self.compliance_uri is not None):
+            self.send_header('Link','<'+self.compliance_uri+'>;rel="profile"')
         
     def do_GET(self):
         """Implement the HTTP GET method
@@ -73,7 +73,7 @@ class IIIFRequestHandler(CGI_responder):
         within the code may raise an IIIFError which then results in an
         IIIF error response (section 5 of spec).
         """
-        self.complianceLevel=None
+        self.compliance_uri=None
         self.iiif = IIIFRequest(baseurl='/')
         try:
             (of,mime_type) = self.do_GET_body()
@@ -133,7 +133,7 @@ class IIIFRequestHandler(CGI_responder):
         manipulator = IIIFRequestHandler.manipulator_class()
         # Stash manipulator object so we can cleanup after reading file
         self.manipulator=manipulator
-        self.complianceLevel=manipulator.complianceLevel;
+        self.compliance_uri=manipulator.compliance_uri;
         if (iiif.info):
             # get size
             manipulator.srcfile=file

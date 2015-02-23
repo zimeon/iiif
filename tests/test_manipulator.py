@@ -241,3 +241,31 @@ class TestAll(unittest.TestCase):
         m = IIIFManipulator()
         self.assertEqual( m.cleanup(), None )
 
+    def test15_compliance_uri(self):
+        # 1.0
+        m = IIIFManipulator(api_version='1.0')
+        self.assertEqual( m.compliance_uri, None )
+        m.compliance_level = 0
+        self.assertEqual( m.compliance_uri, 'http://library.stanford.edu/iiif/image-api/compliance.html#level0' )
+        m.compliance_level = 1
+        self.assertEqual( m.compliance_uri, 'http://library.stanford.edu/iiif/image-api/compliance.html#level1' )
+        m.compliance_level = 2
+        self.assertEqual( m.compliance_uri, 'http://library.stanford.edu/iiif/image-api/compliance.html#level2' )
+        # 1.1
+        m = IIIFManipulator(api_version='1.1')
+        self.assertEqual( m.compliance_uri, None )
+        m.compliance_level = 2
+        self.assertEqual( m.compliance_uri, 'http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2' )
+        # 2.0
+        m = IIIFManipulator(api_version='2.0')
+        self.assertEqual( m.compliance_uri, None )
+        m.compliance_level = 2
+        self.assertEqual( m.compliance_uri, 'http://iiif.io/api/image/2/level2.json' )
+        m.compliance_level = 99 #do we want this?
+        self.assertEqual( m.compliance_uri, 'http://iiif.io/api/image/2/level99.json' )
+        # unset
+        m = IIIFManipulator(api_version=None)
+        self.assertEqual( m.compliance_uri, None )
+        m.compliance_level = 2
+        self.assertEqual( m.compliance_uri, None )
+

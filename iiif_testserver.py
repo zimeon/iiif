@@ -120,7 +120,6 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         # do this ahead of calling the base class __init__ because that
         # does not return
         self.debug=True
-        self.compliance_level=None
         self.manipulator=None
         # Cannot use super() because BaseHTTPServer.BaseHTTPRequestHandler 
         # is not new style class
@@ -257,8 +256,8 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         self.send_header('Access-control-allow-origin','*')
 
     def add_compliance_header(self):
-        if (self.compliance_level is not None):
-            self.send_header('Link','<'+self.compliance_level+'>;rel="compliesTo"')
+        if (self.manipulator.compliance_uri is not None):
+            self.send_header('Link','<'+self.manipulator.compliance_uri+'>;rel="profile"')
         
     def do_GET(self):
         """Implement the HTTP GET method
@@ -360,8 +359,6 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
         else:
             raise IIIFError(code=404,parameter="identifier",
                             text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
-        # 
-        self.compliance_level=self.manipulator.complianceLevel
 
         # Do we have auth?
         if (self.auth_type == 'basic'):

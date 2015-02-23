@@ -16,29 +16,51 @@ from error import IIIFError
 from request import IIIFRequest
 
 class IIIFManipulator(object):
-    """ Manipulate an image according to IIIF rules
+    """Manipulate an image according to IIIF rules
 
     All exceptions are raise as IIIFError objects which directly
     determine the HTTP response.
     """
 
     def __init__(self, api_version='2.0'):
-        """ Return URI indicating IIIF compliance level, or None if not
+        """Create manipulator object
 
-        The attribute complicanceLevel is set either to None or a URI 
-        that can be used in the HTTP response headers like of the form
+        Accepts api_version as a parameter to tailor handling of
+        requests according to the API being supported.
 
-        Link: <http://iiif.example.org/compliance/level/0>;rel="compliesTo"
-
-        This null manipulator doesn't comply to any of the levels defined
-        in the iiif specification so it is set to None here.
+        Sets compliance_level to None because the null manipulator 
+        doesn't comply with any level. Sub-classes are expected to 
+        set this to a level number (0,1,2) appropriate to the 
+        facilities supported at the given API version. Use 
+        compliance_uri to get a URI.
         """
         self.api_version = api_version
+        self.compliance_level = None
         self.srcfile = None
         self.request = None
         self.outfile = None
-        self.complianceLevel = None
         self.logger = logging.getLogger(__name__)
+
+    @property
+    def compliance_uri(self):
+        """ Return compliance URI
+
+        Value is based on api_version and complicance_level, will be 
+        None if either are unset/unrecognized. The assumption here is
+        that the api_version and level are orthogonal, override this
+        method if that isn't true.
+        """
+        if (self.api_version=='1.0'):
+            uri_pattern=r'http://library.stanford.edu/iiif/image-api/compliance.html#level%d'
+        elif (self.api_version=='1.1'):
+            uri_pattern=r'http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level%d'
+        elif (self.api_version=='2.0'):
+            uri_pattern=r'http://iiif.io/api/image/2/level%d.json'
+        else:
+            return
+        if (self.compliance_level is None):
+            return
+        return(uri_pattern % self.compliance_level)
 
     def derive(self,srcfile=None,request=None,outfile=None):
         """ Do sequence of manipulations for IIIF to derive output image
