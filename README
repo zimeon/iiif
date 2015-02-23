@@ -3,7 +3,7 @@ iiif
 ====
 
 .. image:: https://travis-ci.org/zimeon/iiif.png?branch=0.6.0
-  :target: https://travis-ci.org/zimeon/iiif.svg?branch=0.6.0
+  :target: https://travis-ci.org/zimeon/iiif?branch=0.6.0
   :alt: Build status
 
 .. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=0.6.0
