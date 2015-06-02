@@ -6,7 +6,7 @@
 import unittest
 from urllib2 import *
 
-baseurl='http://localhost:8000/1.1_pil_none/'
+baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
 
