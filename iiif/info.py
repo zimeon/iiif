@@ -214,6 +214,19 @@ class IIIFInfo(object):
         """
         self.profile = self.profile_prefix + ("%d" % value) + self.profile_suffix
 
+    def add_service(self, service):
+        """Add a service description
+
+        Handles transition from self.service=None, self.service=dict for a
+        single service, and then self.service=[dict,dict,...] for multiple
+        """
+        if (self.service is None):
+            self.service = service
+        elif (isinstance(self.service, dict)):
+            self.service = [ self.service, service ]
+        else:
+            self.service.append( service )
+
     def set(self,param,value):
         if (param in self.array_params):
             # If we have an array then set directly, else eval. Perhaps not

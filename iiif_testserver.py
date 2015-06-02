@@ -19,6 +19,7 @@ import urllib2
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
+from iiif.auth import IIIFAuth
 
 def no_op(self,format,*args):
     """Function that does nothing - no-op
@@ -98,6 +99,7 @@ def do_conneg(accept,supported):
             return(mime_type)
     return(None)
 
+
 class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
 
     # Class data
@@ -110,10 +112,10 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
     MANIPULATORS={}
     
     @classmethod
-    def add_manipulator(cls, prefix, klass, api_version='2.0', auth_type=None):
+    def add_manipulator(cls, prefix, klass, api_version='2.0', auth=None):
         cls.MANIPULATORS[prefix]={'klass': klass, 
                                   'api_version': api_version,
-                                  'auth_type': auth_type}
+                                  'auth': auth}
 
     def __init__(self, request, client_address, server):
         # Add some local attributes for this subclass (seems we have to 
@@ -305,18 +307,40 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             self.prefix = m.group(1)
             self.path = m.group(2)
             if (self.prefix in IIIFRequestHandler.MANIPULATORS):
-                self.api_version = IIIFRequestHandler.MANIPULATORS[self.prefix]['api_version']
-                self.iiif = IIIFRequest(baseurl='/'+self.prefix+'/',api_version=self.api_version)
-                self.manipulator = IIIFRequestHandler.MANIPULATORS[self.prefix]['klass'](api_version=self.api_version)
-                self.auth_type = IIIFRequestHandler.MANIPULATORS[self.prefix]['auth_type']
+                self.do_GET_for_prefix()
             else:
                 # 404 - unrecognized prefix
                 self.send_404_response("Not Found - prefix /%s/ is not known" % (self.prefix))
-                return
         else:
             # 404 - unrecognized path structure
             self.send_404_response("Not Found - path structure not recognized")
-            return
+
+
+    def do_GET_for_prefix(self):
+        """Implement GET request within the context of a given prefix
+
+        Assume that self.prefix is already known to exist and that self.path
+        is the remainder of the URI path after the prefix and slash.
+        """
+        self.api_version = IIIFRequestHandler.MANIPULATORS[self.prefix]['api_version']
+        self.iiif = IIIFRequest(baseurl='/'+self.prefix+'/',api_version=self.api_version)
+        self.manipulator = IIIFRequestHandler.MANIPULATORS[self.prefix]['klass'](api_version=self.api_version)
+        self.auth = IIIFRequestHandler.MANIPULATORS[self.prefix]['auth']
+        # Set up auth object with locations if not already done
+        if (self.auth and not self.auth.login_uri):
+            self.auth.login_uri = self.server_and_prefix+'/login'
+            self.auth.logout_uri = self.server_and_prefix+'/logout'
+            self.auth.access_token_uri = self.server_and_prefix+'/token'
+
+        if (self.path=='login' or self.path=='logout' or 
+            self.path=='clientId' or self.path=='token'):
+            # auth request, do we support that?
+            if (self.auth):
+                self.send_404_response("Authentication NOT YET IMPLEMENTED")
+                return
+            else:
+                self.send_404_response("Authentication services not supported for this prefix")
+                return
         try:
             self.do_GET_body()
         except IIIFError as e:
@@ -361,20 +385,21 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
                             text="Image resource '"+iiif.identifier+"' not found. Only local test images and http: URIs for images are supported.\n")
 
         # Do we have auth?
-        if (self.auth_type == 'basic'):
-            auth_map = parse_authorization_header(self.headers.get('Authorization',''))
-            if (auth_map and auth_map['type']=='basic' and
-                auth_map['username']+':'+auth_map['password']==IIIFRequestHandler.USER_PASS):
-                # authz, continue
-                pass
-            else:
-                # failed, send 401 with null image info, no service link for auth as
-                # basic auth is all done via the WWW-Authenticate header
-                i = IIIFInfo(api_version=self.api_version)
-                i.identifier = 'null'
-                i.width = 0
-                i.height = 0
-                return self.send_json_response(json=i.as_json(),status=401)
+        #if (self.auth):
+            #_type == 'basic'):
+            #auth_map = parse_authorization_header(self.headers.get('Authorization',''))
+            #if (auth_map and auth_map['type']=='basic' and
+            #    auth_map['username']+':'+auth_map['password']==IIIFRequestHandler.USER_PASS):
+            #    # authz, continue
+            #    pass
+            #else:
+            #    # failed, send 401 with null image info, no service link for auth as
+            #    # basic auth is all done via the WWW-Authenticate header
+            #    i = IIIFInfo(api_version=self.api_version)
+            #    i.identifier = 'null'
+            #    i.width = 0
+            #    i.height = 0
+            #    return self.send_json_response(json=i.as_json(),status=401)
 
         if (self.iiif.info):
             # get size
@@ -388,6 +413,9 @@ class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler,object):
             i.height = self.manipulator.height 
             i.qualities = [ "native", "color" ] #FIXME - should come from manipulator
             i.formats = [ "jpg", "png" ] #FIXME - should come from manipulator
+            if (self.auth):
+                self.auth.add_services(i)
+
             return self.send_json_response(i.as_json(),200)
         else:
             if (self.api_version<'2.0' and
@@ -457,14 +485,18 @@ def main():
     # Import a set of manipulators and define prefixes for them
     versions = ['1.0', '1.1', '2.0', '2.1']
     klass_names = ['pil','netpbm','dummy']
-    auth_types = ['none','basic']
+    auth_types = ['none','gauth']
     for api_version in versions:
         for klass_name in klass_names:
             for auth_type in auth_types:
                 # auth only for 2.0
                 if (auth_type != 'none' and api_version != '2.0'):
                     continue
-                prefix = "%s_%s_%s" % (api_version,klass_name,auth_type)
+                prefix = "%s_%s" % (api_version,klass_name)
+                auth = None
+                if (auth_type != 'none'):
+                    prefix += '_'+auth_type
+                    auth = IIIFAuth()
                 klass=None
                 if (klass_name=='pil'):
                     from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -479,7 +511,7 @@ def main():
                     print "Unknown manipulator type %s, ignoring" % (klass_name)
                     continue
                 print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
-                IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version, auth_type=auth_type )
+                IIIFRequestHandler.add_manipulator( prefix, klass=klass, api_version=api_version, auth=auth )
 
     info={'tile_height': opt.tile_height,
           'tile_width': opt.tile_width,
