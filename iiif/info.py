@@ -1,7 +1,7 @@
 """IIIF Image Information Response
 
 Model for IIIF Image API 'Image Information Response'.
-Default version is 2.0 but also supports 1.1 and 1.0
+Default version is 2.0 but also supports 2.1, 1.1 and 1.0
 """
 
 import sys
@@ -80,6 +80,21 @@ CONF = {
         'profile_suffix': ".json",
         'protocol': "http://iiif.io/api/image",
         'required_params': ['identifier','protocol','width','height','profile'],
+        },
+    '2.1': {
+        'params': ['identifier','protocol','width','height','profile','sizes','tiles','service'],
+        'array_params': set(['sizes','tiles','service','scale_factors','formats','qualities','supports']), #scale_factors isn't in API but used internally
+        'complex_params': {
+            'sizes': _parse_noop,
+            'tiles': _parse_tiles,
+            'profile': _parse_profile,
+            'service': _parse_service,
+            },
+        'context': "http://iiif.io/api/image/2/context.json",
+        'profile_prefix': "http://iiif.io/api/image/2/level",
+        'profile_suffix': ".json",
+        'protocol': "http://iiif.io/api/image",
+        'required_params': ['identifier','protocol','width','height','profile'],
         }
 }
     
@@ -131,7 +146,7 @@ class IIIFInfo(object):
         # 1.1 and 2.0
         self.formats = formats
         self.qualities = qualities
-        # 2.0 only
+        # 2.0+ only
         self.supports = supports
         # defaults from conf dict if provided
         if (conf):
@@ -230,7 +245,7 @@ class IIIFInfo(object):
         Will raise exception if insufficient parameters are present to
         have a valid info.json response (unless validate is False).
         """
-        if (self.api_version=='2.0' and not self.tiles and
+        if (self.api_version>='2.0' and not self.tiles and
             self.tile_width and self.scale_factors):
             # make 2.0 tiles data from 1.1 like data
             self.tiles = [ { 'width': int(self.tile_width), #FIXME - int() is fudge, data should be int

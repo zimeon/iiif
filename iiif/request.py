@@ -62,6 +62,7 @@ class IIIFRequest(object):
         self.info = None
         # Derived data and flags
         self.region_full = False
+        self.region_square = False
         self.region_pct = False
         self.region_xywh = None # (x,y,w,h)
         self.size_full = False
@@ -224,9 +225,9 @@ class IIIFRequest(object):
     def parse_parameters(self):
         """ Parse the parameters of a parameterized request
 
-        Will throw an IIIFError on failure, set attributes on success. Care is 
-        take not to change any of the artibutes which store path components, 
-        all parsed values are stored in new attributes.
+        Will throw an IIIFError on failure, set attributes on success. Care
+        is taken not to change any of the artibutes which store path 
+        components. All parsed values are stored in new attributes.
         """
         self.parse_region()
         self.parse_size()
@@ -238,17 +239,22 @@ class IIIFRequest(object):
         """ Parse the region component of the path
 
         /full/ -> self.region_full = True (test this first)
+        /square/ -> self.region_square = True (test this second)
         /x,y,w,h/ -> self.region_xywh = (x,y,w,h)
         /pct:x,y,w,h/ -> self.region_xywh and self.region_pct = True
 
-        Will throw errors if the paremeters are illegal according to the
+        Will throw errors if the parameters are illegal according to the
         specification but does not know about and thus cannot do any tests
         against any image being manipulated.
         """
         self.region_full=False
+        self.region_square=False
         self.region_pct=False
         if (self.region is None or self.region == 'full'):
             self.region_full=True
+            return
+        if (self.api_version >= '2.1' and self.region == 'square'):
+            self.region_square=True
             return
         xywh=self.region
         pct_match = re.match('pct:(.*)$',self.region)

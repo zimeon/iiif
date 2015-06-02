@@ -204,6 +204,14 @@ class IIIFManipulator(object):
         if (self.width<=0 or self.height<=0):
             raise IIIFError(code=501,parameter='region',
                             text="Region parameters require knowledge of image size which is not implemented.")
+        if (self.request.region_square):
+            if (self.width<=self.height):
+                y_offset = ( self.height - self.width ) / 2
+                return( 0,y_offset,self.width,self.width )
+            else: # self.width>self.height
+                x_offset = ( self.width - self.height ) / 2
+                return( x_offset,0,self.height,self.height )
+        # pct or explicit pixel sizes
         pct = self.request.region_pct
         (x,y,w,h)=self.request.region_xywh
         # Convert pct to pixels based on actual size

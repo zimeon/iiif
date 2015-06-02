@@ -4,6 +4,7 @@ iiif changelog
 2015-02-20 v0.6.0 --- IN PROGRESS
 - Refactor manipulators for easier testing
 - Improve test coverage of PIL manipulator
+- Add IIIF API v2.1 for testing (not final), add /square/ region
 
 2015-02-14 v0.5.1
 - Valentines edition, wishing Amy and Ian lasting happiness

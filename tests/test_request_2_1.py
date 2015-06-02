@@ -1,13 +1,13 @@
 """Test encoding and decoding of iiif request URLs
 
-Follows http://www-sul.stanford.edu/iiif/image-api/ v1.0 dated "10 August 2012"
+Follows http://iiif.io/api/image/2.1/
 
 This test includes a number of test cases beyond those given as examples
 in the table in section 7 of the spec. See iiif_urltest_spec.py for the
 set given in the spec.
 
-Simeon Warner - 2012-03-23, 2012-04-13
-  2014-11-01 - Updated for v2.0 spec
+Simeon Warner
+  2015-05 - Working toward v2.1 spec
 """
 import unittest
 
@@ -75,13 +75,18 @@ data  = {
 class TestAll(unittest.TestCase):
 
     def test01_parse_region(self):
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.1')
         r.region=None
         r.parse_region()
         self.assertTrue(r.region_full)
         r.region='full'
         r.parse_region()
         self.assertTrue(r.region_full)
+        self.assertFalse(r.region_square)
+        r.region='square'
+        r.parse_region()
+        self.assertFalse(r.region_full)
+        self.assertTrue(r.region_square)
         r.region='0,1,90,100'
         r.parse_region()
         self.assertFalse(r.region_full)

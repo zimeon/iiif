@@ -108,6 +108,8 @@ class TestAll(unittest.TestCase):
         self.assertRaises( IIIFError, r.parse_region )
         r.region='pct:-10,0,50,100'
         self.assertRaises( IIIFError, r.parse_region )
+        r.region='square'
+        self.assertRaises( IIIFError, r.parse_region )
 
     def test03_parse_size(self):
         r = IIIFRequest(api_version='1.1')

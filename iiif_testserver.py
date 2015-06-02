@@ -455,7 +455,7 @@ def main():
         IIIFRequestHandler.log_message=no_op
 
     # Import a set of manipulators and define prefixes for them
-    versions = ['1.0', '1.1', '2.0']
+    versions = ['1.0', '1.1', '2.0', '2.1']
     klass_names = ['pil','netpbm','dummy']
     auth_types = ['none','basic']
     for api_version in versions:
