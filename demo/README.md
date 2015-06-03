@@ -17,9 +17,11 @@ All of the static files for the demo are included in git so you can run
 OpenSeadragon immediately. Instructions for regenerating them are below 
 and allow testing with different tile size or with different images.
 
-A copy of OpenSeadragon is included in the the `demo/osd` directory
+A copy of OpenSeadragon v2.0 is included in the the `demo/osd` directory
 for convenience. The current version may be downloaded from 
-<http://openseadragon.github.io/#download>.
+<http://openseadragon.github.io/#download>. The static file generation 
+requires at least v2.0 of OpenSeadragon because use of the canonical
+size syntax in the IIIF Image API is assumed.
 
 Run demo
 --------
@@ -60,24 +62,3 @@ iiif> du -sh testimages/tetons.jpg demo/tetons testimages/starfish.jpg demo/star
 2.7M		   testimages/starfish2.jpg
 2.0M		   demo/starfish2
 ```
-
-Bugs
-----
-
-For some small tiles sizes the static tile generator does no make the right size. For example, with the tetons image, OSD requests `/demo/tetons/full/32,24/0/native.jpg` for a very low-res whole image. The static file generator uses different rounding and generates `/demo/tetons/full/31,23/0/native.jpg` instead.
-
-There appears to be a bug in OSD the results in multiple requests for the same image at very small sizes. For example, when viewing the starfish2 image, OSD makes the following sequence of requests for a 1x1 image:
-
-```
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] code 404, message File not found
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] "GET /demo/starfish2/full/1,1/0/native.jpg HTTP/1.1" 404 -
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] code 404, message File not found
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] "GET /demo/starfish2/full/1,1/0/native.jpg HTTP/1.1" 404 -
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] code 404, message File not found
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] "GET /demo/starfish2/full/1,1/0/native.jpg HTTP/1.1" 404 -
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] code 404, message File not found
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] "GET /demo/starfish2/full/1,1/0/native.jpg HTTP/1.1" 404 -
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] code 404, message File not found
-1.0.0.127.in-addr.arpa - - [29/Jul/2014 15:25:30] "GET /demo/starfish2/full/1,1/0/native.jpg HTTP/1.1" 404 -
-```
-

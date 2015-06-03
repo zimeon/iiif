@@ -49,3 +49,6 @@ class IIIFError:
         else:
             tree.write(xml_buf,encoding='UTF-8',xml_declaration=True,method='xml')
         return(xml_buf.getvalue())
+
+class IIIFZeroSizeError(IIIFError):
+    pass

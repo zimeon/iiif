@@ -12,7 +12,7 @@ import re
 import shutil
 import subprocess
 
-from error import IIIFError
+from error import IIIFError,IIIFZeroSizeError
 from request import IIIFRequest
 
 class IIIFManipulator(object):
@@ -227,8 +227,8 @@ class IIIFManipulator(object):
             h=self.height-y
         # Final check to see if we have the whole image
         if ( w==0 or h==0 ):
-            raise IIIFError(code=400,parameter='region',
-                            text="Region parameters would result in zero size result image.")
+            raise IIIFZeroSizeError(code=400,parameter='region',
+                                    text="Region parameters would result in zero size result image.")
         if ( x==0 and y==0 and w==self.width and h==self.height ):
             return(None,None,None,None)
         return(x,y,w,h)
@@ -268,8 +268,8 @@ class IIIFManipulator(object):
                 h = int(self.height * w / self.width + 0.5)
         # Now have w,h, sanity check and return
         if ( w==0 or h==0 ):
-            raise IIIFError(code=400,parameter='size',
-                            text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
+            raise IIIFZeroSizeError(code=400,parameter='size',
+                                    text="Size parameter would result in zero size result image (%d,%d)."%(w,h))
         # Below would be test for scaling up image size, this is allowed by spec
         # if ( w>self.width or h>self.height ):
         #      raise IIIFError(code=400,parameter='size',

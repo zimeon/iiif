@@ -44,8 +44,8 @@ class TestAll(unittest.TestCase):
             s=IIIFStatic( src='testimages/starfish_1500x2000.png', dst=tmp, tilesize=1024, api_version='1', dryrun=True )
             with capture_stdout() as capturer:
                 s.generate(identifier='a')
-            self.assertTrue( re.search(' / a/1024,1024,476,976/476,976/0/native.jpg', capturer.result ))
-            self.assertTrue( re.search(' / a/full/1,1/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/1024,1024,476,976/476,/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
         finally:
             shutil.rmtree(tmp) 
 

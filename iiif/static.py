@@ -11,6 +11,7 @@ import os.path
 from iiif.manipulator_pil import IIIFManipulatorPIL
 from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
+from iiif.error import IIIFZeroSizeError
 
 class IIIFStatic(object):
     """Provide static generation of IIIF images
@@ -138,14 +139,19 @@ class IIIFStatic(object):
             r.region_full = True
         else:
             r.region_xywh=region # [rx,ry,rw,rh]
-        r.size_wh=size # [sw,sh]
+        r.size_wh=[size[0],None] # [sw,sh] -> [sw,] canonical form
         r.format='jpg'
         path = r.url()
-        print "%s / %s" % (self.outd,path)
         # Generate...
-        if (not self.dryrun):
+        if (self.dryrun):
+            print "%s / %s" % (self.outd,path)
+        else:
             m = IIIFManipulatorPIL(api_version=self.api_version)
-            m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.outd,path))
+            try:
+                m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.outd,path))
+                print "%s / %s" % (self.outd,path)
+            except IIIFZeroSizeError as e:
+                print "%s / %s - zero size, skipped" % (self.outd,path)
 
     def setup_destination(self):
         """Setup output directory based on self.dst and self.identifier

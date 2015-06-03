@@ -8,7 +8,7 @@ import urllib
 import re
 import string
 
-from error import IIIFError
+from error import IIIFError, IIIFZeroSizeError
 
 class IIIFRequestBaseURI(Exception):
     """ Subclass of Exception to indicate request for base URI """
@@ -134,7 +134,12 @@ class IIIFRequest(object):
             if self.size:
                 size = self.size
             elif self.size_wh:
-                size = "%d,%d" % (self.size_wh[0],self.size_wh[1])
+                if (self.size_wh[0] is None):
+                    size = ",%d" % (self.size_wh[1])
+                if (self.size_wh[1] is None):
+                    size = "%d," % (self.size_wh[0])
+                else:
+                    size = "%d,%d" % (self.size_wh[0],self.size_wh[1])
             else:
                 size = "full" 
             rotation = self.rotation if self.rotation else "0"
@@ -291,8 +296,8 @@ class IIIFRequest(object):
             values.append(value)
         # Zero size region is w or h are zero (careful that they may be float)
         if (values[2]==0.0 or values[3]==0.0):
-            raise IIIFError(code=400,parameter="region",
-                            text="Zero size region specified (%s))."%xywh)
+            raise IIIFZeroSizeError(code=400,parameter="region",
+                                    text="Zero size region specified (%s))."%xywh)
         self.region_xywh=values
 
     def parse_size(self,size=None):
@@ -354,8 +359,8 @@ class IIIFRequest(object):
             (w,h) = self.size_wh
             if ( ( w is not None and w<=0) or 
                  ( h is not None and h<=0) ):
-                raise IIIFError(code=400,parameter='size',
-                                text="Size parameters request zero size result image.")
+                raise IIIFZeroSizeError(code=400,parameter='size',
+                                        text="Size parameters request zero size result image.")
 
     def _parse_w_comma_h(self,whstr,param):
         """ Utility to parse "w,h" "w," or ",h" values
