@@ -3,6 +3,7 @@
 *~
 .DS_store
 iiif_testserver.pid
+iiif_testserver_flask.pid
 # setup stuff
 build
 dist
