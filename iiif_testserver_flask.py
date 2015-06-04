@@ -158,7 +158,6 @@ class IIIFHandler(object):
         return make_response(i.as_json(),200,{'Content-Type':self.json_mime_type})
 
     def image_request_response(self, path):
-        file = self.file
         # Parse the request in path
         if (len(path)>1024):
             raise IIIFError(code=414,
@@ -179,6 +178,7 @@ class IIIFHandler(object):
             raise IIIFError(code=500,
                             text="Internal Server Error: unexpected exception parsing request (" + str(e) + ")")
         # Parsed request OK, attempt to fulfill
+        file = self.file
         self.manipulator.srcfile=file
         self.manipulator.do_first()
         if (self.api_version<'2.0' and
@@ -200,7 +200,7 @@ class IIIFHandler(object):
         return send_file(open(outfile,'r'),mimetype=mime_type)
 
     def error_response(self, e):
-        """ Write response for an IIIFError e
+        """Make response for an IIIFError e
 
         Looks also to see whether an extra attribute e.headers is set to
         a dict with extra header fields
