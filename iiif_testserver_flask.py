@@ -2,7 +2,10 @@
 """Crude webserver that services IIIF Image API requests
 
 Relies upon IIIFManipulator objects to do any manipulations
-requested.
+requested and is thus very slow. Supports a number of different
+versions of the specification via different base URIs (prefixes).
+
+Simeon Warner - 2014..
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for
@@ -275,7 +278,8 @@ def is_authn():
 
 def is_authz(): 
     """Check to see if user if authenticated and authorized"""
-    return (is_authn() and request.headers.get('Authorization', '') != '')
+    #return (is_authn() and request.headers.get('Authorization', '') != '')
+    return (request.headers.get('Authorization', '') != '')
 
 def iiif_login_handler(config=None, prefix=None, **args):
     """OAuth starts here. This will redirect User to Google"""
@@ -292,7 +296,15 @@ def iiif_login_handler(config=None, prefix=None, **args):
     return response 
 
 def iiif_logout_handler(**args):
-    return "LOGOUT not implemented"
+    """Handler for logout button
+
+    Delete cookies and return HTML that immediately closes window
+    """
+    response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
+    response.set_cookie("account", expires=0)
+    response.set_cookie("loggedin", expires=0)
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 def iiif_client_id_handler(**args):
     return "CLIENT ID not implemented"
@@ -320,7 +332,8 @@ def iiif_access_token_handler(**args):
         # Set the cookie for the image content -- FIXME - need something real
         response.set_cookie('loggedin', account)
     response.set_cookie('account', expires=0)
-    return response
+    response.headers['Access-control-allow-origin']='*'
+    return response 
 
 def iiif_home_handler(config=None, prefix=None, **args):
     """Handler for /home redirect path after Goole auth
@@ -449,12 +462,12 @@ def setup_auth_paths(app, base_pattern, params):
     """Add URL rules for auth paths
     """
     app.add_url_rule(base_pattern+'login', 'iiif_login_handler', iiif_login_handler, defaults=params)
-    app.add_url_rule(base_pattern+'logout', 'iiif_logout_handler', iiif_login_handler, defaults=params)
+    app.add_url_rule(base_pattern+'logout', 'iiif_logout_handler', iiif_logout_handler, defaults=params)
     app.add_url_rule(base_pattern+'client', 'iiif_client_id_handler', iiif_client_id_handler, defaults=params)
     app.add_url_rule(base_pattern+'token', 'iiif_access_token_handler', iiif_access_token_handler, defaults=params)
     app.add_url_rule(base_pattern+'home', 'iiif_home_handler', iiif_home_handler, defaults=params)
 
-def setup():
+def main():
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image Testserver')
     p.add_option('--host', default='localhost',
@@ -567,8 +580,7 @@ def setup():
     app.run(host=opt.host, port=opt.port)
 
 
-
 if __name__ == '__main__':
-    setup()
+    main()
 
 
