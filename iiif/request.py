@@ -161,6 +161,9 @@ class IIIFRequest(object):
         parametrized or info request forms. Will raise an
         IIIFError on failure. A wrapper for the split_url()
         and parse_parameters() methods.
+
+        Note that behavior of split_url() depends on whether
+        self.identifier is set.
         """
         self.split_url(url)
         if (not self.info):
@@ -173,8 +176,12 @@ class IIIFRequest(object):
         Will parse a URL or URL path that accords with either the
         parametrized or info API forms. Will raise an IIIFError on 
         failure.
+
+        If self.identifier is set then url is assumed not to include the
+        identifier.
         """
         # clear data first
+        identifier = self.identifier
         self.clear()
         # url must start with baseurl if set
         if (self.baseurl): 
@@ -184,6 +191,8 @@ class IIIFRequest(object):
             url=path
         # Break up by path segments, count to decide format
         segs = string.split( url, '/', 5)
+        if (identifier is not None):
+            segs.insert(0, identifier)
         if (len(segs) > 5):
             raise(IIIFError(code=404,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
