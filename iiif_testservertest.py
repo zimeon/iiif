@@ -10,7 +10,7 @@ baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
 
-    def get(self,path):
+    def get(self,path,map_404_to_400=False):
         print "get("+path+")..."
         try:
             f = urlopen(baseurl+path)
@@ -22,6 +22,8 @@ class TestAll(unittest.TestCase):
                 img_size+=len(buffer)
             return(img_size)
         except HTTPError as e:
+            if (map_404_to_400 and e.code==404):
+                e.code=400
             return('code'+str(e.code))
         except Exception as e:
             return('other_error_'+str(e))
@@ -62,7 +64,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/bogus-profile'), 'code400' )
         self.assertEqual( self.get(id+'/bogus-profile.png'), 'code400' )
         # Bad region
-        self.assertEqual( self.get(id+'//pct:100/0/color'), 'code400' )
+        self.assertTrue( self.get(id+'/./pct:100/0/color'), 'code400' )
         self.assertEqual( self.get(id+'/whole/pct:100/0/color'), 'code400' )
         self.assertEqual( self.get(id+'/0,0,0,0/pct:100/0/color'), 'code400' )
         self.assertEqual( self.get(id+'/100,0,100,100/pct:100/0/color'), 'code400' )
@@ -90,6 +92,11 @@ class TestAll(unittest.TestCase):
         # Bad format
         ##self.assertEqual( self.get(id+'/full/pct:100/0/color.'), 'code415' )        
         self.assertEqual( self.get(id+'/full/pct:100/0/color.FMT'), 'code415' )        
+        # Ambiguous 404 or 400
+        self.assertTrue( self.get(id+'//pct:100/0/color',map_404_to_400=True), 'code400' )        
+        self.assertTrue( self.get(id+'/full//0/color',map_404_to_400=True), 'code400' )        
+        self.assertTrue( self.get(id+'/full/full//color',map_404_to_400=True), 'code400' )        
+        self.assertTrue( self.get(id+'/full/full/0/',map_404_to_400=True), 'code400' )        
 
 # If run from command line, do tests
 if __name__ == '__main__':
