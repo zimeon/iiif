@@ -1,13 +1,9 @@
-"""IIIF Image Information Response
+"""IIIF Authentication
 
-Model for IIIF Image API 'Image Information Response'.
-Default version is 2.0 but also supports 2.1, 1.1 and 1.0
 """
 
-import sys
 import json
 import re
-import StringIO
 
 class IIIFAuth(object):
 
@@ -22,10 +18,10 @@ class IIIFAuth(object):
         self.client_id_uri = None
         self.access_token_uri = None
 
-    def add_services(self, info):
+    def add_services(self, info, logged_in=False):
         """Add auth service descriptions to an IIIFInfo object
         """
-        if (self.login_uri):
+        if (self.login_uri and not logged_in):
             info.add_service( self.login_service_description() )
         if (self.logout_uri):
             info.add_service( self.logout_service_description() )
@@ -55,6 +51,33 @@ class IIIFAuth(object):
         return( { "@id": self.access_token_uri,
                   "profile": self.profile_base+'token'
                 } )
+
+    def access_token_response(self, query, cookies):
+        """ Client requests a token to send with info.json request
+
+        If we have one then we copy it from this request. If a callback
+        is specified then we wrap as JSONP.
+        """
+        callback = query.get('callback', '')
+        authcode = query.get('code', '')
+        account = ''
+        try:
+            account = request.get_cookie('account', secret="SECRET_HERE")
+            response.delete_cookie('account', secret="SECRET_HERE")
+        except:
+            pass
+        if not account:
+            data = {"error":"client_unauthorized","error_description": "No login details received"}
+        else:
+            data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
+            # Set the cookie for the image content
+            response.set_cookie('loggedin', account, secret="SECRET_HERE")
+        data_str = json.dumps(data)
+
+        if callback:
+            return self.send("%s(%s);" % (callback, data_str), ct="application/javascript")
+        else:
+            return self.send(data_str, ct="application/json")
 
 
 

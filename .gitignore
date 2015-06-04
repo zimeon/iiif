@@ -2,10 +2,13 @@
 *.pyc
 *~
 .DS_store
+# server files
 iiif_testserver.pid
 iiif_testserver_flask.pid
+client_secret
 # setup stuff
 build
 dist
 MANIFEST
 iiif.egg-info
+client_secret.json
