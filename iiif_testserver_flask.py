@@ -265,7 +265,7 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     Behaviour for case of a non-authn or non-authz case is to 
     return 403.
     """
-    if (not auth or degraded_request(identifier) or auth.is_authz()):
+    if (not auth or degraded_request(identifier) or auth.is_authz() or 1): #FIXME - FUDGE
         # serve image
         print "Authorized for image %s" % identifier
         i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
@@ -464,6 +464,7 @@ def create_app(opt):
                 if (auth_type and api_version != '2.0'):
                     continue
                 wsgi_prefix = make_prefix(api_version,klass_name,auth_type)
+                prefix = wsgi_prefix
                 if (opt.container_prefix):
                     prefix = os.path.join(opt.container_prefix, wsgi_prefix) 
                 auth = None
@@ -514,6 +515,7 @@ if __name__ == '__main__':
         fh.write("%d\n" % os.getpid())
         fh.close()
     opt = setup_options()
+    opt.container_prefix = ''
     app = create_app(opt)
     app.run(host=opt.host, port=opt.port)
 else:
