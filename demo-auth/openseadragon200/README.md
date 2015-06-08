@@ -1,0 +1,1 @@
+Copy of OpenSeadragon 2.0.0 downloaded from <https://github.com/openseadragon/openseadragon/releases> 2015-06-02

@@ -1,0 +1,27 @@
+<html>
+<head>
+  <title>IIIF demo no auth</title>
+  <script src="openseadragon/openseadragon.min.js"></script>
+</head>
+<body>
+
+<h1>IIIF Demo no auth</h1>
+
+<div id="openseadragon1" style="width: 500px; height: 400px;"></div>  
+<script>
+//<![CDATA[
+        function initOpenSeadragon() {
+          OpenSeadragon({
+  id: "openseadragon1",
+  minZoomImageRatio: 1,
+  prefixUrl: "openseadragon/images/",
+  tileSources: "http://localhost:8001/1.1_pil/tetons/info.json",
+  crossOriginPolicy: false});
+        }
+        window.onload = initOpenSeadragon;
+        document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
+//]]>
+</script>
+
+</body>
+</html>
