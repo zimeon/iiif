@@ -1,0 +1,232 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>IIIF OpenSeadragon Two-up Auth Test</title>
+</head>
+<body>    		
+<script src="openseadragon/openseadragon.min.js"></script>
+<script src="jquery-1.11.1.min.js"></script>
+
+<h2>IIIF OpenSeadragon Two-up Auth Test</h1>
+
+<table width="100%">
+    <tr width="100%"><td valign="top">
+        <div id="containerleft" width="400">&nbsp;</div>
+        <div>
+            <div id="authboxleft" style="margin-top: 10px; border: 2px solid green;"></div>
+            <div id="logleft" style="margin-top: 10px; border: 2px solid black;"></div>
+        </div>
+    </td><td valign="top">
+        <div id="containerright" width="400">&nbsp;</div>
+        <div>
+            <div id="authboxright" style="margin-top: 10px; border: 2px solid green;"></div>
+            <div id="logright" style="margin-top: 10px; border: 2px solid black"></div>
+        </div>
+    </td></tr>
+</table>
+
+<script type="text/javascript">
+
+var lineleft = 0;
+var lineright = 0;
+
+function log(text, lr) {
+
+    if (lr == "left") {
+        lineleft += 1;
+        l = lineleft;
+    } else {
+        lineright += 1;
+        l = lineright;
+    }
+    $('#log'+lr).prepend("[" + l + "] " + text + "<br>");
+}
+
+// check for an auth service ... once tileSource has loaded
+function on_authed(lr) {
+    // first try to get an authorization token from the token service ...
+    // via JSONP :(
+    // XXX TODO: get the URL from the info.json
+    log("Fetching Token", lr);        
+    var base = get_url(lr)
+    if (lr == "left") {
+        $.getJSON(base+"token?callback=?", on_tokened_left);
+    } else {
+        $.getJSON(base+"token?callback=?", on_tokened_right);        
+    }
+}
+
+function on_tokened_left(data) {
+    on_tokened(data, 'left')
+}
+function on_tokened_right(data) {
+    on_tokened(data, 'right')
+}
+
+function on_tokened(data, lr) {
+
+    var token, error;
+    if (data.hasOwnProperty('access_token')) {
+        token = data.access_token;
+        error = false;
+        log("Got token: " + token, lr);
+    } else {
+        // error condition
+        token = '';
+        error = true;
+        log("Got error: " + data.error, lr)
+    }
+
+    if (error) {
+        // Error make unauthed viewer
+        make_viewer(lr);
+    } else {
+        // Okay, make authed viewer
+        var base = get_url(lr);
+        $('#openseadragon'+lr).remove();
+        $('#authbox'+lr).empty();
+        $('#container'+lr).append('<div id="openseadragon'+lr+'" style="width: 350px; height: 350px; border: 2px solid purple" ></div>');
+        if (lr == 'left') {
+            $.ajax({ url:base+get_id(lr)+"/info.json", headers: {"Authorization":token}, cache: false, success: on_got_info_left });
+        } else {
+            $.ajax({ url:base+get_id(lr)+"/info.json", headers: {"Authorization":token}, cache: false, success: on_got_info_right });
+        }
+    }
+}
+
+function on_got_info_left(data) {
+    on_got_info(data, 'left');
+}
+function on_got_info_right(data) {
+    on_got_info(data, 'right');
+}
+
+function on_got_info(data, lr) {
+
+    log("Got full info.json", lr)
+
+    process_auth_services(data, 'logout', lr);
+
+    var viewer = OpenSeadragon({
+        id: "openseadragon" + lr,
+        tileSources: data,
+        showNavigator: true,
+        prefixUrl: "openseadragon/images/"
+    });
+}
+
+function do_auth_left(evt) {
+    var login = $(this).attr('data-login')
+    do_auth(login, 'left');
+}
+function do_auth_right(evt) {
+    var login = $(this).attr('data-login')
+    do_auth(login, 'right');
+}
+
+function do_auth(login, lr) {
+
+    // The redirected to window will self-close
+    // open/closed state is the only thing we can see across domains :(
+    log("Opening Auth service", lr);
+    var win = window.open(login, 'loginwindow'+lr);
+    var pollTimer   =   window.setInterval(function() { 
+        if (win.closed) {
+            window.clearInterval(pollTimer);
+            on_authed(lr);
+        }
+    }, 500);
+}
+
+function process_auth_services(info, which, lr) {
+
+    log("Looking for auth services", lr)
+    if (info.hasOwnProperty('service')) {
+        if (info.service.hasOwnProperty('@context')) {
+            services = [info.service]
+        } else {
+            // array of service
+            services = info.service
+        }
+        for (var service,i=0;service=services[i];i++) {
+            if (service['profile'] == 'http://iiif.io/api/image/2/auth/' + which) {
+                var login = service['@id'];
+                log("Found "+which+" auth service: " + login, lr);
+                $('#authbox'+lr).append("<button id='authbutton"+lr+"' data-login='"+login+"'>"+service.label+"</button>");
+                if (lr == "left") {
+                    $('#authbutton'+lr).bind('click', do_auth_left);
+                } else {
+                    $('#authbutton'+lr).bind('click', do_auth_right);                    
+                }
+            } else if (which == 'login' && service['profile'] == 'http://iiif.io/api/image/2/auth/token') {
+                // save token service here...
+            }
+        }
+    } 
+}
+
+
+function handle_open_left(event) {
+    handle_open(event, "left");
+    // make_viewer("right");
+}
+function handle_open_right(event) {
+    handle_open(event, "right");
+}
+
+function handle_open(event, lr) {
+    var info = event.eventSource.source;
+    // This only gets called when we're NOT authed, so no need to put in logout
+    process_auth_services(info, 'login', lr);
+}
+
+function make_viewer(lr) {
+
+    log("Making unauthed viewer", lr);
+
+    $('#openseadragon'+lr).remove();
+    $('#authbox'+lr).empty();
+    $('#container'+lr).append('<div id="openseadragon'+lr+'" style="width: 350px; height: 350px; border: 2px solid purple" >&nbsp;</div>');
+    var where = $("#openseadragon"+lr);
+
+    var base = get_url(lr);
+    var viewer = OpenSeadragon({
+        id: "openseadragon"+lr,
+        tileSources: base+get_id(lr)+"/info.json?t=" + new Date().getTime(),
+        showNavigator: true,
+        prefixUrl: "openseadragon/images/"
+    });
+    if (lr == "left") {
+        viewer.addHandler('open', handle_open_left)
+        viewer.addHandler('failed-open', handle_open_left)
+    } else {
+        viewer.addHandler('open', handle_open_right)
+        viewer.addHandler('failed-open', handle_open_right)
+    }
+}
+
+function get_url(lr) {
+    if (lr == "left") {
+        return "http://resync.library.cornell.edu/iiif_auth_test/2.0_pil_gauth/"
+    } else {
+        return "http://dlss-dev-azaroth.stanford.edu/services/iiif_basic/"        
+    }
+}
+function get_id(lr) {
+    if (lr == "left") {
+        return "tetons"
+    } else {
+        return "f1rc"
+    }
+}
+
+make_viewer("left");
+make_viewer("right");
+</script>
+
+
+</body>
+</html>
+
+    	</div>
+	</body>
+</html>
