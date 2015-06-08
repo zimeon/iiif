@@ -1,5 +1,8 @@
 """IIIF Authentication
 
+Base authentication object which does not actually implement and
+authentication scheme but is the foundation for specific sub-classes
+for different schemes.
 """
 
 import json
@@ -88,9 +91,28 @@ class IIIFAuth(object):
             uri += '/'+prefix
         return uri
 
-    def client_id_handler(self, **args):
-        """Not implemented"""
-        return None
+    # Override with method to implement
+    client_id_handler=None
+
+    # Override with method to implement
+    home_handler=None
+
+    def is_authn(self): 
+        """Check to see if user if authenticated
+
+        Null implementation that always returns False, must override
+        to implement authorization.
+        """
+        return False
+
+    def is_authz(self): 
+        """Check to see if user if authenticated and authorized
+
+        Null implementation that says that any authenticated user is
+        authorized.
+        """
+        return self.is_authn()
+
 
 
 

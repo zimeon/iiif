@@ -5,7 +5,7 @@ Relies upon IIIFManipulator objects to do any manipulations
 requested and is thus very slow. Supports a number of different
 versions of the specification via different base URIs (prefixes).
 
-Simeon Warner - 2014..
+Simeon Warner - 2014...
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for
@@ -377,7 +377,8 @@ def setup_auth_paths(app, auth, prefix, params):
     if (auth.client_id_handler):
         app.add_url_rule(base+'client', prefix+'client_id_handler', auth.client_id_handler, defaults=params)
     app.add_url_rule(base+'token', prefix+'access_token_handler', auth.access_token_handler, defaults=params)
-    app.add_url_rule(base+'home', prefix+'home_handler', auth.home_handler, defaults=params)
+    if (auth.home_handler):
+        app.add_url_rule(base+'home', prefix+'home_handler', auth.home_handler, defaults=params)
 
 def make_prefix(api_version,manipulator,auth_type):
     """Make prefix string based on configuration parameters"""

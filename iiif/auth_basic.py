@@ -31,27 +31,33 @@ class IIIFAuthBasic(IIIFAuth):
         return (request.headers.get('Authorization', '') != '')
 
     def login_handler(self, config=None, prefix=None, **args):
-        """OAuth starts here. This will redirect User to Google"""
-        params = {
-            'response_type': 'code',
-            'client_id': self.google_api_client_id,
-            'redirect_uri': self.host_port_prefix(config.host,config.port,prefix)+'/home',
-            'scope': self.google_api_scope,
-            'state': request.args.get('next',default=''),
-        }
-        url = self.google_oauth2_url + 'auth?' + urllib.urlencode(params)
-        response = redirect(url)
-        response.headers['Access-control-allow-origin']='*'
-        return response 
+        """HTTP Basic login handler
 
+        Respond with 401 and WWW-Authenticate header
+        """
+        headers = {}
+        headers['Access-control-allow-origin']='*'
+        headers['Content-type']='text/html'
+        auth = request.authorization
+        if (auth and auth.username == auth.password):
+            html = "<html><script>window.close();</script></html>"
+            response = make_response(html,200,headers)
+            response.set_cookie("authdone", "valid-http-basic-login", expires=3600)
+            return response
+        else:
+            headers['WWW-Authenticate']='Basic realm="HTTP-Basic-Auth at %s (u=p to login)"' % (self.name)
+            return make_response("",401,headers)
+ 
     def logout_handler(self, **args):
         """Handler for logout button
 
         Delete cookies and return HTML that immediately closes window
+
+        FIXME - don't know how to actually do HTTP Basic auth logout
         """
         response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-        response.set_cookie("account", expires=0)
-        response.set_cookie("loggedin", expires=0)
+        response.set_cookie("basic_authdone", expires=0)
+        response.set_cookie("basic_token", expires=0)
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
@@ -60,10 +66,10 @@ class IIIFAuthBasic(IIIFAuth):
         # We're going to just copy it from our cookie.
         # JSONP request to get the token to send to info.json in Auth'z header
         callback_function = request.args.get('callback',default='')
-        authcode = request.args.get('code',default='')
-        account = request.cookies.get('account',default='')
-        if (account):
-            data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
+        authdone = request.args.get('basic_authdone',default='')
+        token = authdone+'-tok'
+        if (authdone):
+            data = {"access_token": token, "token_type": "Bearer", "expires_in": 3600}
         else:
             data = {"error":"client_unauthorized","error_description": "No login details received"}
         data_str = json.dumps(data)
@@ -74,52 +80,10 @@ class IIIFAuthBasic(IIIFAuth):
             ct = "application/javascript"
         # Build response
         response = make_response(data_str,200,{'Content-Type':ct})
-        if (account):
+        if (authdone):
             # Set the cookie for the image content -- FIXME - need something real
-            response.set_cookie('loggedin', account)
-        response.set_cookie('account', expires=0)
+            response.set_cookie('basic_token', token)
+        response.set_cookie('hello','there')
+        response.set_cookie('basic_authdone', expires=0)
         response.headers['Access-control-allow-origin']='*'
         return response 
-
-    def home_handler(self, config=None, prefix=None, **args):
-        """Handler for /home redirect path after Goole auth
-
-        OAuth ends up back here from Google. Set the account cookie 
-        and close window to trigger next step
-        """
-        gresponse = self.google_get_token(config, prefix)
-        gdata = self.google_get_data(config, gresponse)
-
-        email = gdata.get('email', 'NO_EMAIL')
-        name = gdata.get('name', 'NO_NAME')
-        response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-        response.set_cookie("account", 'Token for '+name+' '+email)
-        return response
-
-    ######################################################################
-    # Code to get data from Google API
-    #
-
-    def google_get_token(self, config, prefix):
-        # Google OAuth2 helpers
-        params = {
-            'code': request.args.get('code',default=''),
-            'client_id': self.google_api_client_id,
-            'client_secret': self.google_api_client_secret,
-            'redirect_uri': self.host_port_prefix(config.host,config.port,prefix)+'/home',
-            'grant_type': 'authorization_code',
-        }
-        payload = urllib.urlencode(params)
-        url = self.google_oauth2_url + 'token'
-        req = urllib2.Request(url, payload) 
-        return json.loads(urllib2.urlopen(req).read())
-
-    def google_get_data(self, config, response):
-        """Make request to Google API to get profile data for the user"""
-        params = {
-            'access_token': response['access_token'],
-        }
-        payload = urllib.urlencode(params)
-        url = self.google_api_url + 'userinfo?' + payload
-        req = urllib2.Request(url)  # must be GET
-        return json.loads(urllib2.urlopen(req).read())
