@@ -47,7 +47,7 @@ def top_level_index_page(config):
     title = "iiif_testserver on %s:%s" % (config.host,config.port)
     body = "<ul>\n"
     for prefix in sorted(config.prefixes.keys()):
-        body += '<li><a href="%s">%s</a></li>\n' % (prefix,prefix)
+        body += '<li><a href="/%s">%s</a></li>\n' % (prefix,prefix)
     body += "</ul>\n"
     return html_page( title, body )
 
@@ -219,7 +219,7 @@ class IIIFHandler(object):
             formats = { 'image/jpeg': 'jpg', 'image/tiff': 'tif',
                         'image/png': 'png', 'image/gif': 'gif',
                         'image/jp2': 'jps', 'application/pdf': 'pdf' }
-            accept = do_conneg( self.headers['Accept'], formats.keys() )
+            accept = do_conneg( request.headers['Accept'], formats.keys() )
             # Ignore Accept header if not recognized, should this be an error instead?
             if (accept in formats):
                 self.iiif.format = formats[accept]
@@ -401,8 +401,6 @@ def setup_options():
                  help="Tile width (default %default)")
     p.add_option('--pages-dir', default='testpages',
                  help="Test pages directory (default %default)")
-    p.add_option('--user-pass', default='user:pass',
-                 help="Username colon password need for authentication (default %default)")
     p.add_option('--verbose', '-v', action='store_true',
                  help="Be verbose")
     p.add_option('--debug', action='store_true',
@@ -435,7 +433,6 @@ def create_app(opt):
     config.host = opt.host
     config.port = opt.port
     config.image_dir = opt.image_dir
-    config.user_pass = opt.user_pass
     config.info={'tile_height': opt.tile_height,
           'tile_width': opt.tile_width,
           'scale_factors' : [1,2,4,8],
@@ -465,7 +462,9 @@ def create_app(opt):
                 # auth only for 2.0
                 if (auth_type and api_version != '2.0'):
                     continue
-                prefix = make_prefix(api_version,klass_name,auth_type)
+                wsgi_prefix = make_prefix(api_version,klass_name,auth_type)
+                if (opt.container_prefix):
+                    prefix = os.path.join(opt.container_prefix, wsgi_prefix) 
                 auth = None
                 if (auth_type is None):
                     pass
@@ -494,30 +493,40 @@ def create_app(opt):
                 print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
                 params=dict(config=config, klass=klass, api_version=api_version, auth=auth, prefix=prefix)
                 config.prefixes[prefix]=params
-                app.add_url_rule('/'+prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
+                app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
+                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
+                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
+                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
                 if (auth):
-                    setup_auth_paths(app, auth, prefix, params)
+                    setup_auth_paths(app, auth, wsgi_prefix, params)
                 # redirects to info.json must come after auth
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
+                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
+                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
 
-    pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
-    with open(pidfile,'w') as fh:
-        fh.write("%d\n" % os.getpid())
-        fh.close()
     return(app)
 
 
 if __name__ == '__main__':
     # Command line, run own server
+    pidfile=os.path.basename(__file__)[:-3]+'.pid' #strip .py, add .pid
+    with open(pidfile,'w') as fh:
+        fh.write("%d\n" % os.getpid())
+        fh.close()
     opt = setup_options()
     app = create_app(opt)
     app.run(host=opt.host, port=opt.port)
 else:
-    app = create_app()
-    
-
-
+    opt = optparse.Values()
+    opt.verbose = 1
+    opt.debug = 1
+    mydir=os.path.dirname(os.path.realpath(__file__))
+    opt.pages_dir = mydir+'/testpages'
+    opt.image_dir = mydir+'/testimages'
+    opt.tile_width = 512
+    opt.tile_height = 512
+    opt.container_prefix = 'iiif_auth_test'
+    # Should get the following from WSGI environ, 
+    # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
+    opt.host = 'resync.library.cornell.edu' #FIXME - get from WSGI
+    opt.port = 80
+    app = create_app(opt)
