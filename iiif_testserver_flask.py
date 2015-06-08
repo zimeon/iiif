@@ -260,11 +260,24 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api
 iiif_info_handler.provide_automatic_options = False
 
 def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, api_version='2.0', auth=None):
-    i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
-    try:
-        return i.image_request_response(path)
-    except IIIFError as e:
-        return i.error_response(e)
+    """Handler for IIIF Image Requests
+
+    Behaviour for case of a non-authn or non-authz case is to 
+    return 403.
+    """
+    if (not auth or degraded_request(identifier) or is_authz()):
+        # serve image
+        i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
+        try:
+            return i.image_request_response(path)
+        except IIIFError as e:
+            return i.error_response(e)
+    else:
+        # redirect to degraded
+        response = redirect(host_port_prefix(config.host,config.port,prefix)+'/'+identifier+'-deg/'+path)
+        response.headers['Access-control-allow-origin']='*'
+        return response
+iiif_image_handler.provide_automatic_options = False
 
 def degraded_request(identifier):
     """Returns True (non-degraded id) if this is a degraded request, False otherwise"""
@@ -467,6 +480,13 @@ def setup_auth_paths(app, base_pattern, params):
     app.add_url_rule(base_pattern+'token', 'iiif_access_token_handler', iiif_access_token_handler, defaults=params)
     app.add_url_rule(base_pattern+'home', 'iiif_home_handler', iiif_home_handler, defaults=params)
 
+def make_prefix(api_version,manipulator,auth_type):
+    """Make prefix string based on configuration parameters"""
+    prefix = "%s_%s" % (api_version,manipulator)
+    if (auth_type):
+        prefix += '_'+auth_type
+    return(prefix)
+
 def main():
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image Testserver')
@@ -534,18 +554,24 @@ def main():
     # Add handlers for all the IIIF handlers we want to support
     versions = ['1.0', '1.1', '2.0', '2.1']
     klass_names = ['pil','netpbm','dummy']
-    auth_types = ['none','gauth']
+    auth_types = [None,'gauth','basic']
     for api_version in versions:
         for klass_name in klass_names:
             for auth_type in auth_types:
                 # auth only for 2.0
-                if (auth_type != 'none' and api_version != '2.0'):
+                if (auth_type and api_version != '2.0'):
                     continue
-                prefix = "%s_%s" % (api_version,klass_name)
+                prefix = make_prefix(api_version,klass_name,auth_type)
                 auth = None
-                if (auth_type != 'none'):
-                    prefix += '_'+auth_type
+                if (auth_type is None):
+                    pass
+                elif (auth_type=='gauth'):
                     auth = IIIFAuth()
+                elif (auth_type=='basic'):
+                    auth = IIIFAuth()
+                else:
+                    print "Unknown auth type %s, ignoring" % (auth_type)
+                    continue
                 klass=None
                 if (klass_name=='pil'):
                     from iiif.manipulator_pil import IIIFManipulatorPIL
