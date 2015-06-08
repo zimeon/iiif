@@ -79,5 +79,19 @@ class IIIFAuth(object):
         else:
             return self.send(data_str, ct="application/json")
 
+    def host_port_prefix(self,host,port,prefix):
+        """Return URI composed of scheme, server, port, and prefix"""
+        uri = "http://"+host
+        if (host!=80):
+            uri += ':'+str(port)
+        if (prefix):
+            uri += '/'+prefix
+        return uri
+
+    def client_id_handler(self, **args):
+        """Not implemented"""
+        return None
+
+
 
 

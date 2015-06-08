@@ -23,7 +23,6 @@ import urllib2
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
-from iiif.auth import IIIFAuth
 
 class SharedConfig(object):
     pass
@@ -240,16 +239,17 @@ class IIIFHandler(object):
         self.add_compliance_header()
         return make_response(str(e),e.code,{'Content-Type':e.content_type})
 
-def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api_version='2.0', auth=None):
+def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api_version='2.0', auth=None, **args):
     """Handler for IIIF Image Information requests"""
-    if (not auth or degraded_request(identifier) or is_authz()):
+    if (not auth or degraded_request(identifier) or auth.is_authz()):
         # go ahead with request as made
+        print "Authorized for image %s" % identifier
         i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
         try:
             return i.image_information_response()
         except IIIFError as e:
             return i.error_response(e)
-    elif (is_authn()):
+    elif (auth.is_authn()):
         # authn but not authz -> 401
         abort(401)
     else:
@@ -259,22 +259,25 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api
         return response 
 iiif_info_handler.provide_automatic_options = False
 
-def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, api_version='2.0', auth=None):
+def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, api_version='2.0', auth=None, **args):
     """Handler for IIIF Image Requests
 
     Behaviour for case of a non-authn or non-authz case is to 
     return 403.
     """
-    if (not auth or degraded_request(identifier) or is_authz()):
+    if (not auth or degraded_request(identifier) or auth.is_authz()):
         # serve image
+        print "Authorized for image %s" % identifier
         i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
         try:
             return i.image_request_response(path)
         except IIIFError as e:
             return i.error_response(e)
     else:
-        # redirect to degraded
-        response = redirect(host_port_prefix(config.host,config.port,prefix)+'/'+identifier+'-deg/'+path)
+        # redirect to degraded (for not authz and for authn but not authz too)
+        degraded_uri = host_port_prefix(config.host,config.port,prefix)+'/'+identifier+'-deg/'+path
+        print "Redirection to degraded: %s" % degraded_uri
+        response = redirect(degraded_uri)
         response.headers['Access-control-allow-origin']='*'
         return response
 iiif_image_handler.provide_automatic_options = False
@@ -284,84 +287,6 @@ def degraded_request(identifier):
     if identifier.endswith('-deg'):
        return identifier[:-4]
     return False
-
-def is_authn():
-    """Check to see if user if authenticated"""
-    return request.cookies.get("loggedin",default='')
-
-def is_authz(): 
-    """Check to see if user if authenticated and authorized"""
-    #return (is_authn() and request.headers.get('Authorization', '') != '')
-    return (request.headers.get('Authorization', '') != '')
-
-def iiif_login_handler(config=None, prefix=None, **args):
-    """OAuth starts here. This will redirect User to Google"""
-    params = {
-        'response_type': 'code',
-        'client_id': config.google_api_client_id,
-        'redirect_uri': host_port_prefix(config.host,config.port,prefix)+'/home',
-        'scope': config.google_api_scope,
-        'state': request.args.get('next',default=''),
-    }
-    url = config.google_oauth2_url + 'auth?' + urllib.urlencode(params)
-    response = redirect(url)
-    response.headers['Access-control-allow-origin']='*'
-    return response 
-
-def iiif_logout_handler(**args):
-    """Handler for logout button
-
-    Delete cookies and return HTML that immediately closes window
-    """
-    response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-    response.set_cookie("account", expires=0)
-    response.set_cookie("loggedin", expires=0)
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-def iiif_client_id_handler(**args):
-    return "CLIENT ID not implemented"
-
-def iiif_access_token_handler(**args):
-    # This is the next step -- client requests a token to send to info.json
-    # We're going to just copy it from our cookie.
-    # JSONP request to get the token to send to info.json in Auth'z header
-    callback_function = request.args.get('callback',default='')
-    authcode = request.args.get('code',default='')
-    account = request.cookies.get('account',default='')
-    if (account):
-        data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
-    else:
-        data = {"error":"client_unauthorized","error_description": "No login details received"}
-    data_str = json.dumps(data)
-
-    ct = "application/json"
-    if (callback_function):
-        data_str = "%s(%s);" % (callback_function, data_str)
-        ct = "application/javascript"
-    # Build response
-    response = make_response(data_str,200,{'Content-Type':ct})
-    if (account):
-        # Set the cookie for the image content -- FIXME - need something real
-        response.set_cookie('loggedin', account)
-    response.set_cookie('account', expires=0)
-    response.headers['Access-control-allow-origin']='*'
-    return response 
-
-def iiif_home_handler(config=None, prefix=None, **args):
-    """Handler for /home redirect path after Goole auth
-
-    OAuth ends up back here from Google. Set the account cookie 
-    and close window to trigger next step
-    """
-    gresponse = google_get_token(config, prefix)
-    gdata = google_get_data(config, gresponse)
-
-    email = gdata.get('email', 'NO_EMAIL')
-    name = gdata.get('name', 'NO_NAME')
-    response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-    response.set_cookie("account", name+' '+email)
-    return response
 
 def options_handler(**args):
     """Handler to respond to OPTIONS requests"""
@@ -443,42 +368,16 @@ def do_conneg(accept,supported):
 
 ######################################################################
 
-# FIXME - code to get data from Google API, should be elsewhere
-
-def google_get_token(config, prefix):
-    # Google OAuth2 helpers
-    params = {
-        'code': request.args.get('code',default=''),
-        'client_id': config.google_api_client_id,
-        'client_secret': config.google_api_client_secret,
-        'redirect_uri': host_port_prefix(config.host,config.port,prefix)+'/home',
-        'grant_type': 'authorization_code',
-    }
-    payload = urllib.urlencode(params)
-    url = config.google_oauth2_url + 'token'
-    req = urllib2.Request(url, payload) 
-    return json.loads(urllib2.urlopen(req).read())
-
-def google_get_data(config, response):
-    """Make request to Google API to get profile data for the user"""
-    params = {
-        'access_token': response['access_token'],
-    }
-    payload = urllib.urlencode(params)
-    url = config.google_api_url + 'userinfo?' + payload
-    req = urllib2.Request(url)  # must be GET
-    return json.loads(urllib2.urlopen(req).read())
-
-######################################################################
-
-def setup_auth_paths(app, base_pattern, params):
+def setup_auth_paths(app, auth, prefix, params):
     """Add URL rules for auth paths
     """
-    app.add_url_rule(base_pattern+'login', 'iiif_login_handler', iiif_login_handler, defaults=params)
-    app.add_url_rule(base_pattern+'logout', 'iiif_logout_handler', iiif_logout_handler, defaults=params)
-    app.add_url_rule(base_pattern+'client', 'iiif_client_id_handler', iiif_client_id_handler, defaults=params)
-    app.add_url_rule(base_pattern+'token', 'iiif_access_token_handler', iiif_access_token_handler, defaults=params)
-    app.add_url_rule(base_pattern+'home', 'iiif_home_handler', iiif_home_handler, defaults=params)
+    base = '/'+prefix+'/'
+    app.add_url_rule(base+'login', prefix+'login_handler', auth.login_handler, defaults=params)
+    app.add_url_rule(base+'logout', prefix+'logout_handler', auth.logout_handler, defaults=params)
+    if (auth.client_id_handler):
+        app.add_url_rule(base+'client', prefix+'client_id_handler', auth.client_id_handler, defaults=params)
+    app.add_url_rule(base+'token', prefix+'access_token_handler', auth.access_token_handler, defaults=params)
+    app.add_url_rule(base+'home', prefix+'home_handler', auth.home_handler, defaults=params)
 
 def make_prefix(api_version,manipulator,auth_type):
     """Make prefix string based on configuration parameters"""
@@ -487,7 +386,7 @@ def make_prefix(api_version,manipulator,auth_type):
         prefix += '_'+auth_type
     return(prefix)
 
-def main():
+def setup_options():
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image Testserver')
     p.add_option('--host', default='localhost',
@@ -514,12 +413,17 @@ def main():
 
     if (opt.debug):
         opt.verbose = True
-    logging.basicConfig( format='%(name)s: %(message)s',
-                         level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
 
     if (opt.quiet):
         # Add no_op function as logger to silence
         IIIFRequestHandler.log_message=no_op
+
+    return(opt)
+
+def create_app(opt):
+
+    logging.basicConfig( format='%(name)s: %(message)s',
+                         level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
 
     # Create Flask app
     app = Flask(__name__, static_url_path='/'+opt.pages_dir)
@@ -566,9 +470,11 @@ def main():
                 if (auth_type is None):
                     pass
                 elif (auth_type=='gauth'):
-                    auth = IIIFAuth()
+                    from iiif.auth_google import IIIFAuthGoogle
+                    auth = IIIFAuthGoogle(config.homedir)
                 elif (auth_type=='basic'):
-                    auth = IIIFAuth()
+                    from iiif.auth_basic import IIIFAuthBasic
+                    auth = IIIFAuthBasic(config.homedir)
                 else:
                     print "Unknown auth type %s, ignoring" % (auth_type)
                     continue
@@ -591,9 +497,9 @@ def main():
                 app.add_url_rule('/'+prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
                 app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
                 app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
-                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, defaults=params)
+                app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
                 if (auth):
-                    setup_auth_paths(app, '/'+prefix+'/', params)
+                    setup_auth_paths(app, auth, prefix, params)
                 # redirects to info.json must come after auth
                 app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
                 app.add_url_rule('/'+prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
@@ -602,11 +508,16 @@ def main():
     with open(pidfile,'w') as fh:
         fh.write("%d\n" % os.getpid())
         fh.close()
-
-    app.run(host=opt.host, port=opt.port)
+    return(app)
 
 
 if __name__ == '__main__':
-    main()
+    # Command line, run own server
+    opt = setup_options()
+    app = create_app(opt)
+    app.run(host=opt.host, port=opt.port)
+else:
+    app = create_app()
+    
 
 
