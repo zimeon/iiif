@@ -22,19 +22,26 @@ class IIIFAuthGoogle(IIIFAuth):
         self.google_api_scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
         self.google_oauth2_url = 'https://accounts.google.com/o/oauth2/'
         self.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
-
-    def is_authn(self):
-        """Check to see if user if authenticated"""
-        print "is_authn: loggedin cookie = " + request.cookies.get("loggedin",default='[none]')
-        return request.cookies.get("loggedin",default='')
-
-    def is_authz(self): 
-        """Check to see if user if authenticated and authorized"""
-        # FIXME - need to check contents of this jeadr
         #
-        #return (is_authn() and request.headers.get('Authorization', '') != '')
-        print "is_authz: Authorization header = " + request.headers.get('Authorization', '[none]')
+        # Auth data
+        self.tokens = {}
+
+    def info_authn(self):
+        """Check to see if user if authenticated for info.json
+
+        Must have Authorization header with value that is the appropriate
+        token.
+        """
+        print "info_authn: Authorization header = " + request.headers.get('Authorization', '[none]')
         return (request.headers.get('Authorization', '') != '')
+
+    def image_authn(self):
+        """Check to see if user if authenticated for image requests
+
+        Must have loggedin cookie with known token value.
+        """
+        print "image_authn: loggedin cookie = " + request.cookies.get("loggedin",default='[none]')
+        return request.cookies.get("loggedin",default='')
 
     def login_handler(self, config=None, prefix=None, **args):
         """OAuth starts here. This will redirect User to Google"""

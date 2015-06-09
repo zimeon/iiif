@@ -241,7 +241,7 @@ class IIIFHandler(object):
 
 def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api_version='2.0', auth=None, **args):
     """Handler for IIIF Image Information requests"""
-    if (not auth or degraded_request(identifier) or auth.is_authz()):
+    if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
         print "Authorized for image %s" % identifier
         i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
@@ -249,7 +249,7 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api
             return i.image_information_response()
         except IIIFError as e:
             return i.error_response(e)
-    elif (auth.is_authn()):
+    elif (auth.info_authn()):
         # authn but not authz -> 401
         abort(401)
     else:
@@ -265,7 +265,7 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     Behaviour for case of a non-authn or non-authz case is to 
     return 403.
     """
-    if (not auth or degraded_request(identifier) or auth.is_authz() or 1): #FIXME - FUDGE
+    if (not auth or degraded_request(identifier) or auth.image_authz()):
         # serve image
         print "Authorized for image %s" % identifier
         i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)

@@ -17,18 +17,15 @@ class IIIFAuthBasic(IIIFAuth):
     def __init__(self, homedir):
         super(IIIFAuthBasic, self).__init__()
 
-    def is_authn(self):
-        """Check to see if user if authenticated"""
-        print "is_authn: loggedin cookie = " + request.cookies.get("loggedin",default='[none]')
-        return request.cookies.get("loggedin",default='')
+    def info_authn(self):
+        """Check to see if user if authenticated for info.json"""
+        print "info_authz: Authorization header = " + request.headers.get('Authorization', '[none]')
+        return (request.headers.get('Authorization', '') != '') #FIXME - check valaue
 
-    def is_authz(self): 
-        """Check to see if user if authenticated and authorized"""
-        # FIXME - need to check contents of this jeadr
-        #
-        #return (is_authn() and request.headers.get('Authorization', '') != '')
-        print "is_authz: Authorization header = " + request.headers.get('Authorization', '[none]')
-        return (request.headers.get('Authorization', '') != '')
+    def image_authn(self):
+        """Check to see if user if authenticated for image requets"""
+        print "image_authn: loggedin cookie = " + request.cookies.get("basic_token",default='[none]')
+        return request.cookies.get("basic_token",default='') #FIXME - check value
 
     def login_handler(self, config=None, prefix=None, **args):
         """HTTP Basic login handler
@@ -42,7 +39,7 @@ class IIIFAuthBasic(IIIFAuth):
         if (auth and auth.username == auth.password):
             html = "<html><script>window.close();</script></html>"
             response = make_response(html,200,headers)
-            response.set_cookie("authdone", "valid-http-basic-login", expires=3600)
+            response.set_cookie("basic_authdone", "valid-http-basic-login", expires=3600)
             return response
         else:
             headers['WWW-Authenticate']='Basic realm="HTTP-Basic-Auth at %s (u=p to login)"' % (self.name)
@@ -83,7 +80,5 @@ class IIIFAuthBasic(IIIFAuth):
         if (authdone):
             # Set the cookie for the image content -- FIXME - need something real
             response.set_cookie('basic_token', token)
-        response.set_cookie('hello','there')
-        response.set_cookie('basic_authdone', expires=0)
         response.headers['Access-control-allow-origin']='*'
         return response 

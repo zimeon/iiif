@@ -97,21 +97,37 @@ class IIIFAuth(object):
     # Override with method to implement
     home_handler=None
 
-    def is_authn(self): 
-        """Check to see if user if authenticated
+    def info_authn(self): 
+        """Check to see if user is authenticated for info.json
 
         Null implementation that always returns False, must override
         to implement authorization.
         """
         return False
 
-    def is_authz(self): 
-        """Check to see if user if authenticated and authorized
+    def info_authz(self): 
+        """Check to see if user is authenticated and authorized for info.json
 
         Null implementation that says that any authenticated user is
         authorized.
         """
-        return self.is_authn()
+        return self.info_authn()
+
+    def image_authn(self): 
+        """Check to see if user is authenticated for image requests
+
+        Null implementation that always returns False, must override
+        to implement authorization.
+        """
+        return False
+
+    def image_authz(self): 
+        """Check to see if user is authenticated and authorized for image requests
+
+        Null implementation that says that any authenticated user is
+        authorized.
+        """
+        return self.image_authn()
 
 
 
