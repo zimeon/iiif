@@ -17,7 +17,7 @@ All of the static files for the demo are included in git so you can run
 OpenSeadragon immediately. Instructions for regenerating them are below 
 and allow testing with different tile size or with different images.
 
-A copy of OpenSeadragon v2.0 is included in the the `demo/osd` directory
+A copy of OpenSeadragon v2.0 is included in the the `demo-static/osd` directory
 for convenience. The current version may be downloaded from 
 <http://openseadragon.github.io/#download>. The static file generation 
 requires at least v2.0 of OpenSeadragon because use of the canonical
@@ -31,18 +31,18 @@ Run a test web server on local machine from `iiif` directory:
 iiif> python -m SimpleHTTPServer
 ```
 
-And then access <http://localhost:8000/demo/index.html>.
+And then access <http://localhost:8000/demo-static/index.html>.
 
 Regerating tiles
 ----------------
 
 To remove and regenerate tiles and `info.json` files:
 ```
-iiif> rm -rf demo/tetons demo/starfish demo/starfish2
+iiif> rm -rf demo-static/tetons demo-static/starfish demo-static/starfish2
 
-iiif> ./iiif_static.py -d demo/tetons testimages/tetons.jpg
-iiif> ./iiif_static.py -d demo/starfish -t 1024 testimages/starfish.jpg
-iiif> ./iiif_static.py -d demo/starfish2 -t 256 testimages/starfish2.jpg
+iiif> ./iiif_static.py -d demo-static/tetons testimages/tetons.jpg
+iiif> ./iiif_static.py -d demo-static/starfish -t 1024 testimages/starfish.jpg
+iiif> ./iiif_static.py -d demo-static/starfish2 -t 256 testimages/starfish2.jpg
 ```
 
 Storage space
@@ -54,11 +54,11 @@ I suspect this is to do with default quality of the Python Image Library
 output jpegs.
 
 ```
-iiif> du -sh testimages/tetons.jpg demo/tetons testimages/starfish.jpg demo/starfish testimages/starfish2.jpg demo/starfish2
+iiif> du -sh testimages/tetons.jpg demo-static/tetons testimages/starfish.jpg demo-static/starfish testimages/starfish2.jpg demo-static/starfish2
 2.8M		   testimages/tetons.jpg
-1.8M		   demo/tetons
+1.8M		   demo-static/tetons
 3.4M		   testimages/starfish.jpg
-2.9M		   demo/starfish
+2.9M		   demo-static/starfish
 2.7M		   testimages/starfish2.jpg
-2.0M		   demo/starfish2
+2.0M		   demo-static/starfish2
 ```
