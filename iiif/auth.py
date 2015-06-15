@@ -20,17 +20,26 @@ class IIIFAuth(object):
         self.logout_uri = None
         self.client_id_uri = None
         self.access_token_uri = None
+        # Need to have different cookie names for each auth domain
+        # running on the same server
+        self.auth_cookie_name = 'loggedin'
+        self.token_cookie_name = 'token'
 
-    def add_services(self, info, logged_in=False):
+    def add_services(self, info):
         """Add auth service descriptions to an IIIFInfo object
+
+        FIXME - Should login, token and logout all always be present
+        or should that depend on that login status? For now keep them
+        all always present.
         """
-        if (self.login_uri and not logged_in):
+        #authn = self.info_authn()
+        if (self.login_uri): # and not authn):
             info.add_service( self.login_service_description() )
-        if (self.logout_uri):
+        if (self.logout_uri): # and authn):
             info.add_service( self.logout_service_description() )
         if (self.client_id_uri):
             info.add_service( self.client_id_service_description() )
-        if (self.access_token_uri):
+        if (self.access_token_uri): # and not authn):
             info.add_service( self.access_token_service_description() )
 
     def login_service_description(self):

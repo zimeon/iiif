@@ -17,6 +17,19 @@ class IIIFAuthBasic(IIIFAuth):
     def __init__(self, homedir):
         super(IIIFAuthBasic, self).__init__()
 
+    def logout_service_description(self):
+        """Logout service description with has modified URI to supply 'bad' credentials
+
+        With HTTP Basic auth there are no clean ways to logout (except browser specific
+        extensions). The standard recommendation seems to be to supply bad credentials.
+        which we do in the URI (bad@X).
+        """
+        uri = re.sub(r'''^https?://''', lambda m: m.group(0)+'bad:X@' , self.logout_uri)
+        return( { "@id": uri,
+                  "profile": self.profile_base+'logout',
+                  "label": 'Logout from '+self.name
+                } )
+
     def info_authn(self):
         """Check to see if user if authenticated for info.json"""
         print "info_authz: Authorization header = " + request.headers.get('Authorization', '[none]')
@@ -30,7 +43,9 @@ class IIIFAuthBasic(IIIFAuth):
     def login_handler(self, config=None, prefix=None, **args):
         """HTTP Basic login handler
 
-        Respond with 401 and WWW-Authenticate header
+        Respond with 401 and WWW-Authenticate header if there are no credentials
+        or bad credentials. If there are credentials then simply check for username
+        equal to password for validity. 
         """
         headers = {}
         headers['Access-control-allow-origin']='*'
@@ -48,9 +63,9 @@ class IIIFAuthBasic(IIIFAuth):
     def logout_handler(self, **args):
         """Handler for logout button
 
-        Delete cookies and return HTML that immediately closes window
-
-        FIXME - don't know how to actually do HTTP Basic auth logout
+        Delete cookies and return HTML that immediately closes window. Logout
+        is tricky but attempt to do this via self.logout_uri which as has
+        bad username:password.
         """
         response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
         response.set_cookie("basic_authdone", expires=0)
@@ -63,9 +78,9 @@ class IIIFAuthBasic(IIIFAuth):
         # We're going to just copy it from our cookie.
         # JSONP request to get the token to send to info.json in Auth'z header
         callback_function = request.args.get('callback',default='')
-        authdone = request.args.get('basic_authdone',default='')
-        token = authdone+'-tok'
+        authdone = request.headers.get('Authorization', '')
         if (authdone):
+            token = 'secret_token_here' # FIXME - need something real
             data = {"access_token": token, "token_type": "Bearer", "expires_in": 3600}
         else:
             data = {"error":"client_unauthorized","error_description": "No login details received"}

@@ -34,11 +34,12 @@ setup(
                  "Environment :: Web Environment"],
     url='https://github.com/zimeon/iiif',
     license='LICENSE.txt',
-    description='IIIF Image API library',
+    description='IIIF Image API reference implementation',
     long_description=open('README').read(),
     install_requires=[
         "Pillow",
         "python-magic",
+        "Flask"
     ],
     test_suite="tests",
 )

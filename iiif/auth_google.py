@@ -90,7 +90,6 @@ class IIIFAuthGoogle(IIIFAuth):
         if (account):
             # Set the cookie for the image content -- FIXME - need something real
             response.set_cookie('loggedin', account)
-        response.set_cookie('account', expires=0)
         response.headers['Access-control-allow-origin']='*'
         return response 
 
