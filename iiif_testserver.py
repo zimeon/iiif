@@ -57,20 +57,26 @@ def prefix_index_page(config=None, prefix=None):
     files = os.listdir(config.image_dir)
     api_version = config.prefixes[prefix]['api_version']
     default = 'default' if api_version>='2.0' else 'native'
-    body = "<table>\n<tr><th></th>"
-    body += '<th colspan="2">%s</th>' % (prefix)
+    body = '<table border="1">\n<tr><th>Source image</th>'
+    body += '<th> </th><th>full</th>'
     if (prefix!='dummy'):
-        body += "<th>%s 256x256</th>" % (prefix)
+        body += '<th>256,256</th>'
+        body += '<th>30deg</th>'
     body += "</tr>\n"
     for file in sorted(files):
         body += "<tr><th>%s</th>" % (file)
-        url = "/%s/%s/full/full/0/%s" % (prefix,file,default)
-        body += '<td><a href="%s">%s</a></td>' % (url,url)
         info = "/%s/%s/info.json" % (prefix,file)
-        body += '<td><a href="%s">%s</a></td>' % (info,info)
+        body += '<td><a href="%s">%s</a></td>' % (info,'info')
+        suffix = "full/full/0/%s" % (default)
+        url = "/%s/%s/%s" % (prefix,file,suffix)
+        body += '<td><a href="%s">%s</a></td>' % (url,suffix)
         if (prefix!='dummy'):
-            url = "/%s/%s/full/256,256/0/%s" % (prefix,file,default)
-            body += '<td><a href="%s">%s</a></td>' % (url,url)
+            suffix = "full/256,256/0/%s" % (default)
+            url = "/%s/%s/%s" % (prefix,file,suffix)
+            body += '<td><a href="%s">%s</a></td>' % (url,suffix)
+            suffix = "full/100,/30/%s" % (default)
+            url = "/%s/%s/%s" % (prefix,file,suffix)
+            body += '<td><a href="%s">%s</a></td>' % (url,suffix)
         body += "</tr>\n"
     body += "</table<\n"
     return html_page( title, body )
@@ -421,8 +427,52 @@ def setup_options():
 
     return(opt)
 
-def create_app(opt):
+def add_handler(app,opt,config,api_version,klass_name,auth_type):
+    """Add a single handler to the app"""
+    wsgi_prefix = make_prefix(api_version,klass_name,auth_type)
+    prefix = wsgi_prefix
+    if (opt.container_prefix):
+        prefix = os.path.join(opt.container_prefix, wsgi_prefix) 
+    auth = None
+    if (auth_type is None):
+        pass
+    elif (auth_type=='gauth'):
+        from iiif.auth_google import IIIFAuthGoogle
+        auth = IIIFAuthGoogle(config.homedir)
+    elif (auth_type=='basic'):
+        from iiif.auth_basic import IIIFAuthBasic
+        auth = IIIFAuthBasic(config.homedir)
+    else:
+        print "Unknown auth type %s, ignoring" % (auth_type)
+        return
+    klass=None
+    if (klass_name=='pil'):
+        from iiif.manipulator_pil import IIIFManipulatorPIL
+        klass=IIIFManipulatorPIL
+    elif (klass_name=='netpbm'):
+        from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
+        klass=IIIFManipulatorNetpbm
+    elif (klass_name=='dummy'):
+        from iiif.manipulator import IIIFManipulator
+        klass=IIIFManipulator
+    else:
+        print "Unknown manipulator type %s, ignoring" % (klass_name)
+        return
+    print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
+    params=dict(config=config, klass=klass, api_version=api_version, auth=auth, prefix=prefix)
+    config.prefixes[prefix]=params
+    app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
+    app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
+    app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
+    app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
+    if (auth):
+        setup_auth_paths(app, auth, wsgi_prefix, params)
+    # redirects to info.json must come after auth
+    app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
+    app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
 
+def create_app(opt):
+    """Create Flask application with one or more IIIF handlers"""
     logging.basicConfig( format='%(name)s: %(message)s',
                          level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
 
@@ -465,47 +515,7 @@ def create_app(opt):
                 # auth only for 2.0
                 if (auth_type and api_version != '2.0'):
                     continue
-                wsgi_prefix = make_prefix(api_version,klass_name,auth_type)
-                prefix = wsgi_prefix
-                if (opt.container_prefix):
-                    prefix = os.path.join(opt.container_prefix, wsgi_prefix) 
-                auth = None
-                if (auth_type is None):
-                    pass
-                elif (auth_type=='gauth'):
-                    from iiif.auth_google import IIIFAuthGoogle
-                    auth = IIIFAuthGoogle(config.homedir)
-                elif (auth_type=='basic'):
-                    from iiif.auth_basic import IIIFAuthBasic
-                    auth = IIIFAuthBasic(config.homedir)
-                else:
-                    print "Unknown auth type %s, ignoring" % (auth_type)
-                    continue
-                klass=None
-                if (klass_name=='pil'):
-                    from iiif.manipulator_pil import IIIFManipulatorPIL
-                    klass=IIIFManipulatorPIL
-                elif (klass_name=='netpbm'):
-                    from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
-                    klass=IIIFManipulatorNetpbm
-                elif (klass_name=='dummy'):
-                    from iiif.manipulator import IIIFManipulator
-                    klass=IIIFManipulator
-                else:
-                    print "Unknown manipulator type %s, ignoring" % (klass_name)
-                    continue
-                print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
-                params=dict(config=config, klass=klass, api_version=api_version, auth=auth, prefix=prefix)
-                config.prefixes[prefix]=params
-                app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
-                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
-                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
-                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
-                if (auth):
-                    setup_auth_paths(app, auth, wsgi_prefix, params)
-                # redirects to info.json must come after auth
-                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
-                app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
+                add_handler(app,opt,config,api_version,klass_name,auth_type)
 
     return(app)
 
