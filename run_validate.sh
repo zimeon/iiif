@@ -33,7 +33,11 @@ while getopts "nvd" opt; do
 done
 
 # Set up test server
-./iiif_testserver.py --quiet 2>&1 > /dev/null &
+if $show_test_name; then
+  echo "Starting test server..."
+fi
+./iiif_testserver.py --quiet --manipulators=netpbm,pil 2>&1 > /dev/null &
+sleep 2
 
 # Run validations against test server
 errors=0

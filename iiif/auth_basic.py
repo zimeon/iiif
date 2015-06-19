@@ -14,8 +14,8 @@ from iiif.auth import IIIFAuth
 
 class IIIFAuthBasic(IIIFAuth):
 
-    def __init__(self, homedir):
-        super(IIIFAuthBasic, self).__init__()
+    def __init__(self, cookie_prefix=None):
+        super(IIIFAuthBasic, self).__init__(cookie_prefix=cookie_prefix)
 
     def logout_service_description(self):
         """Logout service description with has modified URI to supply 'bad' credentials
@@ -32,12 +32,12 @@ class IIIFAuthBasic(IIIFAuth):
 
     def info_authn(self):
         """Check to see if user if authenticated for info.json"""
-        print "info_authz: Authorization header = " + request.headers.get('Authorization', '[none]')
+        self.logger.info("info_authz: Authorization header = " + request.headers.get('Authorization', '[none]'))
         return (request.headers.get('Authorization', '') != '') #FIXME - check valaue
 
     def image_authn(self):
         """Check to see if user if authenticated for image requets"""
-        print "image_authn: loggedin cookie = " + request.cookies.get(self.token_cookie_name,default='[none]')
+        self.logger.info("image_authn: loggedin cookie = " + request.cookies.get(self.token_cookie_name,default='[none]'))
         return request.cookies.get(self.token_cookie_name,default='') #FIXME - check value
 
     def login_handler(self, config=None, prefix=None, **args):

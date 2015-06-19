@@ -52,7 +52,8 @@ def html_page(title="Page Title",body=""):
 
 def top_level_index_page(config):
     """HTML top-level index page"""
-    title = "iiif_testserver on %s:%s" % (config.host,config.port)
+    http_host = request.environ.get('HTTP_HOST','')
+    title = "iiif_testserver on %s" % (http_host)
     body = "<ul>\n"
     for prefix in sorted(config.prefixes):
         body += '<li><a href="/%s">%s</a></li>\n' % (prefix,prefix)
@@ -61,7 +62,8 @@ def top_level_index_page(config):
 
 def prefix_index_page(config=None, prefix=None):
     """HTML index page for a specific prefix"""
-    title = "Prefix %s  (from iiif_testserver on %s:%s)" % (prefix,config.host,config.port)
+    http_host = request.environ.get('HTTP_HOST','')
+    title = "Prefix %s  (from iiif_testserver on %s)" % (prefix,http_host)
     # details of this prefix handler
     body = '<p>\n'
     body += 'api_version = %s<br/>\n' % (config.api_version)
@@ -407,7 +409,7 @@ def setup_auth_paths(app, auth, prefix, params):
 def make_prefix(api_version,manipulator,auth_type):
     """Make prefix string based on configuration parameters"""
     prefix = "%s_%s" % (api_version,manipulator)
-    if (auth_type):
+    if (auth_type and auth_type!='none'):
         prefix += '_'+auth_type
     return(prefix)
 
@@ -434,7 +436,9 @@ def setup_options():
     p.add_option('--manipulators',default='pil',
                  help="Set of manipuators to instantiate (from dummy,netpbm,pil; default %default")
     p.add_option('--auth-types',default='none',
-                 help="set of authentication types to support (default %default)")
+                 help="Set of authentication types to support (default %default)")
+    p.add_option('--gauth-client-secret', default='client_secret.json',
+                 help="Name of file with Google auth client secret (default %default)")
     p.add_option('--pages-dir', default='testpages',
                  help="Test pages directory (default %default)")
     p.add_option('--draft', action='store_true',
@@ -449,10 +453,8 @@ def setup_options():
 
     if (opt.debug):
         opt.verbose = True
-
-    if (opt.quiet):
-        # Add no_op function as logger to silence
-        IIIFRequestHandler.log_message=no_op
+    elif (opt.verbose):
+        opt.quiet = False
 
     # Split list arguments
     opt.scale_factors = split_option(opt.scale_factors)
@@ -486,10 +488,10 @@ def add_handler(app, config, prefixes):
         pass
     elif (config.auth_type=='gauth'):
         from iiif.auth_google import IIIFAuthGoogle
-        auth = IIIFAuthGoogle(config.homedir)
+        auth = IIIFAuthGoogle(client_secret_file=config.gauth_client_secret_file)
     elif (config.auth_type=='basic'):
         from iiif.auth_basic import IIIFAuthBasic
-        auth = IIIFAuthBasic(config.homedir)
+        auth = IIIFAuthBasic()
     else:
         print "Unknown auth type %s, ignoring" % (config.auth_type)
         return
@@ -520,8 +522,12 @@ def add_handler(app, config, prefixes):
 
 def create_app(opt):
     """Create Flask application with one or more IIIF handlers"""
-    logging.basicConfig( format='%(name)s: %(message)s',
-                         level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
+    logging_level = logging.WARNING
+    if (opt.verbose):
+        logging_level = logging.INFO
+    elif (opt.quiet):
+        logging_level = logging.ERROR
+    logging.basicConfig( format='%(name)s: %(message)s', level=logging_level )
 
     # Create Flask app
     app = Flask(__name__, static_url_path='/'+opt.pages_dir)
@@ -530,15 +536,8 @@ def create_app(opt):
 
     # Create shared configuration dict based on options
     config = Config(opt)
-
-    # Google auth config
     config.homedir=os.path.dirname(os.path.realpath(__file__))
-    gcd=json.loads(open(os.path.join(config.homedir,'client_secret.json')).read())
-    config.google_api_client_id = gcd['web']['client_id']
-    config.google_api_client_secret = gcd['web']['client_secret']
-    config.google_api_scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
-    config.google_oauth2_url = 'https://accounts.google.com/o/oauth2/'
-    config.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
+    config.gauth_client_secret_file=os.path.join(config.homedir,config.gauth_client_secret)
 
     prefixes = []
     for api_version in opt.api_versions:
@@ -580,11 +579,14 @@ else:
     opt.image_dir = mydir+'/testimages'
     opt.tile_width = 512
     opt.tile_height = 512
-    opt.scale_factors = '1,2,4,8'
-    opt.manipulators = 'dummy,netpbm,pil'
+    opt.scale_factors = [1,2,4,8]
+    opt.api_versions = ['1.0','1.1','2.0','2.1']
+    opt.auth_types = ['none','gauth','basic']
+    opt.manipulators = ['dummy','netpbm','pil']
     opt.container_prefix = 'iiif_auth_test'
     # Should get the following from WSGI environ, 
     # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
     opt.host = 'resync.library.cornell.edu' #FIXME - get from WSGI
     opt.port = 80
+    opt.gauth_client_secret = 'client_secret.json'
     app = create_app(opt)

@@ -6,6 +6,7 @@ for different schemes.
 """
 
 import json
+import logging
 import random
 import re
 
@@ -21,6 +22,7 @@ class IIIFAuth(object):
         self.logout_uri = None
         self.client_id_uri = None
         self.access_token_uri = None
+        self.logger = logging.getLogger(__name__)
         # Need to have different cookie names for each auth domain
         # running on the same server
         self.set_cookie_prefix(cookie_prefix)
