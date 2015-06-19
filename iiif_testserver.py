@@ -25,7 +25,15 @@ from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 class SharedConfig(object):
-    pass
+    def __init__(self,*args):
+        """Create new SharedConfig copying all properties from args
+
+        Designed to allow initialization from other SharedConfig
+        objects and from optparse.Values objects.
+        """ 
+        for arg in args:
+            for k in arg.__dict__.keys():
+                self.__dict__[k] = arg.__dict__[k]
 
 def no_op(self,format,*args):
     """Function that does nothing - no-op
@@ -46,7 +54,7 @@ def top_level_index_page(config):
     """HTML top-level index page"""
     title = "iiif_testserver on %s:%s" % (config.host,config.port)
     body = "<ul>\n"
-    for prefix in sorted(config.prefixes.keys()):
+    for prefix in sorted(config.prefixes):
         body += '<li><a href="/%s">%s</a></li>\n' % (prefix,prefix)
     body += "</ul>\n"
     return html_page( title, body )
@@ -54,10 +62,16 @@ def top_level_index_page(config):
 def prefix_index_page(config=None, prefix=None):
     """HTML index page for a specific prefix"""
     title = "Prefix %s  (from iiif_testserver on %s:%s)" % (prefix,config.host,config.port)
+    # details of this prefix handler
+    body = '<p>\n'
+    body += 'api_version = %s<br/>\n' % (config.api_version)
+    body += 'manipulator = %s<br/>\n' % (config.klass_name)
+    body += 'auth_type = %s\n</p>\n' % (config.auth_type)
+    # table of files and example requests
     files = os.listdir(config.image_dir)
-    api_version = config.prefixes[prefix]['api_version']
-    default = 'default' if api_version>='2.0' else 'native'
-    body = '<table border="1">\n<tr><th>Source image</th>'
+    api_version = config.api_version
+    default = 'native' if api_version<'2.0' else 'default'
+    body += '<table border="1">\n<tr><th>Source image</th>'
     body += '<th> </th><th>full</th>'
     if (prefix!='dummy'):
         body += '<th>256,256</th>'
@@ -94,12 +108,12 @@ def host_port_prefix(host,port,prefix):
 
 class IIIFHandler(object):
 
-    def __init__(self, prefix, identifier, config, klass, api_version, auth):
+    def __init__(self, prefix, identifier, config, klass, auth):
         self.prefix = prefix
         self.identifier = identifier
         self.config = config
         self.klass = klass
-        self.api_version = api_version
+        self.api_version = config.api_version
         self.auth = auth
         self.degraded = False
         self.logger = logging.getLogger('IIIFHandler')
@@ -245,12 +259,12 @@ class IIIFHandler(object):
         self.add_compliance_header()
         return make_response(str(e),e.code,{'Content-Type':e.content_type})
 
-def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api_version='2.0', auth=None, **args):
+def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Information requests"""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
         print "Authorized for image %s" % identifier
-        i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
+        i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_information_response()
         except IIIFError as e:
@@ -265,7 +279,7 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, api
         return response 
 iiif_info_handler.provide_automatic_options = False
 
-def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, api_version='2.0', auth=None, **args):
+def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Requests
 
     Behaviour for case of a non-authn or non-authz case is to 
@@ -274,7 +288,7 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     if (not auth or degraded_request(identifier) or auth.image_authz()):
         # serve image
         print "Authorized for image %s" % identifier
-        i = IIIFHandler(prefix, identifier, config, klass, api_version, auth)
+        i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_request_response(path)
         except IIIFError as e:
@@ -427,40 +441,44 @@ def setup_options():
 
     return(opt)
 
-def add_handler(app,opt,config,api_version,klass_name,auth_type):
-    """Add a single handler to the app"""
-    wsgi_prefix = make_prefix(api_version,klass_name,auth_type)
+def add_handler(app, config, prefixes):
+    """Add a single handler to the app
+
+    Adds handlers to app, with config from config. Add prefix to list
+    in prefixes.
+    """
+    wsgi_prefix = make_prefix(config.api_version,config.klass_name,config.auth_type)
     prefix = wsgi_prefix
-    if (opt.container_prefix):
-        prefix = os.path.join(opt.container_prefix, wsgi_prefix) 
+    if (config.container_prefix):
+        prefix = os.path.join(config.container_prefix, wsgi_prefix) 
+    prefixes.append(prefix)
     auth = None
-    if (auth_type is None):
+    if (config.auth_type is None):
         pass
-    elif (auth_type=='gauth'):
+    elif (config.auth_type=='gauth'):
         from iiif.auth_google import IIIFAuthGoogle
         auth = IIIFAuthGoogle(config.homedir)
-    elif (auth_type=='basic'):
+    elif (config.auth_type=='basic'):
         from iiif.auth_basic import IIIFAuthBasic
         auth = IIIFAuthBasic(config.homedir)
     else:
-        print "Unknown auth type %s, ignoring" % (auth_type)
+        print "Unknown auth type %s, ignoring" % (config.auth_type)
         return
     klass=None
-    if (klass_name=='pil'):
+    if (config.klass_name=='pil'):
         from iiif.manipulator_pil import IIIFManipulatorPIL
         klass=IIIFManipulatorPIL
-    elif (klass_name=='netpbm'):
+    elif (config.klass_name=='netpbm'):
         from iiif.manipulator_netpbm import IIIFManipulatorNetpbm
         klass=IIIFManipulatorNetpbm
-    elif (klass_name=='dummy'):
+    elif (config.klass_name=='dummy'):
         from iiif.manipulator import IIIFManipulator
         klass=IIIFManipulator
     else:
-        print "Unknown manipulator type %s, ignoring" % (klass_name)
+        print "Unknown manipulator type %s, ignoring" % (config.klass_name)
         return
-    print "Installing %s IIIFManipulator at /%s/ v%s %s" % (klass_name,prefix,api_version,auth_type)
-    params=dict(config=config, klass=klass, api_version=api_version, auth=auth, prefix=prefix)
-    config.prefixes[prefix]=params
+    print "Installing %s IIIFManipulator at /%s/ v%s %s" % (config.klass_name,prefix,config.api_version,config.auth_type)
+    params=dict(config=config, klass=klass, auth=auth, prefix=prefix)
     app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
@@ -492,7 +510,6 @@ def create_app(opt):
     }
     for option in config.info:
         print "got %s = %s" % (option,config.info[option])
-    config.prefixes = {}
     # Google auth config
     config.homedir=os.path.dirname(os.path.realpath(__file__))
     gcd=json.loads(open(os.path.join(config.homedir,'client_secret.json')).read())
@@ -502,20 +519,26 @@ def create_app(opt):
     config.google_oauth2_url = 'https://accounts.google.com/o/oauth2/'
     config.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
 
-    # Index page
-    app.add_url_rule('/', 'top_level_index_page', top_level_index_page, defaults={'config':config})
-
     # Add handlers for all the IIIF handlers we want to support
     versions = ['1.0', '1.1', '2.0', '2.1'] if opt.draft else ['1.0', '1.1', '2.0']
     klass_names = ['pil','netpbm','dummy']
     auth_types = [None,'gauth','basic'] if opt.draft else [None]
+    prefixes = []
     for api_version in versions:
         for klass_name in klass_names:
             for auth_type in auth_types:
-                # auth only for 2.0
-                if (auth_type and api_version != '2.0'):
+                # auth only for >=2.1
+                if (auth_type and float(api_version)<2.1):
                     continue
-                add_handler(app,opt,config,api_version,klass_name,auth_type)
+                config.api_version = api_version
+                config.klass_name = klass_name
+                config.auth_type = auth_type
+                handler_config = SharedConfig(opt,config)
+                add_handler(app,handler_config,prefixes)
+
+    # Index page
+    config.prefixes = prefixes
+    app.add_url_rule('/', 'top_level_index_page', top_level_index_page, defaults={'config':config})
 
     return(app)
 
