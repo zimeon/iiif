@@ -24,11 +24,11 @@ from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
-class SharedConfig(object):
+class Config(object):
     def __init__(self,*args):
-        """Create new SharedConfig copying all properties from args
+        """Create new Config copying all properties from args
 
-        Designed to allow initialization from other SharedConfig
+        Designed to allow initialization from other Config
         objects and from optparse.Values objects.
         """ 
         for arg in args:
@@ -185,7 +185,11 @@ class IIIFHandler(object):
         self.manipulator.srcfile=self.file
         self.manipulator.do_first()
         # most of info.json comes from config, a few things specific to image
-        i = IIIFInfo(conf=self.config.info,api_version=self.api_version)
+        info = { 'tile_height': self.config.tile_height,
+                 'tile_width': self.config.tile_width,
+                 'scale_factors' : self.config.scale_factors
+               }
+        i = IIIFInfo(conf=info,api_version=self.api_version)
         i.server_and_prefix = self.server_and_prefix
         i.identifier = self.iiif.identifier
         i.width = self.manipulator.width
@@ -407,6 +411,9 @@ def make_prefix(api_version,manipulator,auth_type):
         prefix += '_'+auth_type
     return(prefix)
 
+def split_option(comma_sep_str):
+    return  comma_sep_str.split(',') #FIXME - make more flexible
+
 def setup_options():
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image Testserver')
@@ -420,10 +427,18 @@ def setup_options():
                  help="Tile height (default %default)")
     p.add_option('--tile-width', type='int', default=256,
                  help="Tile width (default %default)")
+    p.add_option('--scale-factors', default='1,2,4,8',
+                 help="Set of tile scale factors (default %default)")
+    p.add_option('--api-versions', default='1.0,1.1,2.0',
+                 help="Set of API versions to support (default %default)")
+    p.add_option('--manipulators',default='pil',
+                 help="Set of manipuators to instantiate (from dummy,netpbm,pil; default %default")
+    p.add_option('--auth-types',default='none',
+                 help="set of authentication types to support (default %default)")
     p.add_option('--pages-dir', default='testpages',
                  help="Test pages directory (default %default)")
     p.add_option('--draft', action='store_true',
-                 help="Enable features implementing draft IIIF specifications")
+                 help="Enable features implementing draft IIIF specifications: v2.1 and auth")
     p.add_option('--debug', action='store_true',
                  help="Set debug mode for web application. INSECURE!")
     p.add_option('--verbose', '-v', action='store_true',
@@ -439,6 +454,20 @@ def setup_options():
         # Add no_op function as logger to silence
         IIIFRequestHandler.log_message=no_op
 
+    # Split list arguments
+    opt.scale_factors = split_option(opt.scale_factors)
+    opt.manipulators = split_option(opt.manipulators)
+    opt.api_versions = split_option(opt.api_versions)
+    opt.auth_types = split_option(opt.auth_types)
+
+    # Draft features...
+    if (opt.draft and '2.1' not in opt.api_versions):
+        opt.api_versions.append('2.1')
+    if (opt.draft and 'gauth' not in opt.auth_types):
+        opt.auth_types.append('gauth') 
+    if (opt.draft and 'basic' not in opt.auth_types):
+        opt.auth_types.append('basic') 
+
     return(opt)
 
 def add_handler(app, config, prefixes):
@@ -453,7 +482,7 @@ def add_handler(app, config, prefixes):
         prefix = os.path.join(config.container_prefix, wsgi_prefix) 
     prefixes.append(prefix)
     auth = None
-    if (config.auth_type is None):
+    if (config.auth_type is None or config.auth_type=='none'):
         pass
     elif (config.auth_type=='gauth'):
         from iiif.auth_google import IIIFAuthGoogle
@@ -499,17 +528,9 @@ def create_app(opt):
     Flask.secret_key="SECRET_HERE"
     app.debug = opt.debug
 
-    # Create shared configuration dict
-    config = SharedConfig()
-    config.host = opt.host
-    config.port = opt.port
-    config.image_dir = opt.image_dir
-    config.info={'tile_height': opt.tile_height,
-          'tile_width': opt.tile_width,
-          'scale_factors' : [1,2,4,8],
-    }
-    for option in config.info:
-        print "got %s = %s" % (option,config.info[option])
+    # Create shared configuration dict based on options
+    config = Config(opt)
+
     # Google auth config
     config.homedir=os.path.dirname(os.path.realpath(__file__))
     gcd=json.loads(open(os.path.join(config.homedir,'client_secret.json')).read())
@@ -519,21 +540,17 @@ def create_app(opt):
     config.google_oauth2_url = 'https://accounts.google.com/o/oauth2/'
     config.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
 
-    # Add handlers for all the IIIF handlers we want to support
-    versions = ['1.0', '1.1', '2.0', '2.1'] if opt.draft else ['1.0', '1.1', '2.0']
-    klass_names = ['pil','netpbm','dummy']
-    auth_types = [None,'gauth','basic'] if opt.draft else [None]
     prefixes = []
-    for api_version in versions:
-        for klass_name in klass_names:
-            for auth_type in auth_types:
+    for api_version in opt.api_versions:
+        for klass_name in opt.manipulators:
+            for auth_type in opt.auth_types:
                 # auth only for >=2.1
-                if (auth_type and float(api_version)<2.1):
+                if (auth_type!='none' and float(api_version)<2.1):
                     continue
-                config.api_version = api_version
-                config.klass_name = klass_name
-                config.auth_type = auth_type
-                handler_config = SharedConfig(opt,config)
+                handler_config = Config(config)
+                handler_config.api_version = api_version
+                handler_config.klass_name = klass_name
+                handler_config.auth_type = auth_type
                 add_handler(app,handler_config,prefixes)
 
     # Index page
@@ -563,6 +580,8 @@ else:
     opt.image_dir = mydir+'/testimages'
     opt.tile_width = 512
     opt.tile_height = 512
+    opt.scale_factors = '1,2,4,8'
+    opt.manipulators = 'dummy,netpbm,pil'
     opt.container_prefix = 'iiif_auth_test'
     # Should get the following from WSGI environ, 
     # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
