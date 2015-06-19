@@ -1,16 +1,17 @@
 """IIIF Authentication
 
 Base authentication object which does not actually implement and
-authentication scheme but is the foundation for specific sub-classes
+authentication scheme but is a foundation for specific sub-classes
 for different schemes.
 """
 
 import json
+import random
 import re
 
 class IIIFAuth(object):
 
-    def __init__(self):
+    def __init__(self, cookie_prefix=None):
         """Create IIIFAuth object
           
         """
@@ -22,8 +23,22 @@ class IIIFAuth(object):
         self.access_token_uri = None
         # Need to have different cookie names for each auth domain
         # running on the same server
-        self.auth_cookie_name = 'loggedin'
-        self.token_cookie_name = 'token'
+        self.set_cookie_prefix(cookie_prefix)
+        self.auth_cookie_name = self.cookie_prefix+'loggedin'
+        self.token_cookie_name = self.cookie_prefix+'token'
+
+    def set_cookie_prefix(self,cookie_prefix=None):
+        """Set a random cookie prefix unless one is specified
+
+        In order to run multiple demonstration auth services on the
+        same server we need to have different cookie names for each
+        auth domain. Unless cookie_prefix is set, generate a random
+        one.
+        """
+        if (cookie_prefix is None):
+            self.cookie_prefix = "%06d_" % int(random.random()*1000000)
+        else:
+            self.cookie_prefix = cookie_prefix
 
     def add_services(self, info):
         """Add auth service descriptions to an IIIFInfo object
@@ -83,7 +98,7 @@ class IIIFAuth(object):
         else:
             data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
             # Set the cookie for the image content
-            response.set_cookie('loggedin', account, secret="SECRET_HERE")
+            response.set_cookie(self.auth_cookie_name, account, secret="SECRET_HERE")
         data_str = json.dumps(data)
 
         if callback:

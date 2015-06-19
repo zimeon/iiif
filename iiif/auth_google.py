@@ -25,6 +25,8 @@ class IIIFAuthGoogle(IIIFAuth):
         #
         # Auth data
         self.tokens = {}
+        #
+        self.account_cookie_name = self.cookie_prefix+'account'
 
     def info_authn(self):
         """Check to see if user if authenticated for info.json
@@ -38,10 +40,10 @@ class IIIFAuthGoogle(IIIFAuth):
     def image_authn(self):
         """Check to see if user if authenticated for image requests
 
-        Must have loggedin cookie with known token value.
+        Must have auth cookie with known token value.
         """
-        print "image_authn: loggedin cookie = " + request.cookies.get("loggedin",default='[none]')
-        return request.cookies.get("loggedin",default='')
+        print "image_authn: auth cookie = " + request.cookies.get(self.auth_cookie_name,default='[none]')
+        return request.cookies.get(self.auth_cookie_name,default='')
 
     def login_handler(self, config=None, prefix=None, **args):
         """OAuth starts here. This will redirect User to Google"""
@@ -63,8 +65,8 @@ class IIIFAuthGoogle(IIIFAuth):
         Delete cookies and return HTML that immediately closes window
         """
         response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-        response.set_cookie("account", expires=0)
-        response.set_cookie("loggedin", expires=0)
+        response.set_cookie(self.account_cookie_name, expires=0)
+        response.set_cookie(self.auth_cookie_name, expires=0)
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
@@ -74,7 +76,7 @@ class IIIFAuthGoogle(IIIFAuth):
         # JSONP request to get the token to send to info.json in Auth'z header
         callback_function = request.args.get('callback',default='')
         authcode = request.args.get('code',default='')
-        account = request.cookies.get('account',default='')
+        account = request.cookies.get(self.account_cookie_name,default='')
         if (account):
             data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
         else:
@@ -89,7 +91,7 @@ class IIIFAuthGoogle(IIIFAuth):
         response = make_response(data_str,200,{'Content-Type':ct})
         if (account):
             # Set the cookie for the image content -- FIXME - need something real
-            response.set_cookie('loggedin', account)
+            response.set_cookie(self.auth_cookie_name, account)
         response.headers['Access-control-allow-origin']='*'
         return response 
 
@@ -105,7 +107,7 @@ class IIIFAuthGoogle(IIIFAuth):
         email = gdata.get('email', 'NO_EMAIL')
         name = gdata.get('name', 'NO_NAME')
         response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-        response.set_cookie("account", 'Token for '+name+' '+email)
+        response.set_cookie(self.account_cookie_name, 'Token for '+name+' '+email)
         return response
 
     ######################################################################

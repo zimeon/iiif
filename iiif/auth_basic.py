@@ -37,8 +37,8 @@ class IIIFAuthBasic(IIIFAuth):
 
     def image_authn(self):
         """Check to see if user if authenticated for image requets"""
-        print "image_authn: loggedin cookie = " + request.cookies.get("basic_token",default='[none]')
-        return request.cookies.get("basic_token",default='') #FIXME - check value
+        print "image_authn: loggedin cookie = " + request.cookies.get(self.token_cookie_name,default='[none]')
+        return request.cookies.get(self.token_cookie_name,default='') #FIXME - check value
 
     def login_handler(self, config=None, prefix=None, **args):
         """HTTP Basic login handler
@@ -54,7 +54,7 @@ class IIIFAuthBasic(IIIFAuth):
         if (auth and auth.username == auth.password):
             html = "<html><script>window.close();</script></html>"
             response = make_response(html,200,headers)
-            response.set_cookie("basic_authdone", "valid-http-basic-login", expires=3600)
+            response.set_cookie(self.auth_cookie_name, "valid-http-basic-login", expires=3600)
             return response
         else:
             headers['WWW-Authenticate']='Basic realm="HTTP-Basic-Auth at %s (u=p to login)"' % (self.name)
@@ -68,8 +68,8 @@ class IIIFAuthBasic(IIIFAuth):
         bad username:password.
         """
         response = make_response("<html><script>window.close();</script></html>", 200, {'Content-Type':"text/html"});
-        response.set_cookie("basic_authdone", expires=0)
-        response.set_cookie("basic_token", expires=0)
+        response.set_cookie(self.auth_cookie_name, expires=0)
+        response.set_cookie(self.token_cookie_name, expires=0)
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
@@ -94,6 +94,6 @@ class IIIFAuthBasic(IIIFAuth):
         response = make_response(data_str,200,{'Content-Type':ct})
         if (authdone):
             # Set the cookie for the image content -- FIXME - need something real
-            response.set_cookie('basic_token', token)
+            response.set_cookie(self.token_cookie_name, token)
         response.headers['Access-control-allow-origin']='*'
         return response 
