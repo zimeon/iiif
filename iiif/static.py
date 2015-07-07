@@ -4,6 +4,7 @@ Use IIIF Image API manipulations to generate a set of tiles for
 a level0 implementation of the IIIF Image API using static files.
 """
 
+import math
 import logging
 import os
 import os.path
@@ -100,14 +101,14 @@ class IIIFStatic(object):
                 if (rxe>width):
                     rxe=width
                 rw = rxe-rx
-                sw = rw/sf
+                sw = int(math.ceil(rw/float(sf)))
                 for ny in range(yt):
                     ry = ny*rts
                     rye = ry+rts
                     if (rye>height):
                         rye=height
                     rh = rye-ry
-                    sh = rh/sf
+                    sh = int(math.ceil(rh/float(sf)))
                     self.generate_tile([rx,ry,rw,rh],[sw,sh])
         # Now generate reduced size versions of full image
         #
