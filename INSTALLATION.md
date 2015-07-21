@@ -23,6 +23,7 @@ sudo yum install cmake
 git clone git@github.com:uclouvain/openjpeg.git
 cd openjpeg/
 cmake .
+make
 sudo make install
 ```
 
