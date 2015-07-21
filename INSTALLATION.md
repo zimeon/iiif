@@ -11,11 +11,11 @@ sudo yum install libtiff-devel libjpeg-devel libzip-devel freetype-devel \
     lcms2-devel libwebp-devel tcl-devel tk-devel
 ```
 
-For JPEG2000 support the RedHat openjpeg libraries are too old to be supported by 
+For JPEG2000 support the RedHat `openjpeg` libraries are too old to be supported by 
 Pillow -- they are 1.3 and Pillow requires 2.0 or 2.1. Thus if JPEG2000 support
-is required then the openjpeg libraries must be installed from elsewhere. This is
+is required then the `openjpeg` libraries must be installed from elsewhere. This is
 very easy direct from the 
-[openjpeg github site](https://github.com/uclouvain/openjpeg). Compilation requires
+[`openjpeg` github site](https://github.com/uclouvain/openjpeg). Compilation requires
 `cmake` which is available from RedHat:
 
 ```
@@ -33,8 +33,8 @@ Can then install `Pillow`:
 sudo pip install Pillow
 ```
 
-and this should then have all the image formats we need except openjpeg. The 
-image formats are displayed in a table at then end of the install:
+Pillow should then support all the image formats we need (including JPEG2000 if `openjpeg` 
+was installed. The image formats are displayed in a table at then end of the install:
 
 ```
 --------------------------------------------------------------------
