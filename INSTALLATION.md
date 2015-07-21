@@ -22,9 +22,16 @@ very easy direct from the
 sudo yum install cmake
 git clone git@github.com:uclouvain/openjpeg.git
 cd openjpeg/
-cmake .
+cmake -DCMAKE_INSTALL_PREFIX=/usr .
 make
 sudo make install
+
+## Problem with install using openjpeg libraries is that when PIL (Pillow) is loaded
+## by Python it can't find the openjpeg libraries (either in default /usr/local/lib 
+## or /usr/lib as with -D flag above). Ugly fix is to set LD_LIBRARY_PATH for the 
+## environment running the code. Should be a way around this though...
+
+export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
 ```
 
 Can then install `Pillow`:
