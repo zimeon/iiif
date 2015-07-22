@@ -6,7 +6,7 @@ python:
 # need "python setup.py install" to install resync so that client tests work
 install:
   - sudo apt-get update
-  - sudo apt-get install libmagic-dev
+  - sudo apt-get install libmagic-dev libwebp-dev
   - pip install Pillow iiif_validator coveralls
   - python setup.py install
 # commands to run tests
