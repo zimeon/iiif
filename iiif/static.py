@@ -97,7 +97,7 @@ class IIIFStatic(object):
     """
 
     def __init__(self, src=None, dst=None, tilesize=None,
-                 api_version=None, dryrun=None):
+                 api_version=None, dryrun=None, prefix=''):
         self.src=src
         self.dst=dst
         self.tilesize=tilesize if tilesize is not None else 512
@@ -110,6 +110,7 @@ class IIIFStatic(object):
         self.logger = logging.getLogger('iiif_static')
         # used internally:
         self.outd=None
+        self.prefix=prefix
         self.identifier=None
 
     def generate(self, src=None, identifier=None):
@@ -140,7 +141,7 @@ class IIIFStatic(object):
         self.setup_destination()
         # Write info.json
         qualities = ['default'] if (self.api_version>'1.1') else ['native']
-        info=IIIFInfo(level=0, identifier=self.identifier,
+        info=IIIFInfo(level=0, server_and_prefix=self.prefix, identifier=self.identifier,
                       width=width, height=height, scale_factors=scale_factors,
                       tile_width=self.tilesize, tile_height=self.tilesize,
                       formats=['jpg'], qualities=qualities,

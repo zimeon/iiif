@@ -20,15 +20,20 @@ def main():
     
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image API static file generator',
-                              usage='usage: %prog [options] file|path (-h for help)',
+                              usage='usage: %prog [options] file [[file2..]] (-h for help)',
                               version='%prog '+__version__ )
 
     p.add_option('--dst', '-d', action='store', default='/tmp',
-                 help="destination directory [/tmp default]")
+                 help="destination directory [default '%default']")
     p.add_option('--tilesize', '-t', action='store', type='int', default=512,
-                 help="tilesize in pixels [512 default]")
+                 help="tilesize in pixels [default %default]")
     p.add_option('--api-version', '--api','-a', action='store', default='1.1',
-                 help="API version, may be 1.1 [default] or 2.0") 
+                 help="API version, may be 1.1 or 2.0 [default %default]") 
+    p.add_option('--prefix', '-p', action='store', default='',
+                 help="URI prefix for where the images will be served from (default '%default'). "
+                      "An empty prefix may be OK if the HTML page including the image shares the "
+                      "the same root on the same server as the images, otherwise a full URL should "
+                      "be specified. This is used to construct the @id in the info.json")  
     p.add_option('--dryrun', '-n', action='store_true',
                  help="do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
@@ -46,12 +51,13 @@ def main():
         for source in sources:
             # File or directory (or neither)?
             sg = IIIFStatic( dst=args.dst, tilesize=args.tilesize,
-                             api_version=args.api_version, dryrun=args.dryrun )
+                             api_version=args.api_version, dryrun=args.dryrun,
+                             prefix=args.prefix)
             if (os.path.isfile(source)):
                 logger.info("source file: %s" % (source))
                 sg.generate(source)
             elif (os.path.isdir(source)):
-                raise Exception("source dir: %s - FIXME: not yet supported" % (source))
+                logger.warn("ignoring source '%s': directory coversion not supported" % (source))
             else:
                 logger.warn("ignoring source '%s': neither file nor path" % (source))
 
