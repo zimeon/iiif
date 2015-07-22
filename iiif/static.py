@@ -26,24 +26,26 @@ def static_partial_tile_sizes(width,height,tilesize,scale_factors):
     Yields ([rx,ry,rw,rh],[sw,sh]), the region and size for each tile
     """
     for sf in scale_factors:
-            rts = tilesize*sf #tile size in original region
-            xt = (width-1)/rts+1
-            yt = (height-1)/rts+1
-            for nx in range(xt):
-                rx = nx*rts
-                rxe = rx+rts
-                if (rxe>width):
-                    rxe=width
-                rw = rxe-rx
-                sw = int(math.ceil(rw/float(sf)))
-                for ny in range(yt):
-                    ry = ny*rts
-                    rye = ry+rts
-                    if (rye>height):
-                        rye=height
-                    rh = rye-ry
-                    sh = int(math.ceil(rh/float(sf)))
-                    yield([rx,ry,rw,rh],[sw,sh])
+        if (sf*tilesize>width and sf*tilesize>height):
+            continue #avoid any full-region tiles
+        rts = tilesize*sf #tile size in original region
+        xt = (width-1)/rts+1
+        yt = (height-1)/rts+1
+        for nx in range(xt):
+            rx = nx*rts
+            rxe = rx+rts
+            if (rxe>width):
+                rxe=width
+            rw = rxe-rx
+            sw = int(math.ceil(rw/float(sf)))
+            for ny in range(yt):
+                ry = ny*rts
+                rye = ry+rts
+                if (rye>height):
+                    rye=height
+                rh = rye-ry
+                sh = int(math.ceil(rh/float(sf)))
+                yield([rx,ry,rw,rh],[sw,sh])
 
 def static_full_sizes(width,height,tilesize):
     """Generator for scaled-down full image size
