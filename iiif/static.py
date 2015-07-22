@@ -14,6 +14,69 @@ from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
 from iiif.error import IIIFZeroSizeError
 
+
+def static_partial_tile_sizes(width,height,tilesize,scale_factors):
+    """Generator for partial tile sizes for zoomed in views
+
+    width: width of full size image
+    height: height of full size image
+    tilesize: width and height of tiles
+    scale_factors: iterable of scale factors, typically [1,2,4..]
+
+    Yields ([rx,ry,rw,rh],[sw,sh]), the region and size for each tile
+    """
+    for sf in scale_factors:
+            rts = tilesize*sf #tile size in original region
+            xt = (width-1)/rts+1
+            yt = (height-1)/rts+1
+            for nx in range(xt):
+                rx = nx*rts
+                rxe = rx+rts
+                if (rxe>width):
+                    rxe=width
+                rw = rxe-rx
+                sw = int(math.ceil(rw/float(sf)))
+                for ny in range(yt):
+                    ry = ny*rts
+                    rye = ry+rts
+                    if (rye>height):
+                        rye=height
+                    rh = rye-ry
+                    sh = int(math.ceil(rh/float(sf)))
+                    yield([rx,ry,rw,rh],[sw,sh])
+
+def static_full_sizes(width,height,tilesize):
+    """Generator for scaled-down full image size
+
+    width: width of full size image
+    height: height of full size image
+    tilesize: width and height of tiles
+
+    Yields [sw,sh], the size for each full-region tile 
+    """
+    # FIXME - Not sure what correct algorithm is for this, from
+    # observation of Openseadragon it seems that one keeps halving
+    # the pixel size of the full until until both width and height
+    # are less than the tile size. The output that tile and further
+    # halvings for some time. It seems that without this Openseadragon
+    # will not display any unzoomed image in small windows.
+    #
+    # I do not understand the algorithm that openseadragon uses (or
+    # know where it is in the code) to decide how small a version of
+    # the complete image to request. It seems that there is a bug in
+    # openseadragon here because in some cases it requests images
+    # of size 1,1 multiple times. For now, just go all the way down to
+    # this size
+    for level in range(1,20):
+        factor = 2.0**level
+        sw = int(width/factor + 0.5)
+        sh = int(height/factor + 0.5)
+        if (sw<tilesize and sh<tilesize):
+            if (sw<1 or sh<1):
+                break
+            yield([sw,sh])
+
+
 class IIIFStatic(object):
     """Provide static generation of IIIF images
 
@@ -91,48 +154,10 @@ class IIIFStatic(object):
                 f.close()
             self.logger.info("Written %s"%(json_file))
         # Write out images
-        for sf in scale_factors:
-            rts = self.tilesize*sf #tile size in original region
-            xt = (width-1)/rts+1
-            yt = (height-1)/rts+1
-            for nx in range(xt):
-                rx = nx*rts
-                rxe = rx+rts
-                if (rxe>width):
-                    rxe=width
-                rw = rxe-rx
-                sw = int(math.ceil(rw/float(sf)))
-                for ny in range(yt):
-                    ry = ny*rts
-                    rye = ry+rts
-                    if (rye>height):
-                        rye=height
-                    rh = rye-ry
-                    sh = int(math.ceil(rh/float(sf)))
-                    self.generate_tile([rx,ry,rw,rh],[sw,sh])
-        # Now generate reduced size versions of full image
-        #
-        # FIXME - Not sure what correct algorithm is for this, from
-        # observation of Openseadragon it seems that one keeps halving
-        # the pixel size of the full until until both width and height
-        # are less than the tile size. The output that tile and further
-        # halvings for some time. It seems that without this Openseadragon
-        # will not display any unzoomed image in small windows.
-        #
-        # I do not understand the algorithm that openseadragon uses (or
-        # know where it is in the code) to decide how small a version of
-        # the complete image to request. It seems that there is a bug in
-        # openseadragon here because in some cases it requests images
-        # of size 1,1 multiple times. For now, just go all the way down to
-        # this size
-        for level in range(1,20):
-            factor = 2.0**level
-            sw = int(width/factor + 0.5)
-            sh = int(height/factor + 0.5)
-            if (sw<self.tilesize and sh<self.tilesize):
-                if (sw<1 or sh<1):
-                    break
-                self.generate_tile('full',[sw,sh])
+        for (region,size) in static_partial_tile_sizes(width,height,self.tilesize,scale_factors):
+            self.generate_tile(region,size)
+        for (size) in static_full_sizes(width,height,self.tilesize):
+            self.generate_tile('full',size)
 
     def generate_tile(self,region,size):
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)

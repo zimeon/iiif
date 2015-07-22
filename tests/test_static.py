@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import sys, StringIO, contextlib
 
-from iiif.static import IIIFStatic
+from iiif.static import IIIFStatic, static_partial_tile_sizes, static_full_sizes
 
 # From http://stackoverflow.com/questions/2654834/capturing-stdout-within-the-same-process-in-python
 class Data(object):
@@ -47,12 +47,29 @@ class TestAll(unittest.TestCase):
             self.assertTrue( re.search(' / a/1024,1024,476,976/476,/0/native.jpg', capturer.result ))
             self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
         finally:
-            shutil.rmtree(tmp) 
+            shutil.rmtree(tmp)
 
-    def test03_generate_tile(self):
-        pass
+    def test03_static_partial_tile_sizes(self):
+        # generate set of static tile sizes to look for examples in
+        sizes = set()
+        for (region,size) in static_partial_tile_sizes(100,100,64,[1,2,4]):
+            # should never have zero size w or h
+            self.assertNotEqual( size[0], 0 )
+            self.assertNotEqual( size[1], 0 )
+            sizes.add( str(region)+str(size) )
+        self.assertIn( '[0, 0, 64, 64][64, 64]', sizes )
 
-    def test04_setup_destination(self):
+    def test04_static_full_sizes(self):
+        # generate set of static tile sizes to look for examples in
+        sizes = set()
+        for (size) in static_full_sizes(100,100,64):
+            # should never have zero size w or h
+            self.assertNotEqual( size[0], 0 )
+            self.assertNotEqual( size[1], 0 )
+            sizes.add( str(size) )
+        self.assertIn( '[50, 50]', sizes )
+
+    def test05_setup_destination(self):
         s=IIIFStatic()
         # no dst
         self.assertRaises( Exception, s.setup_destination )
@@ -91,5 +108,4 @@ class TestAll(unittest.TestCase):
             s.setup_destination()
             self.assertEqual( s.outd, tmp )
         finally:
-            shutil.rmtree(tmp) 
-
+            shutil.rmtree(tmp)
