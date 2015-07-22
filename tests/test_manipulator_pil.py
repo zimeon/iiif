@@ -117,6 +117,11 @@ class TestAll(unittest.TestCase):
         img = Image.open(m.outfile)
         self.assertEqual( img.format, 'PNG' )
         m.cleanup()
+        # request webp
+        self.assertEqual( m.do_format('webp'), None )
+        img = Image.open(m.outfile)
+        self.assertEqual( img.format, 'WEBP' )
+        m.cleanup()
         # request tiff, not supported
         self.assertRaises( IIIFError, m.do_format, 'tif' )
         # request jp2, not supported

@@ -107,9 +107,14 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.mime_type="image/jpeg"
             self.output_format=fmt
             format = 'jpeg';
+        elif (fmt == 'webp'):
+            self.logger.info("format: webp")
+            self.mime_type="image/webp"
+            self.output_format=fmt
+            format = 'webp';
         else:
             raise IIIFError(code=415, parameter='format',
-                            text="Unsupported output file format (%s), only png,jpg are supported."%(fmt))
+                            text="Unsupported output file format (%s), only png,jpg,webp are supported."%(fmt))
 
         if (self.outfile is None):
             # Create temp
