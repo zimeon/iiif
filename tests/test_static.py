@@ -57,7 +57,11 @@ class TestAll(unittest.TestCase):
             self.assertNotEqual( size[0], 0 )
             self.assertNotEqual( size[1], 0 )
             sizes.add( str(region)+str(size) )
-        self.assertIn( '[0, 0, 64, 64][64, 64]', sizes )
+        self.assertTrue( '[0, 0, 64, 64][64, 64]' in sizes ) #would use assertIn for >=2.7
+        self.assertTrue( '[0, 64, 64, 36][64, 36]' in sizes )
+        self.assertTrue( '[64, 0, 36, 64][36, 64]' in sizes )
+        self.assertTrue( '[64, 64, 36, 36][36, 36]' in sizes )
+        self.assertEqual( len(sizes), 4 )
 
     def test04_static_full_sizes(self):
         # generate set of static tile sizes to look for examples in
@@ -67,7 +71,15 @@ class TestAll(unittest.TestCase):
             self.assertNotEqual( size[0], 0 )
             self.assertNotEqual( size[1], 0 )
             sizes.add( str(size) )
-        self.assertIn( '[50, 50]', sizes )
+        self.assertFalse( '[100, 100]' in sizes )
+        self.assertTrue( '[50, 50]' in sizes )
+        self.assertTrue( '[25, 25]' in sizes )
+        self.assertTrue( '[13, 13]' in sizes )
+        self.assertTrue( '[6, 6]' in sizes )
+        self.assertTrue( '[3, 3]' in sizes )
+        self.assertTrue( '[2, 2]' in sizes )
+        self.assertTrue( '[1, 1]' in sizes )
+        self.assertEqual( len(sizes), 7 )
 
     def test05_setup_destination(self):
         s=IIIFStatic()
