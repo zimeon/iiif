@@ -40,9 +40,9 @@ To remove and regenerate tiles and `info.json` files:
 ```
 iiif> rm -rf demo-static/tetons demo-static/starfish demo-static/starfish2
 
-iiif> ./iiif_static.py -d demo-static/tetons testimages/tetons.jpg
-iiif> ./iiif_static.py -d demo-static/starfish -t 1024 testimages/starfish.jpg
-iiif> ./iiif_static.py -d demo-static/starfish2 -t 256 testimages/starfish2.jpg
+iiif> ./iiif_static.py -d demo-static testimages/tetons.jpg
+iiif> ./iiif_static.py -d demo-static -t 1024 testimages/starfish.jpg
+iiif> ./iiif_static.py -d demo-static -t 256 testimages/starfish2.jpg
 ```
 
 Storage space

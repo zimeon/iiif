@@ -27,7 +27,7 @@ class TestAll(unittest.TestCase):
 
     def test01_init(self):
         s=IIIFStatic()
-        self.assertEqual( s.api_version,'1.1' )
+        self.assertEqual( s.api_version,'2.0' ) # default is 2.0
         self.assertEqual( s.tilesize, 512 )
         s=IIIFStatic( src='abc', dst='def', tilesize=1024, api_version='2', dryrun=True )
         self.assertEqual( s.src, 'abc' )
@@ -39,11 +39,13 @@ class TestAll(unittest.TestCase):
         self.assertEqual( s.api_version, '1.1' )
 
     def test02_generate(self):
+        # make dirs manually so we don't rely upon setup
         tmp = tempfile.mkdtemp()
+        os.mkdir( os.path.join(tmp,'a') )
         try:
-            s=IIIFStatic( src='testimages/starfish_1500x2000.png', dst=tmp, tilesize=1024, api_version='1', dryrun=True )
+            s=IIIFStatic( dst=tmp, tilesize=1024, api_version='1', dryrun=True )
             with capture_stdout() as capturer:
-                s.generate(identifier='a')
+                s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
             self.assertTrue( re.search(' / a/1024,1024,476,976/476,/0/native.jpg', capturer.result ))
             self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
         finally:
@@ -89,20 +91,22 @@ class TestAll(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         try:
             # dst and no identifier
+            s.src='a/b.ext'
             s.dst=os.path.join(tmp,'xyz')
             s.identifier=None
             s.setup_destination()
+            self.assertTrue( os.path.isdir(tmp) )
             self.assertTrue( os.path.isdir(s.dst) )
-            self.assertEqual( s.outd, tmp )
-            self.assertEqual( s.identifier, 'xyz' )
+            self.assertTrue( os.path.isdir(os.path.join(s.dst,'b')) )
+            self.assertEqual( s.identifier, 'b' )
             # dst and identifier
+            s.src='a/b.ext'
             s.dst=os.path.join(tmp,'zyx')
-            s.identifier='abc'
+            s.identifier='c'
             s.setup_destination()
             self.assertTrue( os.path.isdir(s.dst) )
-            self.assertTrue( os.path.isdir(os.path.join(s.dst,'abc')) )
-            self.assertEqual( s.outd, s.dst )
-            self.assertEqual( s.identifier, 'abc' )
+            self.assertTrue( os.path.isdir(os.path.join(s.dst,'c')) )
+            self.assertEqual( s.identifier, 'c' )
             # dst path is file
             s.dst=os.path.join(tmp,'exists1')
             open(s.dst, 'w').close()
@@ -113,11 +117,9 @@ class TestAll(unittest.TestCase):
             open(os.path.join(s.dst,s.identifier), 'w').close()
             self.assertRaises( Exception, s.setup_destination )
             # dst and identifier, both dirs exist and OK
-            s.outd=None
             s.dst=tmp
             s.identifier='id1'
             os.mkdir( os.path.join(s.dst,s.identifier) )
-            s.setup_destination()
-            self.assertEqual( s.outd, tmp )
+            s.setup_destination() #nothing created, no exception
         finally:
             shutil.rmtree(tmp)

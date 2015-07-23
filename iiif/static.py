@@ -8,6 +8,8 @@ import math
 import logging
 import os
 import os.path
+import shutil
+from string import Template
 
 from iiif.manipulator_pil import IIIFManipulatorPIL
 from iiif.info import IIIFInfo
@@ -97,35 +99,34 @@ class IIIFStatic(object):
     """
 
     def __init__(self, src=None, dst=None, tilesize=None,
-                 api_version=None, dryrun=None, prefix=''):
-        self.src=src
-        self.dst=dst
-        self.tilesize=tilesize if tilesize is not None else 512
-        self.api_version=api_version if api_version is not None else '1.1'
+                 api_version='2.0', dryrun=None, prefix=''):
+        self.src = src
+        self.dst = dst
+        self.tilesize = tilesize if tilesize is not None else 512
+        self.api_version = api_version
         if (self.api_version=='1'):
-            self.api_version='1.1'
+            self.api_version = '1.1'
         elif (self.api_version=='2'):
-            self.api_version='2.0'
+            self.api_version = '2.0'
         self.dryrun = (dryrun is not None)
-        self.logger = logging.getLogger('iiif_static')
+        self.logger = logging.getLogger(__name__)
         # used internally:
-        self.outd=None
-        self.prefix=prefix
-        self.identifier=None
+        self.prefix = prefix
+        self.identifier = None
+        self.copied_osd = False
+        self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+
 
     def generate(self, src=None, identifier=None):
         """Generate static files for one source image"""
-        # Use params to override object attributes
-        if (src is not None):
-            self.src=src
-        if (identifier is not None):
-            self.identifier=identifier
+        self.src=src
+        self.identifier=identifier
         # Get image details and calculate tiles
         im=IIIFManipulatorPIL()
-        im.srcfile=self.src
+        im.srcfile = self.src
         im.do_first()
-        width=im.width
-        height=im.height
+        width = im.width
+        height = im.height
         #print "w=%d h=%d ts=%d" % (im.width,im.height,tilesize)
         xtiles = int(width/self.tilesize)
         ytiles = int(height/self.tilesize)
@@ -146,10 +147,10 @@ class IIIFStatic(object):
                       tile_width=self.tilesize, tile_height=self.tilesize,
                       formats=['jpg'], qualities=qualities,
                       api_version=self.api_version)
-        json_file=os.path.join(self.outd,self.identifier,'info.json')
+        json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
             print "dryrun mode, would write the following files:"
-            print "%s / %s" % (self.outd, os.path.join(self.identifier,'info.json'))
+            print "%s / %s/%s" % (self.dst, self.identifier, 'info.json')
             self.logger.info(info.as_json())
         else:
             with open(json_file,'w') as f:
@@ -161,26 +162,29 @@ class IIIFStatic(object):
             self.generate_tile(region,size)
         for (size) in static_full_sizes(width,height,self.tilesize):
             self.generate_tile('full',size)
+        print
+
 
     def generate_tile(self,region,size):
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
         if (region == 'full'):
             r.region_full = True
         else:
-            r.region_xywh=region # [rx,ry,rw,rh]
-        r.size_wh=[size[0],None] # [sw,sh] -> [sw,] canonical form
-        r.format='jpg'
+            r.region_xywh = region # [rx,ry,rw,rh]
+        r.size_wh = [size[0],None] # [sw,sh] -> [sw,] canonical form
+        r.format = 'jpg'
         path = r.url()
         # Generate...
         if (self.dryrun):
-            print "%s / %s" % (self.outd,path)
+            print "%s / %s" % (self.dst,path)
         else:
             m = IIIFManipulatorPIL(api_version=self.api_version)
             try:
-                m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.outd,path))
-                print "%s / %s" % (self.outd,path)
+                m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))
+                print "%s / %s" % (self.dst,path)
             except IIIFZeroSizeError as e:
-                print "%s / %s - zero size, skipped" % (self.outd,path)
+                print "%s / %s - zero size, skipped" % (self.dst,path)
+
 
     def setup_destination(self):
         """Setup output directory based on self.dst and self.identifier
@@ -188,30 +192,83 @@ class IIIFStatic(object):
         Returns the output directory name on success, raises and exception on
         failure.
         """
-        outd = self.dst
         if (not self.dst):
             raise Exception("No destination directory specified!")
+        dst = self.dst
+        if (os.path.isdir(dst)):
+            # Exists, OK
+            pass
+        elif (os.path.isfile(dst)):
+            raise Exception("Can't write to directory %s: a file of that name exists" % dst)
+        else:
+            os.makedirs(dst)
+        # Now have dst directory, do we have a separate identifier?
+        if (not self.identifier):
+            # No separate identifier specified, split off the last path segment
+            # of the source name, strip the extension to get the identifier
+            self.identifier = os.path.splitext( os.path.split(self.src)[1] )[0]
+        # Create that subdir if necessary
+        outd = os.path.join(dst,self.identifier)
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
+            self.logger.warn("Output directory %s already exists, adding/updating files" % outd)
             pass
         elif (os.path.isfile(outd)):
-            raise Exception("Can't write to directory %s: a file of that name exists"%(outd))
+            raise Exception("Can't write to directory %s: a file of that name exists" % outd)
         else:
             os.makedirs(outd)
-        # Now have outd, do we have a separate identifier?
-        if (self.identifier):
-            # Yes, create that subdir if necessary
-            id_path=os.path.join(outd,self.identifier)
-            if (os.path.isdir(id_path)):
-                # Nothing for now, perhaps should delete?
-                pass
-            elif (os.path.isfile(id_path)):
-                raise Exception("Can't write to directory %s: a file of that name exists"%(id_path))
-            else:
-                os.makedirs(id_path)
-            self.outd=outd
+        #
+        self.logger.info("Output directory %s" % outd)
+
+
+    def write_html(self, html_dir, include_osd=False):
+        """Write HTML test page using OpenSeadragon for the tiles generated
+
+        Assumes that the generate(..) method has already been called to set up
+        identifier etc.
+        """
+        osd_dir = 'osd'
+        osd_js = 'osd/openseadragon.min.js'
+        osd_images = 'osd/images'
+      
+        if (os.path.isdir(html_dir)):
+            # Exists, fine
+            pass
+        elif (os.path.isfile(html_dir)):
+            raise Exception("Can't write to directory %s: a file of that name exists" % html_dir)
         else:
-            # No separate identifier, split off the last path segment
-            # of outd to be the identifier
-            (self.outd, self.identifier) = os.path.split(outd)
-        self.logger.info("Output directory %s, identifier %s" % (self.outd,self.identifier))
+            os.makedirs(html_dir)
+        with open(os.path.join(self.template_dir,'static_osd.html'),'r') as f:
+            template = f.read()
+        outfile = self.identifier+'.html'
+        outpath = os.path.join(html_dir,outfile)
+        with open(outpath,'w') as f:
+            d = dict( identifier = self.identifier,
+                      osd_uri = osd_js,
+                      osd_images_prefix = osd_images+'/', #OSD needs trailing slash
+                      info_json_uri = '/'.join([self.prefix,self.identifier,'info.json']) )
+            f.write( Template(template).safe_substitute(d) )
+            print "%s / %s" % (html_dir,outfile)
+            self.logger.info("Wrote info.json to %s" % outpath)
+        # Do we want to copy OSD in there too? If so, do it only if
+        # we haven't already
+        if (include_osd):
+            if (self.copied_osd):
+                self.logger.info("OpenSeadragon already copied")
+            else:
+                # Make directory, copy JavaScript and icons (from osd_images)
+                osd_path = os.path.join(html_dir,osd_dir)
+                if (not os.path.isdir(osd_path)):
+                    os.makedirs(osd_path)
+                shutil.copyfile(os.path.join('demo-static',osd_js), os.path.join(html_dir,osd_js))
+                print "%s / %s" % (html_dir,osd_js)
+                osd_images_path = os.path.join(html_dir,osd_images)
+                if (os.path.isdir(osd_images_path)):
+                    self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
+                else:
+                    shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
+                    print "%s / %s/*" % (html_dir,osd_images)
+        print
+
+
+

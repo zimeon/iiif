@@ -1,0 +1,35 @@
+<!-- Created from HTML template iiif/templates/static_osd.html in https://github.com/zimeon/iiif -->
+<html>
+<head>
+  <title>IIIF Static Files Demo</title>
+  <script src="$osd_uri"></script>
+</head>
+<body>
+
+<h1>IIIF Static Files Demo: $identifier</h1>
+
+<div id="openseadragon1" style="width: 500px; height: 400px;"></div>  
+<script>
+//<![CDATA[
+function initOpenSeadragon() {
+  OpenSeadragon({
+    id: "openseadragon1",
+    minZoomImageRatio: 1,
+    prefixUrl: "$osd_images_prefix",
+    tileSources: "$info_json_uri",
+    crossOriginPolicy: false});
+}
+window.onload = initOpenSeadragon;
+document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
+//]]>
+</script>
+
+<h4>Debugging links</h4>
+<ul>
+<li><code><a href="$info_json_uri">info.json</a></code></li>
+<li><a href="$osd_uri">OpenSeadragon JavaScript</a></li>
+<li><a href="$osd_images_prefix/home_rest.png">OpenSeadragon home icon</a> (example in icons dir)</li>
+</ul>
+
+</body>
+</html>
