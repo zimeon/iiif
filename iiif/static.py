@@ -243,10 +243,13 @@ class IIIFStatic(object):
         outfile = self.identifier+'.html'
         outpath = os.path.join(html_dir,outfile)
         with open(outpath,'w') as f:
+            info_json_uri = '/'.join([self.identifier,'info.json'])
+            if (self.prefix):
+                info_json_uri = '/'.join([self.prefix,info_json_uri])
             d = dict( identifier = self.identifier,
                       osd_uri = osd_js,
                       osd_images_prefix = osd_images+'/', #OSD needs trailing slash
-                      info_json_uri = '/'.join([self.prefix,self.identifier,'info.json']) )
+                      info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
             print "%s / %s" % (html_dir,outfile)
             self.logger.info("Wrote info.json to %s" % outpath)
