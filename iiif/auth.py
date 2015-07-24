@@ -108,10 +108,11 @@ class IIIFAuth(object):
         else:
             return self.send(data_str, ct="application/json")
 
-    def host_port_prefix(self,host,port,prefix):
+    def scheme_host_port_prefix(self, scheme='http', host='host', port=None, prefix=None):
         """Return URI composed of scheme, server, port, and prefix"""
-        uri = "http://"+host
-        if (host!=80):
+        uri = scheme+'://'+host
+        if (port and not ((scheme=='http' and port==80) or
+                          (scheme=='https' and port==443))):
             uri += ':'+str(port)
         if (prefix):
             uri += '/'+prefix

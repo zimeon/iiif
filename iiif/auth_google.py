@@ -54,7 +54,7 @@ class IIIFAuthGoogle(IIIFAuth):
         params = {
             'response_type': 'code',
             'client_id': self.google_api_client_id,
-            'redirect_uri': self.host_port_prefix(config.host,config.port,prefix)+'/home',
+            'redirect_uri': self.scheme_host_port_prefix('http',config.host,config.port,prefix)+'/home',
             'scope': self.google_api_scope,
             'state': request.args.get('next',default=''),
         }
@@ -124,7 +124,7 @@ class IIIFAuthGoogle(IIIFAuth):
             'code': request.args.get('code',default=''),
             'client_id': self.google_api_client_id,
             'client_secret': self.google_api_client_secret,
-            'redirect_uri': self.host_port_prefix(config.host,config.port,prefix)+'/home',
+            'redirect_uri': self.scheme_host_port_prefix('http',config.host,config.port,prefix)+'/home',
             'grant_type': 'authorization_code',
         }
         payload = urllib.urlencode(params)

@@ -568,6 +568,7 @@ if __name__ == '__main__':
     opt = setup_options()
     opt.container_prefix = ''
     app = create_app(opt)
+    print "Starting test server on http://%s:%d/ ..." % (opt.host,opt.port)
     app.run(host=opt.host, port=opt.port)
 else:
     opt = optparse.Values()
