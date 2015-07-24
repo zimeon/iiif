@@ -60,7 +60,8 @@ See also
 --------
 
   * http://github.com/zimeon/iiif -- git repository
-  * https://github.com/zimeon/iiif/tree/master/demo-static -- Static File Demo with OpenSeadragon 
+  * https://github.com/zimeon/iiif/tree/master/demo-static -- Static File Demo with OpenSeadragon
+  * https://github.com/zimeon/iiif/tree/master/demo-auth -- DRAFT Authentication Demo
 
 Copyright and License
 ---------------------
