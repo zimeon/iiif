@@ -1,9 +1,10 @@
 iiif changelog
 ==============
 
-2015-06-11 v0.6.0 --- IN PROGRESS
+2015-07-24 v0.6.0 --- IN PROGRESS
 - Refactor manipulators for easier testing
 - Improve test coverage of PIL manipulator
+- Fix static files sizes (thanks @edsu)
 - Modify static tile generation for canonical URIs as used by OpenSeadragon 2.0
   (Static tiles will not work with OpenSeadragon prior to 2.0.)
 - Test server now a Flask application
