@@ -39,14 +39,14 @@ def static_partial_tile_sizes(width,height,tilesize,scale_factors):
             if (rxe>width):
                 rxe=width
             rw = rxe-rx
-            sw = int(math.ceil(rw/float(sf)))
+            sw = (rw+sf-1)/sf #same as sw = int(math.ceil(rw/float(sf)))
             for ny in range(yt):
                 ry = ny*rts
                 rye = ry+rts
                 if (rye>height):
                     rye=height
                 rh = rye-ry
-                sh = int(math.ceil(rh/float(sf)))
+                sh = (rh+sf-1)/sf #same as sh = int(math.ceil(rh/float(sf)))
                 yield([rx,ry,rw,rh],[sw,sh])
 
 def static_full_sizes(width,height,tilesize):
