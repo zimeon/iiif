@@ -18,12 +18,15 @@ class IIIFAuthGoogle(IIIFAuth):
         super(IIIFAuthGoogle, self).__init__(cookie_prefix=cookie_prefix)
         #
         try:
-            gcd=json.loads(open(client_secret_file).read())
-            self.google_api_client_id = gcd['web']['client_id']
-            self.google_api_client_secret = gcd['web']['client_secret']
+            # Assign defaults so code/tests will have some data even if load fails
             self.google_api_scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email'
             self.google_oauth2_url = 'https://accounts.google.com/o/oauth2/'
             self.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
+            self.google_api_client_id = 'oops_missing_client_id'
+            self.google_api_client_secret = 'oops_missing_client_secret'
+            gcd=json.loads(open(client_secret_file).read())
+            self.google_api_client_id = gcd['web']['client_id']
+            self.google_api_client_secret = gcd['web']['client_secret']
         except Exception as e:
             self.logger.error("Failed to load Google auth from %s: %s" % (client_secret_file,str(e)))
         #
