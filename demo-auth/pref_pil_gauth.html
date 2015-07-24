@@ -21,7 +21,7 @@ function on_authed() {
     // via JSONP :(
     // XXX TODO: get the URL from the info.json
     log("Fetching Token");        
-    $.getJSON("http://localhost:8001/2.0_pil_gauth/token?callback=?", on_tokened);
+    $.getJSON("http://localhost:8001/2.1_pil_gauth/token?callback=?", on_tokened);
 }
 
 
@@ -47,7 +47,7 @@ function on_tokened(data) {
         $('#openseadragon').remove();
         $('#authbox').empty();
         $('#container').append('<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>');
-        $.ajax({ url:"http://localhost:8001/2.0_pil_gauth/tetons/info.json", headers: {"Authorization":token}, cache: false, success: on_got_info });
+        $.ajax({ url:"http://localhost:8001/2.1_pil_gauth/tetons/info.json", headers: {"Authorization":token}, cache: false, success: on_got_info });
     }
 }
 
@@ -121,7 +121,7 @@ function make_viewer() {
 
     var viewer = OpenSeadragon({
         id: "openseadragon",
-        tileSources: "http://localhost:8001/2.0_pil_gauth/tetons/info.json?t=" + new Date().getTime(),
+        tileSources: "http://localhost:8001/2.1_pil_gauth/tetons/info.json?t=" + new Date().getTime(),
         showNavigator: true,
         prefixUrl: "openseadragon/images/"
     });
