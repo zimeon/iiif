@@ -11,12 +11,17 @@ iiif
   :alt: Test coverage
 
 *iiif* - A Python library providing a reference implementation
-of the `International Image Interoperability Framework: Image API 2.0
+of the `International Image Interoperability Framework
+<http://iiif.io/>`_: Image API 
+`2.0
 <http://iiif.io/api/image/2.0/>`_ (and versions 
-1.1
-`<http://iiif.io/api/image/1.1/>`_,
-1.0
-`<http://iiif.io/api/image/1.0/>`_).
+`1.0
+<http://iiif.io/api/image/1.0/>`_,
+`1.1
+<http://iiif.io/api/image/1.1/>`_, 
+`draft 2.1
+<http://iiif.io/api/image/2.1/>`_ 
+).
 Also includes a test server using the library to implement the Image
 API transformations dynamically, and a static file generator to
 pre-compute tiles necessary for OpenSeadragon which may then be
@@ -26,9 +31,11 @@ Installation
 ------------
 
 The library, test server, static file generator are all designed to
-work with Python 2.6 or 2.7.
+work with Python 2.6 or 2.7. Manual installation from `Github
+<https://github.com/zimeon/iiif>`_ is necessary to get the demonstration
+documentation and examples.
 
-**Automatic installation**::
+**Automatic installation from PyPI**::
 
     easy_install iiif
 
@@ -38,20 +45,27 @@ work with Python 2.6 or 2.7.
 
 **Manual installation from github**
 
-First install `Pillow` (a fork of `PIL`)::
-
-    sudo pip install Pillow
-
-and then clone and install from this repository::
+First, clone the code and examples from this repository::
 
     cd /tmp
     git clone git://github.com/zimeon/iiif.git
     cd iiif/
+
+Second, install `Pillow` (a fork of `PIL`)::
+
+    sudo pip install Pillow
+
+After installation of `Pillow` there will be be a summary of image formats
+supported. Addition libraries may be require to get all formats depending
+on your platform.
+
+The scripts and demonstrations can then be run from the `iiif` directory.
+
+Finally, you may install the library code and scripts locally in the 
+appropriate places within your python setup using::
+
     python setup.py build
     sudo python setup.py install
-
-This will install the library code in the appropriate place within 
-your python setup.
 
 The source code is maintained on `Github
 <https://github.com/zimeon/iiif>`_
