@@ -1,4 +1,5 @@
 .coverage
+htmlcov
 *.pyc
 *~
 .DS_store
