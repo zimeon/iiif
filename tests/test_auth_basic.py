@@ -2,7 +2,7 @@
 
 See http://flask.pocoo.org/docs/0.10/testing/ for Flask notes
 """
-from flask import Flask,request, make_response, redirect
+from flask import Flask, request, make_response, redirect
 from werkzeug.datastructures import Headers
 import base64
 import json

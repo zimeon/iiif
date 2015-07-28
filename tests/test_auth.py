@@ -26,7 +26,6 @@ class TestAll(unittest.TestCase):
         self.assertEqual( auth.cookie_prefix, 'ghi' )
 
     def test03_add_services(self):
-
         info = IIIFInfo()
         auth = IIIFAuth()
         self.assertEqual( info.service, None )
@@ -102,20 +101,23 @@ class TestAll(unittest.TestCase):
         self.assertEqual( auth.scheme_host_port_prefix(scheme='https',host='z1',port=443), 'https://z1' )
         self.assertEqual( auth.scheme_host_port_prefix(scheme='https',host='z2',port=444), 'https://z2:444' )
 
-    def test10_client_id_handler(self):
+    def test10_access_token_handler(self):
+        self.assertEqual( IIIFAuth().access_token_handler, None )
+
+    def test11_client_id_handler(self):
         self.assertEqual( IIIFAuth().client_id_handler, None )
 
-    def test11_home_handler(self):
+    def test12_home_handler(self):
         self.assertEqual( IIIFAuth().home_handler, None )
 
-    def test12_info_authn(self): 
+    def test13_info_authn(self): 
         self.assertEqual( IIIFAuth().info_authn(), False )
 
-    def test13_info_authz(self): 
+    def test14_info_authz(self): 
         self.assertEqual( IIIFAuth().info_authz(), False )
 
-    def test14_image_authn(self): 
+    def test15_image_authn(self): 
         self.assertEqual( IIIFAuth().image_authn(), False )
 
-    def test15_image_authz(self): 
+    def test16_image_authz(self): 
         self.assertEqual( IIIFAuth().image_authz(), False )

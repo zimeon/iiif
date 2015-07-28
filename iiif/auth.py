@@ -1,6 +1,6 @@
 """IIIF Authentication
 
-Base authentication object which does not actually implement and
+Base authentication object which does not actually implement an
 authentication scheme but is a foundation for specific sub-classes
 for different schemes.
 """
@@ -81,42 +81,8 @@ class IIIFAuth(object):
                   "profile": self.profile_base+'token'
                 } )
 
-    def access_token_response(self, query, cookies):
-        """ Client requests a token to send with info.json request
-
-        If we have one then we copy it from this request. If a callback
-        is specified then we wrap as JSONP.
-        """
-        callback = query.get('callback', '')
-        authcode = query.get('code', '')
-        account = ''
-        try:
-            account = request.get_cookie('account', secret="SECRET_HERE")
-            response.delete_cookie('account', secret="SECRET_HERE")
-        except:
-            pass
-        if not account:
-            data = {"error":"client_unauthorized","error_description": "No login details received"}
-        else:
-            data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
-            # Set the cookie for the image content
-            response.set_cookie(self.auth_cookie_name, account, secret="SECRET_HERE")
-        data_str = json.dumps(data)
-
-        if callback:
-            return self.send("%s(%s);" % (callback, data_str), ct="application/javascript")
-        else:
-            return self.send(data_str, ct="application/json")
-
-    def scheme_host_port_prefix(self, scheme='http', host='host', port=None, prefix=None):
-        """Return URI composed of scheme, server, port, and prefix"""
-        uri = scheme+'://'+host
-        if (port and not ((scheme=='http' and port==80) or
-                          (scheme=='https' and port==443))):
-            uri += ':'+str(port)
-        if (prefix):
-            uri += '/'+prefix
-        return uri
+    # Override with method to implement
+    access_token_handler=None
 
     # Override with method to implement
     client_id_handler=None
@@ -156,7 +122,14 @@ class IIIFAuth(object):
         """
         return self.image_authn()
 
-
-
+    def scheme_host_port_prefix(self, scheme='http', host='host', port=None, prefix=None):
+        """Return URI composed of scheme, server, port, and prefix"""
+        uri = scheme+'://'+host
+        if (port and not ((scheme=='http' and port==80) or
+                          (scheme=='https' and port==443))):
+            uri += ':'+str(port)
+        if (prefix):
+            uri += '/'+prefix
+        return uri
 
 
