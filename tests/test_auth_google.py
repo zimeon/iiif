@@ -14,7 +14,7 @@ from iiif.auth_google import IIIFAuthGoogle
 dummy_app = Flask('dummy')
 
 # test client_secret_file
-csf = 'tests/testdata/client_secret.json'
+csf = 'tests/testdata/test_client_secret.json'
 
 
 class Struct(object):
