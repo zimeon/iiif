@@ -24,7 +24,7 @@ class IIIFAuthGoogle(IIIFAuth):
             self.google_api_url = 'https://www.googleapis.com/oauth2/v1/'
             self.google_api_client_id = 'oops_missing_client_id'
             self.google_api_client_secret = 'oops_missing_client_secret'
-            gcd=json.loads(open(client_secret_file).read())
+            gcd = json.loads(open(client_secret_file).read())
             self.google_api_client_id = gcd['web']['client_id']
             self.google_api_client_secret = gcd['web']['client_secret']
         except Exception as e:
@@ -85,7 +85,7 @@ class IIIFAuthGoogle(IIIFAuth):
         authcode = request.args.get('code',default='')
         account = request.cookies.get(self.account_cookie_name,default='')
         if (account):
-            data = {"access_token":account, "token_type": "Bearer", "expires_in": 3600}
+            data = {"access_token": account, "token_type": "Bearer", "expires_in": 3600}
         else:
             data = {"error":"client_unauthorized","error_description": "No login details received"}
         data_str = json.dumps(data)
