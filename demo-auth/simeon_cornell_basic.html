@@ -82,22 +82,21 @@ function do_auth(evt) {
 }
 
 function process_auth_services(info, which) {
-
-    log("Looking for auth services")
+    log("Looking for "+which+" service")
     if (info.hasOwnProperty('service')) {
-        if (info.service.hasOwnProperty('@context')) {
+        if (info.service.hasOwnProperty('@id')) {
             services = [info.service]
         } else {
             // array of service
             services = info.service
         }
         for (var service,i=0;service=services[i];i++) {
-            if (service['profile'] == 'http://iiif.io/api/image/2/auth/' + which) {
+            if (service['profile'] == 'http://iiif.io/api/auth/0/'+which) {
                 log("Found "+which+" auth service");
                 login = service['@id'];
                 $('#authbox').append("<button id='authbutton' data-login='"+login+"'>"+service.label+"</button>");
                 $('#authbutton').bind('click', do_auth);
-            } else if (which == 'login' && service['profile'] == 'http://iiif.io/api/image/2/auth/token') {
+            } else if (which == 'login' && service['profile'] == 'http://iiif.io/api/auth/0/token') {
                 // save token service here...
             }
         }
