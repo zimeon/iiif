@@ -1,4 +1,5 @@
-from setuptools import setup
+from setuptools import setup, Command
+import os
 # setuptools used instead of distutils.core so that 
 # dependencies can be handled automatically
 
@@ -14,6 +15,22 @@ if match:
     version = match.group(1)
 else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
+
+class Coverage(Command):
+    description = "run coverage"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        os.system("coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
+        os.system("coverage report")
+        os.system("coverage html")
+        print "See htmlcov/index.html for details."
 
 setup(
     name='iiif',
@@ -42,4 +59,7 @@ setup(
         "Flask"
     ],
     test_suite="tests",
+    cmdclass={
+        'coverage': Coverage,
+    },
 )
