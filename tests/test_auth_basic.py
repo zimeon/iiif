@@ -71,7 +71,6 @@ class TestAll(unittest.TestCase):
         with dummy_app.test_request_context('/a_request', headers=h):
             response = auth.login_handler()
             self.assertEqual( response.status_code, 401 )
-
  
     def test06_logout_handler(self):
         with dummy_app.test_request_context('/a_request'):
