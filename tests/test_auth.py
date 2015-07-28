@@ -35,12 +35,13 @@ class TestAll(unittest.TestCase):
         auth.login_uri = 'Xlogin'
         auth.add_services(info)
         self.assertEqual( info.service['@id'], 'Xlogin' )
-        # then just logout
+        # then login and logout
         info = IIIFInfo()
         auth = IIIFAuth()
+        auth.login_uri = 'Xlogin'
         auth.logout_uri = 'Ylogout'
         auth.add_services(info)
-        self.assertEqual( info.service['@id'], 'Ylogout' )
+        self.assertEqual( info.service['service']['@id'], 'Ylogout' )
         # now add all, check we have all @ids in service description
         info = IIIFInfo()
         auth = IIIFAuth()
@@ -49,9 +50,10 @@ class TestAll(unittest.TestCase):
         auth.client_id_uri = 'Zclient'
         auth.access_token_uri = 'Ztoken'
         auth.add_services(info)
-        self.assertEqual( len(info.service), 4 )
-        ids = set([ e['@id'] for e in info.service ])
-        self.assertEqual( ids, set([auth.login_uri,auth.logout_uri,auth.client_id_uri,auth.access_token_uri]) )
+        self.assertEqual( info.service['@id'], 'Zlogin' )
+        self.assertEqual( len(info.service['service']), 3 )
+        ids = set([ e['@id'] for e in info.service['service'] ])
+        self.assertEqual( ids, set([auth.logout_uri,auth.client_id_uri,auth.access_token_uri]) )
 
     def test04_login_service_description(self):
         auth = IIIFAuth()

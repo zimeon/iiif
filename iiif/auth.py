@@ -45,19 +45,26 @@ class IIIFAuth(object):
     def add_services(self, info):
         """Add auth service descriptions to an IIIFInfo object
 
-        FIXME - Should login, token and logout all always be present
-        or should that depend on that login status? For now keep them
-        all always present.
+        Login service description is the wrapper for all other
+        auth service descriptions so we have nothing unless
+        self.login_uri is specified. I we do then add any other 
+        auth services at children.
         """
-        #authn = self.info_authn()
-        if (self.login_uri): # and not authn):
-            info.add_service( self.login_service_description() )
-        if (self.logout_uri): # and authn):
-            info.add_service( self.logout_service_description() )
-        if (self.client_id_uri):
-            info.add_service( self.client_id_service_description() )
-        if (self.access_token_uri): # and not authn):
-            info.add_service( self.access_token_service_description() )
+        if (self.login_uri):
+            svc = self.login_service_description()
+            svcs = []
+            if (self.logout_uri):
+                svcs.append( self.logout_service_description() )
+            if (self.client_id_uri):
+                svcs.append( self.client_id_service_description() )
+            if (self.access_token_uri):
+                svcs.append( self.access_token_service_description() )
+            # Add one as direct child of service property, else array for >1
+            if (len(svcs)==1):
+                svc['service'] = svcs[0]
+            elif (len(svcs)>0):
+                svc['service'] = svcs
+            info.add_service( svc )
 
     def login_service_description(self):
         return( { "@id": self.login_uri,

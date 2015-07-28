@@ -26,30 +26,45 @@ class TestAll(unittest.TestCase):
         self.assertEqual( info.service['label'], "Login to image server" )
         self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/login" )
 
-    def test03_just_logout(self):
+    def test03_login_and_logout(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
         auth = IIIFAuth()
+        auth.login_uri = 'http://example.com/login'
         auth.logout_uri = 'http://example.com/logout'
         auth.add_services(info) 
-        self.assertEqual( info.service['@id'], "http://example.com/logout" )
-        self.assertEqual( info.service['label'], "Logout from image server" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/logout" )
+        self.assertEqual( info.service['@id'], "http://example.com/login" )
+        self.assertEqual( info.service['label'], "Login to image server" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/login" )
+        svcs = info.service['service']
+        self.assertEqual( svcs['@id'], "http://example.com/logout" )
+        self.assertEqual( svcs['label'], "Logout from image server" )
+        self.assertEqual( svcs['profile'], "http://iiif.io/api/auth/0/logout" )
 
-    def test04_just_client_id(self):
+    def test04_login_and_client_id(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
         auth = IIIFAuth()
+        auth.login_uri = 'http://example.com/login'
         auth.client_id_uri = 'http://example.com/client_id'
         auth.add_services(info) 
-        self.assertEqual( info.service['@id'], "http://example.com/client_id" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/clientId" )
+        self.assertEqual( info.service['@id'], "http://example.com/login" )
+        self.assertEqual( info.service['label'], "Login to image server" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/login" )
+        svcs = info.service['service']
+        self.assertEqual( svcs['@id'], "http://example.com/client_id" )
+        self.assertEqual( svcs['profile'], "http://iiif.io/api/auth/0/clientId" )
 
-    def test05_just_access_token(self):
+    def test05_login_and_access_token(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
         auth = IIIFAuth()
+        auth.login_uri = 'http://example.com/login'
         auth.access_token_uri = 'http://example.com/token'
         auth.add_services(info) 
-        self.assertEqual( info.service['@id'], "http://example.com/token" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/token" )
+        self.assertEqual( info.service['@id'], "http://example.com/login" )
+        self.assertEqual( info.service['label'], "Login to image server" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/login" )
+        svcs = info.service['service']
+        self.assertEqual( svcs['@id'], "http://example.com/token" )
+        self.assertEqual( svcs['profile'], "http://iiif.io/api/auth/0/token" )
 
     def test06_full_set(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
@@ -60,10 +75,11 @@ class TestAll(unittest.TestCase):
         auth.client_id_uri = 'http://example.com/clientId'
         auth.login_uri = 'http://example.com/login'
         auth.add_services(info) 
-        self.assertEqual( info.service[0]['@id'], "http://example.com/login" )
-        self.assertEqual( info.service[0]['label'], "Login to Whizzo!" )
-        self.assertEqual( info.service[1]['@id'], "http://example.com/logout" )
-        self.assertEqual( info.service[2]['@id'], "http://example.com/clientId" )
-        self.assertEqual( info.service[3]['@id'], "http://example.com/token" )
+        self.assertEqual( info.service['@id'], "http://example.com/login" )
+        self.assertEqual( info.service['label'], "Login to Whizzo!" )
+        svcs = info.service['service']
+        self.assertEqual( svcs[0]['@id'], "http://example.com/logout" )
+        self.assertEqual( svcs[1]['@id'], "http://example.com/clientId" )
+        self.assertEqual( svcs[2]['@id'], "http://example.com/token" )
 
 
