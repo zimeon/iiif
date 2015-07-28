@@ -232,3 +232,31 @@ class TestAll(unittest.TestCase):
             s.setup_destination() #nothing created, no exception
         finally:
             shutil.rmtree(tmp)
+
+    def test06_write_html(self):
+        s=IIIFStatic()
+        # bad output dir
+        self.assertRaises( Exception, s.write_html, '/tmp/path_does_no_exist_(i_hope)' )
+        # write to good path
+        tmp = tempfile.mkdtemp()
+        s.identifier='abc1'
+        s.write_html(tmp)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc1.html') ) )
+        # write to subdir of good path
+        tmp = tempfile.mkdtemp()
+        s.identifier='abc2'
+        tmp2 = os.path.join(tmp,'xyz')
+        s.write_html(tmp2)
+        self.assertTrue( os.path.isfile( os.path.join(tmp2,'abc2.html') ) )
+        # write to good path with osd
+        tmp = tempfile.mkdtemp()
+        s.identifier='abc3'
+        s.write_html(tmp, include_osd=True)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc3.html') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        # bad write to existing path
+        tmp = tempfile.mkdtemp()
+        tmp2 = os.path.join(tmp,'file')
+        open(tmp2,'w').close()
+        s.identifier='abc4'
+        self.assertRaises( Exception, s.write_html, tmp2 )
