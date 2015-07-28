@@ -1,4 +1,4 @@
-"""Test code for iiif.tatic"""
+"""Test code for iiif.static"""
 import os
 import os.path
 import re
@@ -39,17 +39,43 @@ class TestAll(unittest.TestCase):
         self.assertEqual( s.api_version, '1.1' )
 
     def test02_generate(self):
-        # make dirs manually so we don't rely upon setup
-        tmp = tempfile.mkdtemp()
-        os.mkdir( os.path.join(tmp,'a') )
+        # dryrun covers most
+        tmp1 = tempfile.mkdtemp()
+        os.mkdir( os.path.join(tmp1,'a') )
         try:
-            s=IIIFStatic( dst=tmp, tilesize=1024, api_version='1', dryrun=True )
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', dryrun=True )
             with capture_stdout() as capturer:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
-            self.assertTrue( re.search(' / a/1024,1024,476,976/476,/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/info.json', capturer.result ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/native.jpg', capturer.result ))
             self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
         finally:
-            shutil.rmtree(tmp)
+            shutil.rmtree(tmp1)
+        # real write 
+        tmp2 = tempfile.mkdtemp()
+        try:
+            s=IIIFStatic( dst=tmp2, tilesize=1024, api_version='2.0' )
+            with capture_stdout() as capturer:
+                s.generate( src='testimages/starfish_1500x2000.png', identifier='b' )
+            self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/info.json')) )
+            self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/1024,1024,476,976/476,/0/default.jpg')) )
+            self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/full/1,/0/default.jpg')) )
+        finally:
+            shutil.rmtree(tmp2)
+
+    def test03_generate_tile(self):
+        # most tested via other calls, make sure zero size skip works
+        tmp1 = tempfile.mkdtemp()
+        os.mkdir( os.path.join(tmp1,'a') )
+        try:
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0' )
+            s.identifier = 'fgh'
+            s.src = 'testimages/starfish_1500x2000.png'
+            with capture_stdout() as capturer:
+                s.generate_tile( region='full', size=[0,1] )
+            self.assertTrue( re.search(r'zero size, skipped', capturer.result) )
+        finally:
+            shutil.rmtree(tmp1)
 
     def _generate_tile_sizes(self,width,height,tilesize,scale_factors,canonical=False):
         sizes = set()
@@ -63,7 +89,7 @@ class TestAll(unittest.TestCase):
                 sizes.add( str(region)+str(size) )
         return sizes
 
-    def test03_static_partial_tile_sizes(self):
+    def test04_static_partial_tile_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = self._generate_tile_sizes(100,100,64,[1,2,4])
         self.assertTrue( '[0, 0, 64, 64][64, 64]' in sizes ) #would use assertIn for >=2.7
@@ -174,7 +200,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[512, 4608, 512, 509][512,]' in sizes )
         self.assertTrue( '[512, 512, 512, 512][512,]' in sizes )
 
-    def test04_static_full_sizes(self):
+    def test05_static_full_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = set()
         for (size) in static_full_sizes(100,100,64):
@@ -192,7 +218,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[1, 1]' in sizes )
         self.assertEqual( len(sizes), 7 )
 
-    def test05_setup_destination(self):
+    def test06_setup_destination(self):
         s=IIIFStatic()
         # no dst
         self.assertRaises( Exception, s.setup_destination )
@@ -233,7 +259,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
-    def test06_write_html(self):
+    def test07_write_html(self):
         s=IIIFStatic()
         # bad output dir
         self.assertRaises( Exception, s.write_html, '/tmp/path_does_no_exist_(i_hope)' )

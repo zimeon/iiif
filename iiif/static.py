@@ -166,6 +166,7 @@ class IIIFStatic(object):
 
 
     def generate_tile(self,region,size):
+        """Generate one tile for this given region,size of this region"""
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
         if (region == 'full'):
             r.region_full = True
