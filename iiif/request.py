@@ -124,24 +124,26 @@ class IIIFRequest(object):
             path += "info"
             format = self.format if self.format else "json"
         else:
-            # set defaults if not given
+            # region
             if self.region:
                 region = self.region
             elif self.region_xywh:
                 region = "%d,%d,%d,%d" % tuple(self.region_xywh)
             else:
                 region = "full"
+            # size
             if self.size:
                 size = self.size
             elif self.size_wh:
                 if (self.size_wh[0] is None):
                     size = ",%d" % (self.size_wh[1])
-                if (self.size_wh[1] is None):
+                elif (self.size_wh[1] is None):
                     size = "%d," % (self.size_wh[0])
                 else:
                     size = "%d,%d" % (self.size_wh[0],self.size_wh[1])
             else:
-                size = "full" 
+                size = "full"
+            # rotation and quality
             rotation = self.rotation if self.rotation else "0"
             quality = self.quality if self.quality else self.default_quality
             # parameterized form
@@ -408,7 +410,7 @@ class IIIFRequest(object):
     def parse_rotation(self, rotation=None):
         """ Check and interpret rotation
 
-        Uses value of self.rotation at starting point unless rotation parameter
+        Uses value of self.rotation as starting point unless rotation parameter
         is specified in the call. Sets self.rotation_deg to a floating point 
         number 0 <= angle < 360. Includes translation of 360 to 0. If there is 
         a prefix bang (!) then self.rotation_mirror will be set True, otherwise

@@ -9,6 +9,7 @@ set given in the spec.
 Simeon Warner
   2015-05 - Working toward v2.1 spec
 """
+import re
 import unittest
 
 from iiif.error import IIIFError
@@ -114,6 +115,15 @@ class TestAll(unittest.TestCase):
         self.assertRaises( IIIFError, r.parse_region )
         r.region='pct:-10,0,50,100'
         self.assertRaises( IIIFError, r.parse_region )
+        r.region='pct:a,b,c,d'
+        self.assertRaises( IIIFError, r.parse_region )
+        r.region='a,b,c,d'
+        self.assertRaises( IIIFError, r.parse_region )
+        # zero size
+        r.region='0,0,0,100'
+        self.assertRaises( IIIFError, r.parse_region )
+        r.region='0,0,100,0'
+        self.assertRaises( IIIFError, r.parse_region )
 
     def test03_parse_size(self):
         r = IIIFRequest()
@@ -143,6 +153,16 @@ class TestAll(unittest.TestCase):
         self.assertRaises( IIIFError, r.parse_size, '0.0,' )
         self.assertRaises( IIIFError, r.parse_size, '1.0,1.0' )
         self.assertRaises( IIIFError, r.parse_size, '1,1,1' )
+        self.assertRaises( IIIFError, r.parse_size, 'bad-size')
+        # bad pct size
+        self.assertRaises( IIIFError, r.parse_size, 'pct:a')
+        self.assertRaises( IIIFError, r.parse_size, 'pct:-1')
+        # bad bang pixel size
+        self.assertRaises( IIIFError, r.parse_size, '!1,')
+        self.assertRaises( IIIFError, r.parse_size, '!,1')
+        self.assertRaises( IIIFError, r.parse_size, '0,1')
+        self.assertRaises( IIIFError, r.parse_size, '2,0')
+
 
     def test05_parse_rotation(self):
         r = IIIFRequest()
@@ -170,6 +190,11 @@ class TestAll(unittest.TestCase):
         r.parse_rotation('!123.45678')
         self.assertEqual(r.rotation_mirror, True)
         self.assertEqual(r.rotation_deg, 123.45678)
+        # nothing supplied
+        r.rotation = None
+        r.parse_rotation()
+        self.assertEqual(r.rotation_mirror, False)
+        self.assertEqual(r.rotation_deg, 0.0)
 
     def test06_parse_rotation_bad(self):
         r = IIIFRequest()
@@ -235,13 +260,92 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/bogus"))
         self.assertRaises(IIIFError, IIIFRequest().split_url, ("id1/all/270/!pct%3A75.23.jpg"))
 
+    def test18_url(self):
+        r = IIIFRequest()
+        r.size = None 
+        r.size_wh = [11,22]
+        self.assertEqual( r.url(identifier='abc1'), 'abc1/full/11,22/0/default' )
+        r.size_wh = [100,None]
+        self.assertEqual( r.url(identifier='abc2'), 'abc2/full/100,/0/default' )
+        r.size_wh = [None,999]
+        self.assertEqual( r.url(identifier='abc3'), 'abc3/full/,999/0/default' )
+        r.size_wh = None
+        self.assertEqual( r.url(identifier='abc4'), 'abc4/full/full/0/default' )
+
+    def test19_split_url(self):
+        # mismatching baseurl
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFError, r.split_url, 'http://other.base.url/' )
+        # matching baseurl, but bad request
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFRequestBaseURI , r.split_url, 'http://ex.org/a/b' )
+        # matching baseurl, good request
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/a/'
+        r.identifier = None
+        r.split_url('http://ex.org/a/b/full/full/0/native')
+        self.assertEqual( r.identifier, 'b' )
+        self.assertEqual( r.region, 'full' )
+        self.assertEqual( r.size, 'full' )
+        # matching baseurl, insert id, good request
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/a/'
+        r.identifier = 'b'
+        r.split_url('http://ex.org/a/full/full/0/native')
+        self.assertEqual( r.identifier, 'b' )
+        self.assertEqual( r.region, 'full' )
+        self.assertEqual( r.size, 'full' )
+        # matching baseurl, too many segments
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFError, r.split_url, 'http://ex.org/a/1/2/3/4/5/6' )
+        # api_version=1.0, format=xyz -> bad
+        r = IIIFRequest(api_version='1.0')
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFError, r.split_url, 'http://ex.org/a/b/info.xyz' )
+        # api_version=2.1, format=xml -> bad
+        r = IIIFRequest(api_version='2.1')
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFError, r.split_url, 'http://ex.org/a/b/info.xml' )
+        # api_version=2.1, format=xyz -> bad
+        r = IIIFRequest(api_version='2.1')
+        r.baseurl = 'http://ex.org/a/'
+        self.assertRaises( IIIFError, r.split_url, 'http://ex.org/a/b/info.xyz' )
+
     def test20_parse_w_comma_h(self):
         r = IIIFRequest()
         self.assertEquals( r._parse_w_comma_h('1,2','a'), (1,2) )
-
-    def test21_parse_w_comma_h_bad(self):
-        r = IIIFRequest()
+        self.assertRaises( IIIFError, r._parse_w_comma_h, ',', 'region' )
         self.assertRaises( IIIFError, r._parse_w_comma_h, '1.0,1.0', 'size' )
+
+    def test21_parse_non_negative_int(self):
+        r = IIIFRequest()
+        self.assertEquals( r._parse_non_negative_int('1','a'), (1) )
+        self.assertRaises( ValueError, r._parse_non_negative_int, 'a', 'region' )
+        self.assertRaises( ValueError, r._parse_non_negative_int, '-1', 'region' )
+
+    def test22_str(self):
+        # Simple tests of str()
+        r = IIIFRequest()
+        r.baseurl = 'http://ex.org/'
+        r.identifier = 'abc'
+        # info
+        r.info = True
+        r.format = 'json'
+        self.assertTrue( re.search(r'INFO request', str(r)) )
+        self.assertTrue( re.search(r'format=json', str(r)) )
+        # non-info
+        r.info = False
+        r.region = 'R'
+        r.size = 'S'
+        r.rotation = 'X'
+        r.quality = 'Q'
+        r.format ='jpg'
+        self.assertFalse( re.search(r'INFO request', str(r)) )
+        self.assertTrue( re.search(r'region=R', str(r)) )
+        self.assertTrue( re.search(r'format=jpg', str(r)) )
 
     def pstr(self,p):
         s=''
