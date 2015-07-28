@@ -10,7 +10,7 @@ class TestAll(unittest.TestCase):
 
     def test01_init(self):
         auth = IIIFAuth()
-        self.assertEqual( auth.profile_base, 'http://iiif.io/api/image/2/auth/' )
+        self.assertEqual( auth.profile_base, 'http://iiif.io/api/auth/0/' )
         self.assertEqual( auth.name, "image server" )
         auth = IIIFAuth(cookie_prefix='abc_')
         self.assertEqual( auth.cookie_prefix, 'abc_' )
@@ -56,7 +56,7 @@ class TestAll(unittest.TestCase):
     def test04_login_service_description(self):
         auth = IIIFAuth()
         lsd = auth.login_service_description()
-        self.assertEqual( lsd['profile'], 'http://iiif.io/api/image/2/auth/login' )
+        self.assertEqual( lsd['profile'], 'http://iiif.io/api/auth/0/login' )
         auth.login_uri = 'id1'
         auth.profile_base = 'http://pb1/'
         lsd = auth.login_service_description()

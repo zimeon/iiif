@@ -24,7 +24,7 @@ class TestAll(unittest.TestCase):
         auth.add_services(info) 
         self.assertEqual( info.service['@id'], "http://example.com/login" )
         self.assertEqual( info.service['label'], "Login to image server" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/image/2/auth/login" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/login" )
 
     def test03_just_logout(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
@@ -33,7 +33,7 @@ class TestAll(unittest.TestCase):
         auth.add_services(info) 
         self.assertEqual( info.service['@id'], "http://example.com/logout" )
         self.assertEqual( info.service['label'], "Logout from image server" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/image/2/auth/logout" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/logout" )
 
     def test04_just_client_id(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
@@ -41,7 +41,7 @@ class TestAll(unittest.TestCase):
         auth.client_id_uri = 'http://example.com/client_id'
         auth.add_services(info) 
         self.assertEqual( info.service['@id'], "http://example.com/client_id" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/image/2/auth/clientId" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/clientId" )
 
     def test05_just_access_token(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')
@@ -49,7 +49,7 @@ class TestAll(unittest.TestCase):
         auth.access_token_uri = 'http://example.com/token'
         auth.add_services(info) 
         self.assertEqual( info.service['@id'], "http://example.com/token" )
-        self.assertEqual( info.service['profile'], "http://iiif.io/api/image/2/auth/token" )
+        self.assertEqual( info.service['profile'], "http://iiif.io/api/auth/0/token" )
 
     def test06_full_set(self):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='2.1')

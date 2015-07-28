@@ -31,7 +31,7 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthBasic()
         auth.logout_uri = 'xyz'
         lsd = auth.logout_service_description()
-        self.assertEqual( lsd['profile'], 'http://iiif.io/api/image/2/auth/logout' )
+        self.assertEqual( lsd['profile'], 'http://iiif.io/api/auth/0/logout' )
         self.assertEqual( lsd['@id'], 'xyz' )
         self.assertEqual( lsd['label'], 'Logout from image server' )
 

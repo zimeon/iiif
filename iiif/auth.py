@@ -16,7 +16,7 @@ class IIIFAuth(object):
         """Create IIIFAuth object
           
         """
-        self.profile_base = 'http://iiif.io/api/image/2/auth/'
+        self.profile_base = 'http://iiif.io/api/auth/0/'
         self.name = "image server"
         self.login_uri = None
         self.logout_uri = None

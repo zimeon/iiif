@@ -33,7 +33,7 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthGoogle()
         auth.logout_uri = 'xyz'
         lsd = auth.logout_service_description()
-        self.assertEqual( lsd['profile'], 'http://iiif.io/api/image/2/auth/logout' )
+        self.assertEqual( lsd['profile'], 'http://iiif.io/api/auth/0/logout' )
         self.assertEqual( lsd['@id'], 'xyz' )
         self.assertEqual( lsd['label'], 'Logout from image server' )
 
@@ -78,3 +78,10 @@ class TestAll(unittest.TestCase):
             j = json.loads(response.get_data())
             self.assertEqual( j['error_description'], "No login details received" )
             self.assertEqual( j['error'], "client_unauthorized" )
+
+    #def test07_home_handler(self):
+    #    with dummy_app.test_request_context('/a_request'):
+    #        auth = IIIFAuthGoogle()
+    #        response = auth.home_handler()
+    #        self.assertEqual( response.status_code, 200 )
+    #        self.assertEqual( response.headers['Content-type'], 'text/html' )
