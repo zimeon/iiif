@@ -4,6 +4,7 @@ See http://flask.pocoo.org/docs/0.10/testing/ for Flask notes
 """
 from flask import Flask,request, make_response, redirect
 import json
+import mock
 import re
 import unittest
 
@@ -11,9 +12,20 @@ from iiif.auth_google import IIIFAuthGoogle
 
 dummy_app = Flask('dummy')
 
+
 class Struct(object):
+    """Class with properties created from **kwargs"""
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+
+class Readable(object):
+    """Class supporting read() method to mock urllib2.urlopen"""
+    def __init__(self,value):
+        self.value = value
+    def read(self):
+        return self.value
+
 
 class TestAll(unittest.TestCase):
 
@@ -79,9 +91,30 @@ class TestAll(unittest.TestCase):
             self.assertEqual( j['error_description'], "No login details received" )
             self.assertEqual( j['error'], "client_unauthorized" )
 
-    #def test07_home_handler(self):
-    #    with dummy_app.test_request_context('/a_request'):
-    #        auth = IIIFAuthGoogle()
-    #        response = auth.home_handler()
-    #        self.assertEqual( response.status_code, 200 )
-    #        self.assertEqual( response.headers['Content-type'], 'text/html' )
+    def test07_home_handler(self):
+        with dummy_app.test_request_context('/a_request'):
+            auth = IIIFAuthGoogle()
+            # Avoid actual calls to Google by mocking methods used by home_handler()
+            auth.google_get_token = mock.Mock(return_value='ignored')
+            auth.google_get_data = mock.Mock(return_value={'email':'e@mail','name':'a name'})
+            response = auth.home_handler()
+            self.assertEqual( response.status_code, 200 )
+            self.assertEqual( response.headers['Content-type'], 'text/html' )
+            html = response.get_data()
+            self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
+
+    def test08_google_get_token(self):
+        with dummy_app.test_request_context('/a_request'):
+            with mock.patch('urllib2.urlopen', return_value=Readable('{"a":"b"}')):
+                auth = IIIFAuthGoogle()
+                config = Struct(host='a_host',port=None)
+                j = auth.google_get_token(config,'prefix')
+                self.assertEqual( j, {'a':'b'} )
+
+    def test09_google_get_data(self):
+        with dummy_app.test_request_context('/a_request'):
+            with mock.patch('urllib2.urlopen', return_value=Readable('{"c":"d"}')):
+                auth = IIIFAuthGoogle()
+                config = Struct(host='a_host',port=None)
+                j = auth.google_get_data(config,{'access_token':'TOKEN'})
+                self.assertEqual( j, {'c':'d'} )

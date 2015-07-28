@@ -56,7 +56,8 @@ setup(
     install_requires=[
         "Pillow",
         "python-magic",
-        "Flask"
+        "Flask",
+        "mock"
     ],
     test_suite="tests",
     cmdclass={
