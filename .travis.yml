@@ -2,7 +2,6 @@ language: python
 python:
   - "2.6"
   - "2.7"
-  - "3.3"
 # commands to install dependencies
 # need "python setup.py install" to install resync so that client tests work
 install:
