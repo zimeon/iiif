@@ -1,11 +1,11 @@
 #!/usr/bin/env python2.6
-"""Crude CGI implementation for IIIF service
+"""Crude CGI implementation for IIIF service.
 
 Relies upon IIIFManupulator object to do the image
 manipulations requested.
 """
 
-import BaseHTTPServer
+import http.server
 import re
 import sys
 import os
@@ -24,19 +24,28 @@ from iiif.request import IIIFRequest
 from iiif.info import IIIFInfo
 
 class CGI_responder(object):
+
+    """Simple class to implement CGI responses.
+
+    Mimics methods of BaseHTTPServer.BaseHTTPRequestHandler
+    """
+
     def send_response(self,code,text=''):
-        print "Status: %s %s\r" % (str(code),text)
+        """Output HTTP status line."""
+        print("Status: %s %s\r" % (str(code),text))
 
     def send_header(self,header,value):
-        print "%s: %s\r" % (header,value)
+        """Output HTTP header line."""
+        print("%s: %s\r" % (header,value))
 
     def end_headers(self):
-        print "\r"
+        """Output HTTP header termination (blank line)."""
+        print("\r")
 
     
-#class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class IIIFRequestHandler(CGI_responder):
 
+    """Minimal implementation of HTTP request handler to do iiif GET via CGI."""
     manipulator_class=None
 
 #    def __init__(self, request, client_address, server):
@@ -53,8 +62,6 @@ class IIIFRequestHandler(CGI_responder):
         self.path= ( os.environ['PATH_INFO'] if ('PATH_INFO' in os.environ) else '/bogus')
         self.wfile=sys.stdout
 
-    """Minimal implementation of HTTP request handler to do iiif GET
-    """
     def error_response(self,code,content=''):
         self.send_response(code)
         self.send_header('Content-Type','text/xml')
@@ -67,7 +74,7 @@ class IIIFRequestHandler(CGI_responder):
             self.send_header('Link','<'+self.compliance_uri+'>;rel="profile"')
         
     def do_GET(self):
-        """Implement the HTTP GET method
+        """Implement the HTTP GET method.
 
         The bulk of this code is wrapped in a big try block and anywhere
         within the code may raise an IIIFError which then results in an
@@ -144,8 +151,8 @@ class IIIFRequestHandler(CGI_responder):
             i.identifier = self.iiif.identifier
             i.width = manipulator.width
             i.height = manipulator.height
-            import StringIO
-            return(StringIO.StringIO(i.as_json()),"application/json")
+            import io
+            return(io.StringIO(i.as_json()),"application/json")
         else:
             (outfile,mime_type)=manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)

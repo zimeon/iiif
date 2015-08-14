@@ -149,8 +149,8 @@ class IIIFStatic(object):
                       api_version=self.api_version)
         json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
-            print "dryrun mode, would write the following files:"
-            print "%s / %s/%s" % (self.dst, self.identifier, 'info.json')
+            print("dryrun mode, would write the following files:")
+            print("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
             self.logger.info(info.as_json())
         else:
             with open(json_file,'w') as f:
@@ -162,7 +162,7 @@ class IIIFStatic(object):
             self.generate_tile(region,size)
         for (size) in static_full_sizes(width,height,self.tilesize):
             self.generate_tile('full',size)
-        print
+        print()
 
 
     def generate_tile(self,region,size):
@@ -177,14 +177,14 @@ class IIIFStatic(object):
         path = r.url()
         # Generate...
         if (self.dryrun):
-            print "%s / %s" % (self.dst,path)
+            print("%s / %s" % (self.dst,path))
         else:
             m = IIIFManipulatorPIL(api_version=self.api_version)
             try:
                 m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))
-                print "%s / %s" % (self.dst,path)
+                print("%s / %s" % (self.dst,path))
             except IIIFZeroSizeError as e:
-                print "%s / %s - zero size, skipped" % (self.dst,path)
+                print("%s / %s - zero size, skipped" % (self.dst,path))
 
 
     def setup_destination(self):
@@ -252,7 +252,7 @@ class IIIFStatic(object):
                       osd_images_prefix = osd_images+'/', #OSD needs trailing slash
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
-            print "%s / %s" % (html_dir,outfile)
+            print("%s / %s" % (html_dir,outfile))
             self.logger.info("Wrote info.json to %s" % outpath)
         # Do we want to copy OSD in there too? If so, do it only if
         # we haven't already
@@ -265,14 +265,14 @@ class IIIFStatic(object):
                 if (not os.path.isdir(osd_path)):
                     os.makedirs(osd_path)
                 shutil.copyfile(os.path.join('demo-static',osd_js), os.path.join(html_dir,osd_js))
-                print "%s / %s" % (html_dir,osd_js)
+                print("%s / %s" % (html_dir,osd_js))
                 osd_images_path = os.path.join(html_dir,osd_images)
                 if (os.path.isdir(osd_images_path)):
                     self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
                 else:
                     shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
-                    print "%s / %s/*" % (html_dir,osd_images)
-        print
+                    print("%s / %s/*" % (html_dir,osd_images))
+        print()
 
 
 

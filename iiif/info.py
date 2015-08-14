@@ -7,7 +7,10 @@ Default version is 2.0 but also supports 2.1, 1.1 and 1.0
 import sys
 import json
 import re
-import StringIO
+try: #python3
+    import io
+except ImportError: #python2
+    import StringIO as io
 
 
 def _parse_int_array(info,json_data):

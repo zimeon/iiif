@@ -5,7 +5,12 @@ import re
 import shutil
 import tempfile
 import unittest
-import sys, StringIO, contextlib
+import sys
+import contextlib
+try: #python3
+    import io
+except ImportError: #python2
+    import StringIO as io
 
 from iiif.static import IIIFStatic, static_partial_tile_sizes, static_full_sizes
 
@@ -16,7 +21,7 @@ class Data(object):
 @contextlib.contextmanager
 def capture_stdout():
     old = sys.stdout
-    capturer = StringIO.StringIO()
+    capturer = io.StringIO()
     sys.stdout = capturer
     data = Data()
     yield data
@@ -100,7 +105,7 @@ class TestAll(unittest.TestCase):
         # Test cases for 3467 by 5117 with osd 2.0.0
         # see https://gist.github.com/zimeon/d97bc554ead393b7588d
         sizes = self._generate_tile_sizes(3467,5117,512,[1,2,4,8],True)
-        print sizes
+        #print(sizes)
         self.assertTrue( '[0, 0, 1024, 1024][512,]' in sizes )
         self.assertTrue( '[0, 0, 2048, 2048][512,]' in sizes )
         self.assertTrue( '[0, 0, 3467, 4096][434,]' in sizes )

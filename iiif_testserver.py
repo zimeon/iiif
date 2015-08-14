@@ -17,8 +17,11 @@ import json
 import optparse
 import os
 import os.path
-import urllib
-import urllib2
+try: #python3
+    import urllib.request, urllib.parse, urllib.error
+except ImportError: #python2
+    import urllib
+    import urllib2
 
 from iiif.error import IIIFError
 from iiif.request import IIIFRequest,IIIFRequestBaseURI
@@ -32,7 +35,7 @@ class Config(object):
         objects and from optparse.Values objects.
         """ 
         for arg in args:
-            for k in arg.__dict__.keys():
+            for k in list(arg.__dict__.keys()):
                 self.__dict__[k] = arg.__dict__[k]
 
 def no_op(self,format,*args):
@@ -215,7 +218,7 @@ class IIIFHandler(object):
             self.iiif.identifier = self.identifier
             self.iiif.parse_url(path)
         except IIIFRequestBaseURI as e:
-            info_uri = self.server_and_prefix + '/' + urllib.quote(self.iiif.identifier) + '/info.json'
+            info_uri = self.server_and_prefix + '/' + urllib.parse.quote(self.iiif.identifier) + '/info.json'
             raise IIIFError(code=303, 
                             headers={'Location': info_uri})
         except IIIFError as e:
@@ -245,7 +248,7 @@ class IIIFHandler(object):
             formats = { 'image/jpeg': 'jpg', 'image/tiff': 'tif',
                         'image/png': 'png', 'image/gif': 'gif',
                         'image/jp2': 'jps', 'application/pdf': 'pdf' }
-            accept = do_conneg( request.headers['Accept'], formats.keys() )
+            accept = do_conneg( request.headers['Accept'], list(formats.keys()) )
             # Ignore Accept header if not recognized, should this be an error instead?
             if (accept in formats):
                 self.iiif.format = formats[accept]
@@ -269,7 +272,7 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, aut
     """Handler for IIIF Image Information requests"""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
-        print "Authorized for image %s" % identifier
+        print("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_information_response()
@@ -293,7 +296,7 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     """
     if (not auth or degraded_request(identifier) or auth.image_authz()):
         # serve image
-        print "Authorized for image %s" % identifier
+        print("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_request_response(path)
@@ -302,7 +305,7 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     else:
         # redirect to degraded (for not authz and for authn but not authz too)
         degraded_uri = host_port_prefix(config.host,config.port,prefix)+'/'+identifier+'-deg/'+path
-        print "Redirection to degraded: %s" % degraded_uri
+        print("Redirection to degraded: %s" % degraded_uri)
         response = redirect(degraded_uri)
         response.headers['Access-control-allow-origin']='*'
         return response
@@ -366,7 +369,7 @@ def parse_authorization_header(value):
         return {'type':'basic', 'username': username, 'password': password}
     elif (auth_type == 'digest'):
         auth_map = urllib2.parse_keqv_list(urllib2.parse_http_list(auth_info))
-        print auth_map
+        print(auth_map)
         for key in 'username', 'realm', 'nonce', 'uri', 'response':
             if not key in auth_map:
                 return
@@ -493,7 +496,7 @@ def add_handler(app, config, prefixes):
         from iiif.auth_basic import IIIFAuthBasic
         auth = IIIFAuthBasic()
     else:
-        print "Unknown auth type %s, ignoring" % (config.auth_type)
+        print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
     klass=None
     if (config.klass_name=='pil'):
@@ -506,9 +509,9 @@ def add_handler(app, config, prefixes):
         from iiif.manipulator import IIIFManipulator
         klass=IIIFManipulator
     else:
-        print "Unknown manipulator type %s, ignoring" % (config.klass_name)
+        print("Unknown manipulator type %s, ignoring" % (config.klass_name))
         return
-    print "Installing %s IIIFManipulator at /%s/ v%s %s" % (config.klass_name,prefix,config.api_version,config.auth_type)
+    print("Installing %s IIIFManipulator at /%s/ v%s %s" % (config.klass_name,prefix,config.api_version,config.auth_type))
     params=dict(config=config, klass=klass, auth=auth, prefix=prefix)
     app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
@@ -568,7 +571,7 @@ if __name__ == '__main__':
     opt = setup_options()
     opt.container_prefix = ''
     app = create_app(opt)
-    print "Starting test server on http://%s:%d/ ..." % (opt.host,opt.port)
+    print("Starting test server on http://%s:%d/ ..." % (opt.host,opt.port))
     app.run(host=opt.host, port=opt.port)
 else:
     opt = optparse.Values()

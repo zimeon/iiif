@@ -12,8 +12,8 @@ import re
 import shutil
 import subprocess
 
-from error import IIIFError,IIIFZeroSizeError
-from request import IIIFRequest
+from iiif.error import IIIFError,IIIFZeroSizeError
+from iiif.request import IIIFRequest
 
 class IIIFManipulator(object):
     """Manipulate an image according to IIIF rules

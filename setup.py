@@ -30,7 +30,7 @@ class Coverage(Command):
         os.system("coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
         os.system("coverage report")
         os.system("coverage html")
-        print "See htmlcov/index.html for details."
+        print("See htmlcov/index.html for details.")
 
 setup(
     name='iiif',

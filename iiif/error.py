@@ -8,8 +8,11 @@
 """
 
 import sys
-import StringIO
 from xml.etree.ElementTree import ElementTree, Element
+try: #python3
+    import io
+except ImportError: #python2
+    import BytesIO as io
 
 # Namespace used in XML error response
 I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
@@ -43,7 +46,7 @@ class IIIFError:
         
         # Write out as XML document to return
         tree = ElementTree(root);
-        xml_buf=StringIO.StringIO()
+        xml_buf=io.StringIO()
         if (sys.version_info < (2,7)):
             tree.write(xml_buf,encoding='UTF-8')
         else:

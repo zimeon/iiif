@@ -4,11 +4,14 @@ This class is a thorough implementation of restrictions in the
 IIIF specification. It does not add any implementation specific 
 restrictions.
 """
-import urllib
 import re
 import string
+try: #python3
+    from urllib.parse import urlparse
+except ImportError: #python2
+    from urllib import urlparse
 
-from error import IIIFError, IIIFZeroSizeError
+from iiif.error import IIIFError, IIIFZeroSizeError
 
 class IIIFRequestBaseURI(Exception):
     """ Subclass of Exception to indicate request for base URI """
@@ -107,7 +110,7 @@ class IIIFRequest(object):
          
         to-encode = "%" / "/" / "?" / "#" / "[" / "]" / "@"
         """
-        return( urllib.quote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
+        return( urlparse.quote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
 
     def url(self, **params):
         """ Build a URL path according to the IIIF API parameterized or 
@@ -189,37 +192,37 @@ class IIIFRequest(object):
         if (self.baseurl): 
             (path, num) = re.subn('^'+self.baseurl, '', url, 1)
             if (num != 1):
-                raise(IIIFError("URL does not match baseurl (server/prefix)."))
+                raise IIIFError
             url=path
         # Break up by path segments, count to decide format
-        segs = string.split( url, '/', 5)
+        segs = url.split( '/', 5)
         if (identifier is not None):
             segs.insert(0, identifier)
         if (len(segs) > 5):
-            raise(IIIFError(code=404,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
+            raise IIIFError
         elif (len(segs) == 5):
-            self.identifier = urllib.unquote(segs[0])
-            self.region = urllib.unquote(segs[1])
-            self.size  = urllib.unquote(segs[2])
-            self.rotation = urllib.unquote(segs[3])
-            self.quality = self.strip_format(urllib.unquote(segs[4]))
+            self.identifier = urlparse.unquote(segs[0])
+            self.region = urlparse.unquote(segs[1])
+            self.size  = urlparse.unquote(segs[2])
+            self.rotation = urlparse.unquote(segs[3])
+            self.quality = self.strip_format(urlparse.unquote(segs[4]))
             self.info = False
         elif (len(segs) == 2):
-            self.identifier = urllib.unquote(segs[0])
-            info_name = self.strip_format(urllib.unquote(segs[1]))
+            self.identifier = urlparse.unquote(segs[0])
+            info_name = self.strip_format(urlparse.unquote(segs[1]))
             if (info_name != "info"):
-                raise(IIIFError(code=400,text="Badly formed information request, must be info.json or info.xml"))
+                raise IIIFError
             if (self.api_version=='1.0'):
                 if (self.format not in ['json','xml']):
-                    raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
+                    raise IIIFError
             elif (self.format!='json'):
-                raise(IIIFError(code=400,text="Bad information request format, must be json"))
+                raise IIIFError
             self.info = True
         elif (len(segs) == 1):
-            self.identifier = urllib.unquote(segs[0])
-            raise(IIIFRequestBaseURI())
+            self.identifier = urlparse.unquote(segs[0])
+            raise IIIFRequestBaseURI
         else:
-            raise(IIIFError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
+            raise IIIFError
         return(self)
 
     def strip_format(self,str_and_format):

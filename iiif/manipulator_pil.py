@@ -13,9 +13,9 @@ import tempfile
 
 from PIL import Image
 
-from error import IIIFError
-from request import IIIFRequest
-from manipulator import IIIFManipulator
+from iiif.error import IIIFError
+from iiif.request import IIIFRequest
+from iiif.manipulator import IIIFManipulator
 
 class IIIFManipulatorPIL(IIIFManipulator):
     """Module to manipulate and image according to iiif rules

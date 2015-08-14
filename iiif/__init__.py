@@ -1,9 +1,7 @@
-from _version import __version__
+from iiif._version import __version__
 
-from error import IIIFError
-from info import IIIFInfo
-from manipulator import IIIFManipulator
-from request import IIIFRequest
-from static import IIIFStatic
-#iiif/manipulator_netpbm.py
-#iiif/manipulator_pil.py
+from iiif.error import IIIFError
+from iiif.info import IIIFInfo
+from iiif.manipulator import IIIFManipulator
+from iiif.request import IIIFRequest
+from iiif.static import IIIFStatic

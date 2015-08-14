@@ -11,7 +11,7 @@ baseurl='http://localhost:8000/1.1_pil/'
 class TestAll(unittest.TestCase):
 
     def get(self,path,map_404_to_400=False):
-        print "get("+path+")..."
+        print("get("+path+")...")
         try:
             f = urlopen(baseurl+path)
             img_size = 0
@@ -29,7 +29,7 @@ class TestAll(unittest.TestCase):
             return('other_error_'+str(e))
 
     def test1_success(self):
-        print "Success tests..."
+        print("Success tests...")
         id = "214-2.png"
         size = 2601 #default output is jpg
         self.assertEqual( self.get(id+'/full/pct:100/0/color'), size)
@@ -51,7 +51,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/full/pct:99.99/0/color.png'), size)
 
     def test2_errors(self):
-        print "Error tests..."
+        print("Error tests...")
         id = "214-2.png"
         # Numbers of params
         self.assertEqual( self.get('1param'), 'code404' )
