@@ -1,4 +1,4 @@
-"""Static file generation for IIIF Image API
+"""Static file generation for IIIF Image API.
 
 Use IIIF Image API manipulations to generate a set of tiles for
 a level0 implementation of the IIIF Image API using static files.
@@ -18,17 +18,18 @@ from iiif.error import IIIFZeroSizeError
 
 
 def static_partial_tile_sizes(width,height,tilesize,scale_factors):
-    """Generator for partial tile sizes for zoomed in views
+    """Generator for partial tile sizes for zoomed in views.
 
-    width: width of full size image
-    height: height of full size image
-    tilesize: width and height of tiles
-    scale_factors: iterable of scale factors, typically [1,2,4..]
+    Positional arguments:
+    width -- width of full size image
+    height -- height of full size image
+    tilesize -- width and height of tiles
+    scale_factors -- iterable of scale factors, typically [1,2,4..]
 
     Yields ([rx,ry,rw,rh],[sw,sh]), the region and size for each tile
     """
     for sf in scale_factors:
-        if (sf*tilesize>width and sf*tilesize>height):
+        if (sf*tilesize>=width and sf*tilesize>=height):
             continue #avoid any full-region tiles
         rts = tilesize*sf #tile size in original region
         xt = (width-1)/rts+1
@@ -49,12 +50,14 @@ def static_partial_tile_sizes(width,height,tilesize,scale_factors):
                 sh = (rh+sf-1)/sf #same as sh = int(math.ceil(rh/float(sf)))
                 yield([rx,ry,rw,rh],[sw,sh])
 
-def static_full_sizes(width,height,tilesize):
-    """Generator for scaled-down full image size
 
-    width: width of full size image
-    height: height of full size image
-    tilesize: width and height of tiles
+def static_full_sizes(width,height,tilesize):
+    """Generator for scaled-down full image sizes.
+
+    Positional arguments:
+    width -- width of full size image
+    height -- height of full size image
+    tilesize -- width and height of tiles
 
     Yields [sw,sh], the size for each full-region tile 
     """
@@ -82,7 +85,8 @@ def static_full_sizes(width,height,tilesize):
 
 
 class IIIFStatic(object):
-    """Provide static generation of IIIF images
+
+    """Provide static generation of IIIF images.
 
     Simplest, using source image as model for directory which
     will be in same directory without extension:
@@ -100,6 +104,16 @@ class IIIFStatic(object):
 
     def __init__(self, src=None, dst=None, tilesize=None,
                  api_version='2.0', dryrun=None, prefix=''):
+        """Initialization for IIIFStatic instances.
+
+        All keyword arguments are optional:
+        src -- source image file
+        dst -- destination directory
+        tilesize -- size of square tiles to generate (default 512)
+        api_version -- IIIF Image API version to support (default 2.0)
+        dryrun -- True to not write any output (default None)
+        prefix -- identifier prefix
+        """
         self.src = src
         self.dst = dst
         self.tilesize = tilesize if tilesize is not None else 512
@@ -118,7 +132,7 @@ class IIIFStatic(object):
 
 
     def generate(self, src=None, identifier=None):
-        """Generate static files for one source image"""
+        """Generate static files for one source image."""
         self.src=src
         self.identifier=identifier
         # Get image details and calculate tiles
@@ -140,12 +154,20 @@ class IIIFStatic(object):
             scale_factors.append(factor)
         # Setup destination and IIIF identifier
         self.setup_destination()
+        # Write out images
+        for (region,size) in static_partial_tile_sizes(width,height,self.tilesize,scale_factors):
+            self.generate_tile(region,size)
+        sizes = []
+        for (size) in static_full_sizes(width,height,self.tilesize):
+            #FIXME - see https://github.com/zimeon/iiif/issues/9
+            #sizes.append({'width': size[0], 'height': size[1]})
+            self.generate_tile('full',size)
         # Write info.json
         qualities = ['default'] if (self.api_version>'1.1') else ['native']
         info=IIIFInfo(level=0, server_and_prefix=self.prefix, identifier=self.identifier,
                       width=width, height=height, scale_factors=scale_factors,
                       tile_width=self.tilesize, tile_height=self.tilesize,
-                      formats=['jpg'], qualities=qualities,
+                      formats=['jpg'], qualities=qualities, sizes=sizes,
                       api_version=self.api_version)
         json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
@@ -157,16 +179,11 @@ class IIIFStatic(object):
                 f.write(info.as_json())
                 f.close()
             self.logger.info("Written %s"%(json_file))
-        # Write out images
-        for (region,size) in static_partial_tile_sizes(width,height,self.tilesize,scale_factors):
-            self.generate_tile(region,size)
-        for (size) in static_full_sizes(width,height,self.tilesize):
-            self.generate_tile('full',size)
         print
 
 
     def generate_tile(self,region,size):
-        """Generate one tile for this given region,size of this region"""
+        """Generate one tile for this given region,size of this region."""
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
         if (region == 'full'):
             r.region_full = True
@@ -188,7 +205,7 @@ class IIIFStatic(object):
 
 
     def setup_destination(self):
-        """Setup output directory based on self.dst and self.identifier
+        """Setup output directory based on self.dst and self.identifier.
 
         Returns the output directory name on success, raises and exception on
         failure.
@@ -223,7 +240,7 @@ class IIIFStatic(object):
 
 
     def write_html(self, html_dir, include_osd=False):
-        """Write HTML test page using OpenSeadragon for the tiles generated
+        """Write HTML test page using OpenSeadragon for the tiles generated.
 
         Assumes that the generate(..) method has already been called to set up
         identifier etc.
