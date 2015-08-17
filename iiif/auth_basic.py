@@ -1,4 +1,4 @@
-"""IIIF Authentication using HTTP Basic auth
+"""IIIF Authentication using HTTP Basic auth.
 
 FIXME - this code assumes Flask webapp framework, should be abstracted
 """
@@ -14,11 +14,14 @@ from iiif.auth import IIIFAuth
 
 class IIIFAuthBasic(IIIFAuth):
 
+    """IIIF Authentication Class using HTTP Basic Auth."""
+
     def __init__(self, cookie_prefix=None):
+        """Initialize IIIFAuthBasic object."""
         super(IIIFAuthBasic, self).__init__(cookie_prefix=cookie_prefix)
 
     def logout_service_description(self):
-        """Logout service description with has modified URI to supply 'bad' credentials
+        """Logout service description with has modified URI to supply 'bad' credentials.
 
         With HTTP Basic auth there are no clean ways to logout (except browser specific
         extensions). The standard recommendation seems to be to supply bad credentials.
@@ -31,17 +34,17 @@ class IIIFAuthBasic(IIIFAuth):
                 } )
 
     def info_authn(self):
-        """Check to see if user if authenticated for info.json"""
+        """Check to see if user if authenticated for info.json."""
         self.logger.info("info_authz: Authorization header = " + request.headers.get('Authorization', '[none]'))
         return (request.headers.get('Authorization', '') != '') #FIXME - check valaue
 
     def image_authn(self):
-        """Check to see if user if authenticated for image requets"""
+        """Check to see if user if authenticated for image requests."""
         self.logger.info("image_authn: loggedin cookie = " + request.cookies.get(self.token_cookie_name,default='[none]'))
         return request.cookies.get(self.token_cookie_name,default='') #FIXME - check value
 
     def login_handler(self, config=None, prefix=None, **args):
-        """HTTP Basic login handler
+        """HTTP Basic login handler.
 
         Respond with 401 and WWW-Authenticate header if there are no credentials
         or bad credentials. If there are credentials then simply check for username
@@ -61,7 +64,7 @@ class IIIFAuthBasic(IIIFAuth):
             return make_response("",401,headers)
  
     def logout_handler(self, **args):
-        """Handler for logout button
+        """Handler for logout button.
 
         Delete cookies and return HTML that immediately closes window. Logout
         is tricky but attempt to do this via self.logout_uri which as has
@@ -74,9 +77,12 @@ class IIIFAuthBasic(IIIFAuth):
         return response
 
     def access_token_handler(self, **args):
-        # This is the next step -- client requests a token to send to info.json
-        # We're going to just copy it from our cookie.
-        # JSONP request to get the token to send to info.json in Auth'z header
+        """Get access token based on cookie sent with this request.
+
+        The client requests a token to send in re-request for info.json. 
+        Support JSONP request to get the token to send to info.json in 
+        Auth'z header.
+        """
         callback_function = request.args.get('callback',default='')
         authdone = request.headers.get('Authorization', '')
         if (authdone):

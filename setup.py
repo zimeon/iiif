@@ -1,3 +1,4 @@
+"""Setup for IIIF Image Library implementation."""
 from setuptools import setup, Command
 import os
 # setuptools used instead of distutils.core so that 
@@ -17,16 +18,22 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
 
 class Coverage(Command):
+
+    """Class to allow coverage run from setup."""
+
     description = "run coverage"
     user_options = []
 
     def initialize_options(self):
+        """Empty initialize_options."""
         pass
 
     def finalize_options(self):
+        """Empty finalize_options."""
         pass
 
     def run(self):
+        """Run coverage program."""
         os.system("coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
         os.system("coverage report")
         os.system("coverage html")

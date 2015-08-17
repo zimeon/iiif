@@ -1,4 +1,4 @@
-"""IIIF Authentication via Google
+"""IIIF Authentication via Google.
 
 FIXME - this code assumes Flask webapp framework, should be abstracted
 """
@@ -14,7 +14,14 @@ from iiif.auth import IIIFAuth
 
 class IIIFAuthGoogle(IIIFAuth):
 
+    """IIIF Authentication Class using Google Auth."""
+
     def __init__(self, client_secret_file='client_secret.json', cookie_prefix=None):
+        """Initialize IIIFAuthGoogle object.
+
+        Sets a number of constants and attempts to load client client_secret
+        data from client_secret_file.
+        """
         super(IIIFAuthGoogle, self).__init__(cookie_prefix=cookie_prefix)
         #
         try:
@@ -36,7 +43,7 @@ class IIIFAuthGoogle(IIIFAuth):
         self.account_cookie_name = self.cookie_prefix+'account'
 
     def info_authn(self):
-        """Check to see if user if authenticated for info.json
+        """Check to see if user if authenticated for info.json.
 
         Must have Authorization header with value that is the appropriate
         token.
@@ -45,7 +52,7 @@ class IIIFAuthGoogle(IIIFAuth):
         return (request.headers.get('Authorization', '') != '')
 
     def image_authn(self):
-        """Check to see if user if authenticated for image requests
+        """Check to see if user if authenticated for image requests.
 
         Must have auth cookie with known token value.
         """
@@ -53,7 +60,7 @@ class IIIFAuthGoogle(IIIFAuth):
         return request.cookies.get(self.auth_cookie_name,default='')
 
     def login_handler(self, config=None, prefix=None, **args):
-        """OAuth starts here. This will redirect User to Google"""
+        """OAuth starts here. This will redirect User to Google."""
         params = {
             'response_type': 'code',
             'client_id': self.google_api_client_id,
@@ -67,7 +74,7 @@ class IIIFAuthGoogle(IIIFAuth):
         return response 
 
     def logout_handler(self, **args):
-        """Handler for logout button
+        """Handler for logout button.
 
         Delete cookies and return HTML that immediately closes window
         """
@@ -78,9 +85,12 @@ class IIIFAuthGoogle(IIIFAuth):
         return response
 
     def access_token_handler(self, **args):
-        # This is the next step -- client requests a token to send to info.json
-        # We're going to just copy it from our cookie.
-        # JSONP request to get the token to send to info.json in Auth'z header
+        """Get access token based on cookie sent with this request.
+
+        The client requests a token to send in re-request for info.json. 
+        Support JSONP request to get the token to send to info.json in 
+        Auth'z header.
+        """
         callback_function = request.args.get('callback',default='')
         authcode = request.args.get('code',default='')
         account = request.cookies.get(self.account_cookie_name,default='')
@@ -103,10 +113,10 @@ class IIIFAuthGoogle(IIIFAuth):
         return response 
 
     def home_handler(self, config=None, prefix=None, **args):
-        """Handler for /home redirect path after Goole auth
+        """Handler for /home redirect path after Goole auth.
 
         OAuth ends up back here from Google. Set the account cookie 
-        and close window to trigger next step
+        and close window to trigger next step.
         """
         gresponse = self.google_get_token(config, prefix)
         gdata = self.google_get_data(config, gresponse)
@@ -122,7 +132,7 @@ class IIIFAuthGoogle(IIIFAuth):
     #
 
     def google_get_token(self, config, prefix):
-        # Google OAuth2 helpers
+        """Make request to Google API to get token."""
         params = {
             'code': request.args.get('code',default=''),
             'client_id': self.google_api_client_id,
@@ -136,7 +146,7 @@ class IIIFAuthGoogle(IIIFAuth):
         return json.loads(urllib2.urlopen(req).read())
 
     def google_get_data(self, config, response):
-        """Make request to Google API to get profile data for the user"""
+        """Make request to Google API to get profile data for the user."""
         params = {
             'access_token': response['access_token'],
         }

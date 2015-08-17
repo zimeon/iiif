@@ -1,4 +1,4 @@
-"""Almost null implementation iiif image manipulations to provide base class 
+"""Almost null implementation IIIF image manipulations to provide base class.
 
 Provides a number of utility methods to extract information necessary
 for doing the transformations once one has knowledge of the source
@@ -16,14 +16,15 @@ from error import IIIFError,IIIFZeroSizeError
 from request import IIIFRequest
 
 class IIIFManipulator(object):
-    """Manipulate an image according to IIIF rules
+
+    """Manipulate an image according to IIIF rules.
 
     All exceptions are raise as IIIFError objects which directly
     determine the HTTP response.
     """
 
     def __init__(self, api_version='2.0'):
-        """Create manipulator object
+        """Initialize Manipulator object.
 
         Accepts api_version as a parameter to tailor handling of
         requests according to the API being supported.
@@ -43,7 +44,7 @@ class IIIFManipulator(object):
 
     @property
     def compliance_uri(self):
-        """ Return compliance URI
+        """Compliance URI based on api_version.
 
         Value is based on api_version and complicance_level, will be 
         None if either are unset/unrecognized. The assumption here is
@@ -63,14 +64,14 @@ class IIIFManipulator(object):
         return(uri_pattern % self.compliance_level)
 
     def derive(self,srcfile=None,request=None,outfile=None):
-        """ Do sequence of manipulations for IIIF to derive output image
+        """Do sequence of manipulations for IIIF to derive output image.
         
-        Args:
-            srcfile - source image file
-            request - IIIFRequest object with parsed parameters
-            outfile - output image file. If set the the output file will be
-                      written to that file, otherwise a new temporary file
-                      will be created and outfile set to its location.
+        Named argments:
+        srcfile -- source image file
+        request -- IIIFRequest object with parsed parameters
+        outfile -- output image file. If set the the output file will be
+                   written to that file, otherwise a new temporary file
+                   will be created and outfile set to its location.
 
         See order in spec: http://www-sul.stanford.edu/iiif/image-api/#order
 
@@ -87,7 +88,6 @@ class IIIFManipulator(object):
                 # ..
             finally:
                 m.cleanup() #removes temp m.outfile
-
         """
         # set if specified
         if (srcfile is not None):
@@ -116,27 +116,27 @@ class IIIFManipulator(object):
         return(self.outfile,self.mime_type)
 
     def do_first(self):
-        """Simplest possible manipulator that can only handle no modification
+        """Simplest possible manipulator that can only handle no modification.
 
-        Set width and height to -1 (unknown)
+        Set width and height to -1 (unknown).
         """
         self.width=-1  #don't know width of height
         self.height=-1 
 
     def do_region(self,x,y,w,h):
-        # Region
+        """Null implementation of region selection."""
         if (x is not None):
             raise IIIFError(code=501,parameter="region",
                             text="Null manipulator supports only region=/full/.")
 
     def do_size(self,w,h):
-        # Size
+        """Null implementation of size scaling."""
         if (w is not None):
             raise IIIFError(code=501,parameter="size",
                             text="Null manipulator supports only size=pct:100 and size=full.")
 
     def do_rotation(self,mirror,rot):
-        # Rotate
+        """Null implementation of rotate and/or mirror."""
         if (mirror):
             raise IIIFError(code=501,parameter="rotation",
                             text="Null manipulator does not support mirroring.")
@@ -145,7 +145,7 @@ class IIIFManipulator(object):
                             text="Null manipulator supports only rotation=(0|360).")
 
     def do_quality(self,quality):
-        # Quality
+        """Null implementation of quality."""
         if (self.api_version>='2.0'):
             if (quality != "default"):
                 raise IIIFError(code=501,parameter="default",
@@ -156,7 +156,12 @@ class IIIFManipulator(object):
                                 text="Null manipulator supports only quality=native.")
 
     def do_format(self,format):
-        # Format (the last step)
+        """Null implementation of format selection.
+
+        This is the last step, this null implementation does not accept any 
+        specification of a format because we don't even know what the input 
+        format is.
+        """
         if (format is not None):
             raise IIIFError(code=415,parameter="format",
                             text="Null manipulator does not support specification of output format.")
@@ -173,7 +178,7 @@ class IIIFManipulator(object):
 
 
     def do_last(self):
-        """ Hook in pipeline at end of processing
+        """Null implementation of hook in pipeline at end of processing.
 
         Does nothing.
         """
@@ -182,7 +187,7 @@ class IIIFManipulator(object):
     ### Utility methods
 
     def region_to_apply(self):
-        """Return the x,y,w,h parameters to extract given image width and height
+        """Return the x,y,w,h parameters to extract given image width and height.
 
         Assume image width and height are available in self.width and 
         self.height, and self.request is IIIFRequest object 
@@ -234,10 +239,10 @@ class IIIFManipulator(object):
         return(x,y,w,h)
 
     def size_to_apply(self):
-        """Calculate size of image scaled using size parameters
+        """Calculate size of image scaled using size parameters.
 
         Assumes current image width and height are available in self.width and 
-        self.height, and self.request is IIIFRequest object 
+        self.height, and self.request is IIIFRequest object. 
 
         Formats are: w, ,h w,h pct:p !w,h
 
@@ -279,7 +284,7 @@ class IIIFManipulator(object):
         return(w,h)
 
     def rotation_to_apply(self, only90s=False, no_mirror=False):
-        """Check an interpret rotation
+        """Check and interpret rotation.
 
         Returns a truth value as to whether to mirror, and a floating point 
         number 0 <= angle < 360 (degrees).
@@ -295,7 +300,7 @@ class IIIFManipulator(object):
         return(self.request.rotation_mirror,rotation)
 
     def quality_to_apply(self):
-        """Value of quality parameter to use in processing request
+        """Value of quality parameter to use in processing request.
 
         Simple substitution of 'native' or 'default' if no quality
         parameter is specified.
@@ -308,7 +313,7 @@ class IIIFManipulator(object):
         return(self.request.quality)
 
     def cleanup(self):
-        """Clean up after derive call and use of output
+        """Null implementation of clean up after derive call and use of output.
 
         Call after any output file from the derivation process has been 
         read. Intended to handle any clean up of temporary files or such. 

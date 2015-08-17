@@ -1,4 +1,4 @@
-""" Create and parse IIIF request URLs
+"""Create and parse IIIF request URLs.
 
 This class is a thorough implementation of restrictions in the
 IIIF specification. It does not add any implementation specific 
@@ -11,11 +11,14 @@ import string
 from error import IIIFError, IIIFZeroSizeError
 
 class IIIFRequestBaseURI(Exception):
-    """ Subclass of Exception to indicate request for base URI """
+
+    """Subclass of Exception to indicate request for base URI."""
+
     pass
 
 class IIIFRequest(object):
-    """ Implement IIIF request URL syntax
+
+    """Implement IIIF request URL syntax.
     
     There are two URL forms defined in section 2:
     http[s]://server/[prefix/]identifier/region/size/rotation/quality[.format]
@@ -32,7 +35,9 @@ class IIIFRequest(object):
     """
 
     def __init__(self, api_version='2.0', **params):
-        """Create Request object and optionally set any attributes via 
+        """Initialize Request object and optionally set attributes.
+
+        Any of the attributes of the Request object may be set via 
         named parameters.
 
         Current API version assumed ('2.0') if not specified. If another API
@@ -47,7 +52,7 @@ class IIIFRequest(object):
         self.set(**params)
 
     def clear(self):
-        """ Clear all data that might pertain to an individual IIIF URL
+        """Clear all data that might pertain to an individual IIIF URL.
 
         Does not change/reset the baseurl or API version which might be 
         useful in a sequence of calls.
@@ -74,12 +79,12 @@ class IIIFRequest(object):
 
     @property
     def api_version(self):
-        """ Get api_version value """
+        """Get api_version value."""
         return self._api_version
 
     @api_version.setter
     def api_version(self,v):
-        """ Set the api_version and associated configurations """
+        """Set the api_version and associated configurations."""
         self._api_version=v
         if (self._api_version>='2.0'):
             self.default_quality = 'default'
@@ -89,7 +94,7 @@ class IIIFRequest(object):
             self.allowed_qualities = ['native','color','bitonal','grey']
 
     def set(self, **params):
-        """ Set one of the allowed request parameters
+        """Set one of the allowed request parameters.
 
         Will silently ignore any unknown parameters.
         """
@@ -98,7 +103,7 @@ class IIIFRequest(object):
                 setattr(self, k, params[k])
 
     def quote(self, path_segment):
-        """ Quote parameters in IIIF URLs
+        """Quote parameters in IIIF URLs.
 
         Quote by percent-encoding "%" and gen-delims of RFC3986 exept colon
         
@@ -110,11 +115,11 @@ class IIIFRequest(object):
         return( urllib.quote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
 
     def url(self, **params):
-        """ Build a URL path according to the IIIF API parameterized or 
-            info form
+        """Build a URL path for image or info request.
 
-        The parameterized form is assumed unless a the info parameter is 
-        specified.
+        An IIIF Image request with parameterized form is assumed unless 
+        the info parameter is specified, in which case an Image Information
+        request URI is constructred.
         """
         self.set(**params)
         path = self.baseurl +\
@@ -157,7 +162,7 @@ class IIIFRequest(object):
         return(path)
 
     def parse_url(self, url):
-        """ Parse an IIIF API URL path and each component
+        """Parse an IIIF API URL path and each component.
         
         Will parse a URL or URL path that accords with either the
         parametrized or info request forms. Will raise an
@@ -173,7 +178,7 @@ class IIIFRequest(object):
         return(self)
 
     def split_url(self,url):
-        """ Perform the initial parsing of an IIIF API URL path into components
+        """Perform the initial parsing of an IIIF API URL path into components.
 
         Will parse a URL or URL path that accords with either the
         parametrized or info API forms. Will raise an IIIFError on 
@@ -223,7 +228,7 @@ class IIIFRequest(object):
         return(self)
 
     def strip_format(self,str_and_format):
-        """ Look for optional .fmt at end
+        """Look for optional .fmt at end of URI.
 
         The format must start with letter. Note that we want to catch 
         the case of a dot and no format (format='') which is different 
@@ -239,7 +244,7 @@ class IIIFRequest(object):
         return(str_and_format)
 
     def parse_parameters(self):
-        """ Parse the parameters of a parameterized request
+        """Parse the parameters of an Image Information request.
 
         Will throw an IIIFError on failure, set attributes on success. Care
         is taken not to change any of the artibutes which store path 
@@ -252,7 +257,7 @@ class IIIFRequest(object):
         self.parse_format()
 
     def parse_region(self):
-        """ Parse the region component of the path
+        """Parse the region component of the path.
 
         /full/ -> self.region_full = True (test this first)
         /square/ -> self.region_square = True (test this second)
@@ -312,7 +317,7 @@ class IIIFRequest(object):
         self.region_xywh=values
 
     def parse_size(self,size=None):
-        """Parse the size component of the path
+        """Parse the size component of the path.
 
         /full/ -> self.size_full = True
         /w,/ -> self.size_wh = (w,None)
@@ -374,7 +379,7 @@ class IIIFRequest(object):
                                         text="Size parameters request zero size result image.")
 
     def _parse_w_comma_h(self,whstr,param):
-        """ Utility to parse "w,h" "w," or ",h" values
+        """Utility to parse "w,h" "w," or ",h" values.
         
         Returns (w,h) where w,h are either None or ineteger. Will
         throw a ValueError if there is a problem with one or both.
@@ -392,7 +397,7 @@ class IIIFRequest(object):
         return(w,h)
 
     def _parse_non_negative_int(self,istr,name):
-        """ Parse integer from string (istr)
+        """Parse integer from string (istr).
 
         The (name) parameter is used just for IIIFError message generation
         to indicate what the error is in.
@@ -408,7 +413,7 @@ class IIIFRequest(object):
         return(i)
 
     def parse_rotation(self, rotation=None):
-        """ Check and interpret rotation
+        """Check and interpret rotation.
 
         Uses value of self.rotation as starting point unless rotation parameter
         is specified in the call. Sets self.rotation_deg to a floating point 
@@ -440,7 +445,7 @@ class IIIFRequest(object):
             self.rotation_deg=0.0
 
     def parse_quality(self):
-        """ Check quality paramater
+        """Check quality paramater.
 
         Sets self.quality_val based on simple substitution of 'native' for 
         default. Checks for the three valid values else throws and IIIFError.
@@ -454,14 +459,14 @@ class IIIFRequest(object):
             self.quality_val=self.quality
 
     def parse_format(self):
-        """ Check format parameter
+        """Check format parameter.
 
         FIXME - do something...
         """
         pass
 
     def __str__(self):
-        """ Pretty print this object in human readable form
+        """Return string of this object in human readable form.
         
         Distinguishes parametrerized and info requests to
         show only appropriate parameters in each case.

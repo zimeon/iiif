@@ -1,4 +1,4 @@
-"""Implementation of IIIF image manipulations using netpbm programs
+"""Implementation of IIIF image manipulations using netpbm programs.
 
 This manipulator really is very very slow, it writes intermediate files
 in order to keep the manipulations modular. Starting from a JPEG seems
@@ -17,9 +17,10 @@ from request import IIIFRequest
 from manipulator import IIIFManipulator
 
 class IIIFManipulatorNetpbm(IIIFManipulator):
-    """Module to manipulate and image according to iiif rules
 
-    All exceptions are raise as Error objects which directly
+    """Class to manipulate an image with netpbm according to IIIF.
+
+    All exceptions are raised as IIIFError objects which directly
     determine the HTTP response.
     """
 
@@ -27,6 +28,10 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
     pnmdir = None
 
     def __init__(self, **kwargs):
+        """Initialize IIIFManipulatorNetpbm object.
+
+        Keyword arguments are passes to superclass initialize method.
+        """
         super(IIIFManipulatorNetpbm, self).__init__(**kwargs)
         self.complianceLevel="http://iiif.example.org/compliance/level/1"
         if (self.pnmdir is None):
@@ -34,9 +39,9 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
 
     @classmethod
     def find_binaries(cls,tmpdir=None,shellsetup=None,pnmdir=None):
-        """Set instance vars for directory and binar locations
+        """Set instance variables for directory and binary locations.
 
-        FIXME - should accept params to set things other than defaults
+        FIXME - should accept params to set things other than defaults.
         """
         cls.tmpdir = ( '/tmp' if (tmpdir is None) else tmpdir)
         # Shell setup command (e.g set library path)
@@ -65,6 +70,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         cls.djatoka_comp = '/Users/simeon/packages/adore-djatoka-1.1/bin/compress.sh'
 
     def do_first(self):
+        """Create PNM file from input image file."""
         pid = os.getpid()
         self.basename = os.path.join(self.tmpdir,'iiif_netpbm_'+str(pid))
         outfile = self.basename+'.pnm'
@@ -84,9 +90,9 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         (self.width,self.height)=self.image_size(self.tmpfile)
 
     def do_region(self,x,y,w,h):
+        """Apply region selection."""
         infile = self.tmpfile
         outfile = self.basename+'.reg'
-        # Region
         #simeon@ice ~>cat m.pnm | pnmcut 10 10 100 200 > m1.pnm
         if (x is None):
             #print "region: full"
@@ -100,7 +106,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             self.tmpfile = outfile
 
     def do_size(self,w,h):
-        # Size
+        """Apply size scaling."""
         # simeon@ice ~>cat m1.pnm | pnmscale -width 50 > m2.pnm
         infile = self.tmpfile
         outfile = self.basename+'.siz'
@@ -116,6 +122,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             self.tmpfile=outfile
 
     def do_rotation(self,mirror,rot):
+        """Apply rotation and/or mirroring."""
         infile = self.tmpfile
         outfile = self.basename+'.rot'
         # NOTE: pnmrotate: angle must be between -90 and 90 and 
@@ -163,6 +170,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
             self.tmpfile=outfile2
 
     def do_quality(self,quality):
+        """Apply value of quality parameter."""
         infile = self.tmpfile
         outfile = self.basename+'.col'
         # Quality (bit-depth):
@@ -183,6 +191,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
                             text="Unknown quality parameter value requested.")
 
     def do_format(self,format):
+        """Apply format selection."""
         infile = self.tmpfile
         outfile = self.basename+'.out'
         outfile_jp2 = self.basename+'.jp2'
@@ -223,7 +232,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         self.mime_type=mime_type
 
     def file_type(self,file):
-        """Use python-magic to determine file type
+        """Use python-magic to determine file type.
 
         Returns 'png' or 'jpg' on success, nothing on failure.
         """
@@ -236,7 +245,7 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         return
 
     def image_size(self,pnmfile):
-        """Get width and height of pnm file
+        """Get width and height of pnm file.
 
         simeon@homebox src>pnmfile /tmp/214-2.png
         /tmp/214-2.png:PPM raw, 100 by 100  maxval 255
@@ -254,10 +263,10 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         return(w,h)
 
     def shell_call(self,shellcmd):
-        """Shell call with necessary setup first"""
+        """Shell call with necessary setup first."""
         return(subprocess.call(self.shellsetup+shellcmd,shell=True))
 
     def cleanup(self):
-        """Clean up any temporary files"""
+        """Clean up any temporary files."""
         for file in glob.glob(self.basename+'*'):
             os.unlink(file)

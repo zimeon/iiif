@@ -1,5 +1,4 @@
-"""
-Implementation of IIIF Image API manipulations using the Python Image Library
+"""Implementation of IIIF Image API manipulations using the Python Image Library.
 
 Uses the Python Image Library (PIL) for in-python manipulation:
 http://www.pythonware.com/products/pil/index.htm
@@ -18,9 +17,10 @@ from request import IIIFRequest
 from manipulator import IIIFManipulator
 
 class IIIFManipulatorPIL(IIIFManipulator):
-    """Module to manipulate and image according to iiif rules
 
-    All exceptions are raise as Error objects which directly
+    """Class to manipulate an image with PIL according to IIIF.
+
+    All exceptions are raised as IIIFError objects which directly
     determine the HTTP response.
     """
 
@@ -29,14 +29,17 @@ class IIIFManipulatorPIL(IIIFManipulator):
     pnmdir = None
 
     def __init__(self, **kwargs):
+        """Initialize IIIFManipulatorPIL object.
+
+        Keyword arguments are passes to superclass initialize method.
+        """
         super(IIIFManipulatorPIL, self).__init__(**kwargs)
         # Does not support jp2 output
         self.compliance_level=2
         self.outtmp = None
 
     def do_first(self):
-        """Create PIL object from input image file
-        """
+        """Create PIL object from input image file."""
         self.logger.info("do_first: src=%s" % (self.srcfile))
         try:
             self.image=Image.open(self.srcfile)
@@ -46,7 +49,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
         (self.width,self.height)=self.image.size
 
     def do_region(self,x,y,w,h):
-        #(x,y,w,h)=self.region_to_apply()
+        """Apply region selection."""
         if (x is None):
             self.logger.info("region: full (nop)")
         else:
@@ -56,6 +59,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.height = h
 
     def do_size(self,w,h):
+        """Apply size scaling."""
         if (w is None):
             self.logger.info("size: no scaling (nop)")
         else:
@@ -65,6 +69,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.height = h
 
     def do_rotation(self,mirror,rot):
+        """Apply rotation and/or mirroring."""
         if (not mirror and rot==0.0):
             self.logger.info("rotation: no rotation (nop)")
         else:
@@ -79,7 +84,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
                 self.image = self.image.rotate( -rot, expand=True )
 
     def do_quality(self,quality):
-        """Apply value of quality parameter
+        """Apply value of quality parameter.
 
         For PIL docs see 
         <http://pillow.readthedocs.org/en/latest/reference/Image.html#PIL.Image.Image.convert>
@@ -95,7 +100,11 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.logger.info("quality: quality (nop)")
 
     def do_format(self,format):
-        # assume tiling apps want jpg...
+        """Apply format selection.
+
+        Assume that for tiling applications we want jpg so return
+        that unless an explicit format is requested.
+        """
         fmt = ( 'jpg' if (format is None) else format)
         if (fmt == 'png'):
             self.logger.info("format: png")
@@ -115,7 +124,6 @@ class IIIFManipulatorPIL(IIIFManipulator):
         else:
             raise IIIFError(code=415, parameter='format',
                             text="Unsupported output file format (%s), only png,jpg,webp are supported."%(fmt))
-
         if (self.outfile is None):
             # Create temp
             f = tempfile.NamedTemporaryFile(delete=False)
@@ -127,6 +135,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.image.save(self.outfile,format=format)
 
     def cleanup(self):
+        """Cleanup temporary output file."""
         if (self.outtmp is not None):
             try:
                 os.unlink(self.outtmp)

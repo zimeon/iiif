@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Crude webserver that services IIIF Image API requests
+"""Crude webserver that services IIIF Image API requests.
 
 Relies upon IIIFManipulator objects to do any manipulations
 requested and is thus very slow. Supports a number of different
@@ -25,25 +25,29 @@ from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 class Config(object):
-    def __init__(self,*args):
-        """Create new Config copying all properties from args
 
-        Designed to allow initialization from other Config
-        objects and from optparse.Values objects.
-        """ 
+    """Class to share configuration information in IIIFHandler instances.
+
+    Designed to allow initialization from other Config
+    objects and from optparse.Values objects.
+    """
+
+    def __init__(self,*args):
+        """Initialize new Config onbject copying all properties from args."""
         for arg in args:
             for k in arg.__dict__.keys():
                 self.__dict__[k] = arg.__dict__[k]
 
+
 def no_op(self,format,*args):
-    """Function that does nothing - no-op
+    """Function that does nothing - no-op.
 
     Used to silence logging
     """
     pass
 
 def html_page(title="Page Title",body=""):
-    """Create HTML page as string"""
+    """Create HTML page as string."""
     html =  "<html>\n<head><title>%s</title></head>\n<body>\n" % (title)
     html += "<h1>%s</h1>\n" % (title)
     html += body
@@ -51,7 +55,7 @@ def html_page(title="Page Title",body=""):
     return html
 
 def top_level_index_page(config):
-    """HTML top-level index page"""
+    """HTML top-level index page."""
     http_host = request.environ.get('HTTP_HOST','')
     title = "iiif_testserver on %s" % (http_host)
     body = "<ul>\n"
@@ -61,7 +65,7 @@ def top_level_index_page(config):
     return html_page( title, body )
 
 def prefix_index_page(config=None, prefix=None):
-    """HTML index page for a specific prefix"""
+    """HTML index page for a specific prefix."""
     http_host = request.environ.get('HTTP_HOST','')
     title = "Prefix %s  (from iiif_testserver on %s)" % (prefix,http_host)
     # details of this prefix handler
@@ -98,7 +102,7 @@ def prefix_index_page(config=None, prefix=None):
     return html_page( title, body )
 
 def host_port_prefix(host,port,prefix):
-    """Return URI composed of scheme, server, port, and prefix"""
+    """Return URI composed of scheme, server, port, and prefix."""
     uri = "http://"+host
     if (host!=80):
         uri += ':'+str(port)
@@ -110,7 +114,18 @@ def host_port_prefix(host,port,prefix):
 
 class IIIFHandler(object):
 
+    """IIIFHandler class."""
+
     def __init__(self, prefix, identifier, config, klass, auth):
+        """Initialize IIIHandler setting key configuration.
+
+        Positional parameters:
+        prefix -- URI prefix
+        identifier -- identifier of image
+        config -- instance of Config class
+        klass -- IIIFManipulator sub-class to do manipulations
+        auth -- IIIFAuth sub-class for auth
+        """
         self.prefix = prefix
         self.identifier = identifier
         self.config = config
@@ -133,11 +148,12 @@ class IIIFHandler(object):
 
     @property
     def server_and_prefix(self):
+        """Server and prefix from config."""
         return(host_port_prefix(self.config.host,self.config.port,self.prefix))
 
     @property
     def json_mime_type(self):
-        """Return the MIME type for a JSON response
+        """Return the MIME type for a JSON response.
 
         For version 2.0 the server must return json-ld MIME type if that
         format is requested. Implement for 1.1 also.
@@ -151,7 +167,7 @@ class IIIFHandler(object):
 
     @property
     def file(self):
-        """Filename property for the source image for the current identifier"""
+        """Filename property for the source image for the current identifier."""
         file = None
         for ext in ['','.jpg','.png','.tif']:
             file = os.path.join(self.config.image_dir,self.identifier+ext)
@@ -166,16 +182,18 @@ class IIIFHandler(object):
                         text="Image resource '"+self.identifier+"' not found. Local image files available:\n" + images_available)
 
     def add_compliance_header(self):
+        """Add IIIF Compliance level header to response."""
         if (self.manipulator.compliance_uri is not None):
             self.headers['Link']='<'+self.manipulator.compliance_uri+'>;rel="profile"'   
 
     def make_response(self, content, code=200, content_type=None):
-        """Wrapper around Flask.make_response which also added headers"""
+        """Wrapper around Flask.make_response which also added headers."""
         if (content_type):
             self.headers['Content-Type']=content_type
         return make_response(content,code,self.headers)
 
     def image_information_response(self):
+        """Parse image information request and create response."""
         dr = degraded_request(self.identifier)
         if (dr):
             self.logger.info("image_information: degraded %s -> %s" % (self.identifier,dr))
@@ -206,6 +224,7 @@ class IIIFHandler(object):
         return self.make_response(i.as_json(),content_type=self.json_mime_type)
 
     def image_request_response(self, path):
+        """Parse image request and create response."""
         # Parse the request in path
         if (len(path)>1024):
             raise IIIFError(code=414,
@@ -255,10 +274,10 @@ class IIIFHandler(object):
         return send_file(open(outfile,'r'),mimetype=mime_type)
 
     def error_response(self, e):
-        """Make response for an IIIFError e
+        """Make response for an IIIFError e.
 
         Looks also to see whether an extra attribute e.headers is set to
-        a dict with extra header fields
+        a dict with extra header fields.
         """
         for header in e.headers:
             self.headers[header]=e.headers[header]
@@ -266,7 +285,7 @@ class IIIFHandler(object):
         return make_response(str(e),e.code,{'Content-Type':e.content_type})
 
 def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, auth=None, **args):
-    """Handler for IIIF Image Information requests"""
+    """Handler for IIIF Image Information requests."""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
         print "Authorized for image %s" % identifier
@@ -286,7 +305,7 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, aut
 iiif_info_handler.provide_automatic_options = False
 
 def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, auth=None, **args):
-    """Handler for IIIF Image Requests
+    """Handler for IIIF Image Requests.
 
     Behaviour for case of a non-authn or non-authz case is to 
     return 403.
@@ -309,20 +328,22 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
 iiif_image_handler.provide_automatic_options = False
 
 def degraded_request(identifier):
-    """Returns True (non-degraded id) if this is a degraded request, False otherwise"""
+    """Return True (non-degraded id) if this is a degraded request, False otherwise."""
     if identifier.endswith('-deg'):
        return identifier[:-4]
     return False
 
 def options_handler(**args):
-    """Handler to respond to OPTIONS requests"""
+    """Handler to respond to OPTIONS requests."""
     headers = { 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET,OPTIONS',
                 'Access-Control-Allow-Headers': 'Origin, Accept, Authorization' }
     return make_response("", 200, headers)
 
 def parse_accept_header(accept):
-    """Parse the Accept header *accept*, returning a list with pairs of
+    """Parse an HTTP Accept header.
+
+    Parses *accept*, returning a list with pairs of
     (media_type, q_value), ordered by q values.
     
     Taken from <https://djangosnippets.org/snippets/1042/>
@@ -344,7 +365,7 @@ def parse_accept_header(accept):
     return result
 
 def parse_authorization_header(value):
-    """Parse the Authenticate header
+    """Parse the Authenticate header.
 
     Returns nothing on failure, opts hash on success with type='basic' or 'digest'
     and other params.
@@ -380,7 +401,7 @@ def parse_authorization_header(value):
         return
 
 def do_conneg(accept,supported):
-    """Parse accept header and look for preferred type in supported list
+    """Parse accept header and look for preferred type in supported list.
 
     accept parameter is HTTP header, supported is a list of MIME types
     supported by the server. Returns the supported MIME type with highest
@@ -395,8 +416,7 @@ def do_conneg(accept,supported):
 ######################################################################
 
 def setup_auth_paths(app, auth, prefix, params):
-    """Add URL rules for auth paths
-    """
+    """Add URL rules for auth paths."""
     base = '/'+prefix+'/'
     app.add_url_rule(base+'login', prefix+'login_handler', auth.login_handler, defaults=params)
     app.add_url_rule(base+'logout', prefix+'logout_handler', auth.logout_handler, defaults=params)
@@ -407,17 +427,18 @@ def setup_auth_paths(app, auth, prefix, params):
         app.add_url_rule(base+'home', prefix+'home_handler', auth.home_handler, defaults=params)
 
 def make_prefix(api_version,manipulator,auth_type):
-    """Make prefix string based on configuration parameters"""
+    """Make prefix string based on configuration parameters."""
     prefix = "%s_%s" % (api_version,manipulator)
     if (auth_type and auth_type!='none'):
         prefix += '_'+auth_type
     return(prefix)
 
 def split_option(comma_sep_str):
-    return  comma_sep_str.split(',') #FIXME - make more flexible
+    """Split a comma separated option."""
+    return comma_sep_str.split(',') #FIXME - make more flexible
 
 def setup_options():
-    # Options and arguments
+    """Parse options and arguments."""
     p = optparse.OptionParser(description='IIIF Image Testserver')
     p.add_option('--host', default='localhost',
                  help="Server host (default %default)")
@@ -473,7 +494,7 @@ def setup_options():
     return(opt)
 
 def add_handler(app, config, prefixes):
-    """Add a single handler to the app
+    """Add a single handler to the app.
 
     Adds handlers to app, with config from config. Add prefix to list
     in prefixes.
@@ -521,7 +542,7 @@ def add_handler(app, config, prefixes):
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
 
 def create_app(opt):
-    """Create Flask application with one or more IIIF handlers"""
+    """Create Flask application with one or more IIIF handlers."""
     logging_level = logging.WARNING
     if (opt.verbose):
         logging_level = logging.INFO

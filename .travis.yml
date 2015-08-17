@@ -7,12 +7,13 @@ python:
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
-  - pip install Pillow iiif_validator coveralls
+  - pip install Pillow iiif_validator coveralls pep257
   - python setup.py install
 # commands to run tests
 # -- use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet. Also omit the netpbm manipulator from coverage tests because I haven't flashed those out
 script:
   - py.test
+  - pep257
   - ./run_validate.sh -n
   - coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test
 after_success:

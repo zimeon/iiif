@@ -1,8 +1,5 @@
 #!/usr/bin/env python
-
-"""Test the testserver...
-
-"""
+"""Test the IIIF testserver."""
 import unittest
 from urllib2 import *
 
@@ -10,7 +7,10 @@ baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
 
+    """TestAll class to run tests."""
+
     def get(self,path,map_404_to_400=False):
+        """Make a get request and handle exceptions."""
         print "get("+path+")..."
         try:
             f = urlopen(baseurl+path)
@@ -29,6 +29,7 @@ class TestAll(unittest.TestCase):
             return('other_error_'+str(e))
 
     def test1_success(self):
+        """Test set that should succeed."""
         print "Success tests..."
         id = "214-2.png"
         size = 2601 #default output is jpg
@@ -51,6 +52,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/full/pct:99.99/0/color.png'), size)
 
     def test2_errors(self):
+        """Test set that is expected to generate errors."""
         print "Error tests..."
         id = "214-2.png"
         # Numbers of params
