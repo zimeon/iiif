@@ -46,7 +46,7 @@ setup(
     author_email='simeon.warner@cornell.edu',
     packages=['iiif'],
     scripts=['iiif_static.py','iiif_testserver.py'],
-    classifiers=["Development Status :: 3 - Alpha",
+    classifiers=["Development Status :: 4 - Beta",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
                  "Operating System :: OS Independent", #is this true? know Linux & OS X ok
@@ -54,6 +54,7 @@ setup(
                  "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
                  "Topic :: Internet :: WWW/HTTP",
+                 "Topic :: Multimedia :: Graphics :: Graphics Conversion",
                  "Topic :: Software Development :: Libraries :: Python Modules",
                  "Environment :: Web Environment"],
     url='https://github.com/zimeon/iiif',
