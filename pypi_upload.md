@@ -17,7 +17,7 @@ Putting up a new version
   5. Make sure master README has correct travis-ci and coveralls icon links for master branch (?branch=master)
   6. Check branches are as expected (git branch -a)
   7. Check local build and version reported OK (python setup.py build; sudo python setup.py install)
-  8. Check iiif-testserver.py correctly starts server and is accessible from <http://localhost:8000>
+  8. Check iiif_testserver.py correctly starts server and is accessible from <http://localhost:8000>
   9. If all checks out OK, tag and push the new version to github with something like:
 
     ```
