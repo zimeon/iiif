@@ -1,6 +1,9 @@
 iiif changelog
 ==============
 
+2015-XX-XX v0.6.1
+- STUFF
+
 2015-08-17 v0.6.0
 - Refactor manipulators for easier testing
 - Improve test coverage of PIL manipulator

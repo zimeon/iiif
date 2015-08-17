@@ -2,12 +2,12 @@
 iiif
 ====
 
-.. image:: https://travis-ci.org/zimeon/iiif.png?branch=master
-  :target: https://travis-ci.org/zimeon/iiif?branch=master
+.. image:: https://travis-ci.org/zimeon/iiif.png?branch=0.6.1
+  :target: https://travis-ci.org/zimeon/iiif?branch=0.6.1
   :alt: Build status
 
-.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=master
-  :target: https://coveralls.io/r/zimeon/iiif?branch=master
+.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=0.6.1
+  :target: https://coveralls.io/r/zimeon/iiif?branch=0.6.1
   :alt: Test coverage
 
 *iiif* - A Python library providing a reference implementation
