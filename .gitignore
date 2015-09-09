@@ -7,6 +7,8 @@ htmlcov
 iiif_testserver.pid
 iiif_testserver_flask.pid
 client_secret
+# test files
+demo-static/biggie
 # setup stuff
 build
 dist
