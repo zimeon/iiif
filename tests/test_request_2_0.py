@@ -240,6 +240,17 @@ class TestAll(unittest.TestCase):
         r = IIIFRequest()
         self.assertRaises( IIIFError, r._parse_w_comma_h, '1.0,1.0', 'size' )
 
+    def test22_parse_response_codes(self):
+        r = IIIFRequest()
+        for (path,code) in [("a/b/c", 400),
+                            ("a/b/full/full/0/default.jpg", 404)]:
+            got_code = None
+            try:
+                IIIFRequest().split_url(path)
+            except IIIFError as e:
+                got_code = e.code
+            self.assertEqual( got_code, code, "Bad code %d, expected %d, for path %s"%(got_code,code,path) )
+
     def pstr(self,p):
         s=''
         for k in ['identifier','region','size','rotation','default','info','format']:

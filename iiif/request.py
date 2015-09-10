@@ -199,14 +199,14 @@ class IIIFRequest(object):
         if (self.baseurl): 
             (path, num) = re.subn('^'+self.baseurl, '', url, 1)
             if (num != 1):
-                raise IIIFError
+                raise(IIIFError("URL does not match baseurl (server/prefix)."))
             url=path
         # Break up by path segments, count to decide format
         segs = url.split( '/', 5)
         if (identifier is not None):
             segs.insert(0, identifier)
         if (len(segs) > 5):
-            raise IIIFError
+            raise(IIIFError(code=404,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
             self.identifier = urlunquote(segs[0])
             self.region = urlunquote(segs[1])
@@ -221,15 +221,15 @@ class IIIFRequest(object):
                 raise IIIFError
             if (self.api_version=='1.0'):
                 if (self.format not in ['json','xml']):
-                    raise IIIFError
+                    raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
             elif (self.format!='json'):
-                raise IIIFError
+                raise(IIIFError(code=400,text="Bad information request format, must be json"))
             self.info = True
         elif (len(segs) == 1):
             self.identifier = urlunquote(segs[0])
-            raise IIIFRequestBaseURI
+            raise(IIIFRequestBaseURI())
         else:
-            raise IIIFError
+            raise(IIIFError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
         return(self)
 
     def strip_format(self,str_and_format):
