@@ -9,6 +9,14 @@
 #
 # See http://tldp.org/LDP/abs/html/arithexp.html for bash arithmetic
 
+# Abort with exit code 0 if we have python3 because iiif_validate.py will
+# not run with python3.
+major_version=`/usr/bin/env python -c 'import sys; print(sys.version_info[0])'`
+if test $major_version -ne 2; then
+  echo "Python major version is $major_version, validator works only with python2, exiting"
+  exit 0
+fi
+
 verbosity='--quiet'
 test_netpbm=true
 show_test_name=false
