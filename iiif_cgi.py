@@ -25,34 +25,32 @@ from iiif.info import IIIFInfo
 
 class CGI_responder(object):
 
-    """Simple class to implement CGI responses.
-
-    Mimics methods of BaseHTTPServer.BaseHTTPRequestHandler
-    """
+    """Simple helper class for CGI response."""
 
     def send_response(self,code,text=''):
-        """Output HTTP status line."""
+        """Write HTTP status code and optional explanation."""
         print("Status: %s %s\r" % (str(code),text))
 
     def send_header(self,header,value):
-        """Output HTTP header line."""
+        """Write HTTP header."""
         print("%s: %s\r" % (header,value))
 
     def end_headers(self):
-        """Output HTTP header termination (blank line)."""
+        """End HTTP headers with blank line."""
         print("\r")
 
     
 class IIIFRequestHandler(CGI_responder):
 
-    """Minimal implementation of HTTP request handler to do iiif GET via CGI."""
+    """Class to handle IIIF request.
+
+    Minimal implementation of HTTP request handler to do IIIF GET.
+    """
+
     manipulator_class=None
 
-#    def __init__(self, request, client_address, server):
     def __init__(self):
-        # Add some local attributes for this subclass (seems we have to 
-        # do this ahead of calling the base class __init__ because that
-        # does not return
+        """Initialize IIIFRequestHandler object."""
         self.debug=True
         self.compliance_uri=None;
         # Cannot use super() because BaseHTTPServer.BaseHTTPRequestHandler 
@@ -63,6 +61,7 @@ class IIIFRequestHandler(CGI_responder):
         self.wfile=sys.stdout
 
     def error_response(self,code,content=''):
+        """Construct and send error response."""
         self.send_response(code)
         self.send_header('Content-Type','text/xml')
         self.add_compliance_header()
@@ -70,6 +69,7 @@ class IIIFRequestHandler(CGI_responder):
         self.wfile.write(content)
 
     def add_compliance_header(self):
+        """Add IIIF compliance level header."""
         if (self.compliance_uri is not None):
             self.send_header('Link','<'+self.compliance_uri+'>;rel="profile"')
         
@@ -110,6 +110,7 @@ class IIIFRequestHandler(CGI_responder):
             self.error_response(e.code, str(e))
 
     def do_GET_body(self):
+        """Create body of GET."""
         iiif=self.iiif
         if (len(self.path)>1024):
             raise IIIFError(code=414,
@@ -157,9 +158,6 @@ class IIIFRequestHandler(CGI_responder):
             (outfile,mime_type)=manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
                
-#print "Content-type: text/plain\r\n\r"
-#print "hello"
-#exit(0)
 myname = ( os.environ['SCRIPT_NAME'] if ('SCRIPT_NAME' in os.environ) else '/iiif_dummy.cgi')
 #sys.stderr = sys.stdout
 if (re.match(myname,'/iiif_dummy') is not None):
@@ -176,9 +174,9 @@ else:
     from iiif.manipulator_pil import IIIFManipulatorPIL
     IIIFRequestHandler.manipulator_class = IIIFManipulatorPIL
 #else:
-#    print "Status: 500\r"
-#    print "Content-type: text/plain\r\n\r"
-#    print "Bad script name '%s'" % myname
+#    print("Status: 500\r")
+#    print("Content-type: text/plain\r\n\r")
+#    print("Bad script name '%s'" % myname)
 #    exit(0)
 
 rh = IIIFRequestHandler()

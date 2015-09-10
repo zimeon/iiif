@@ -2,12 +2,12 @@
 iiif
 ====
 
-.. image:: https://travis-ci.org/zimeon/iiif.png?branch=0.6.0
-  :target: https://travis-ci.org/zimeon/iiif?branch=0.6.0
+.. image:: https://travis-ci.org/zimeon/iiif.png?branch=0.6.1
+  :target: https://travis-ci.org/zimeon/iiif?branch=0.6.1
   :alt: Build status
 
-.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=0.6.0
-  :target: https://coveralls.io/r/zimeon/iiif?branch=0.6.0
+.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=0.6.1
+  :target: https://coveralls.io/r/zimeon/iiif?branch=0.6.1
   :alt: Test coverage
 
 *iiif* - A Python library providing a reference implementation
@@ -31,21 +31,24 @@ Installation
 ------------
 
 The library, test server, static file generator are all designed to
-work with Python 2.6 or 2.7. Manual installation from `Github
-<https://github.com/zimeon/iiif>`_ is necessary to get the demonstration
-documentation and examples.
+work with Python 2.6 or 2.7. Manual installation from is necessary 
+to get the demonstration documentation and examples.
 
-**Automatic installation from PyPI**::
+**Automatic installation from PyPI**
+
+The *iiif* library code and scripts are listed in `PyPI
+<http://pypi.python.org/pypi/iiif>`_ and can be installed with 
+``pip`` or ``easy_install``, e.g.:: 
 
     easy_install iiif
 
-*iiif* is listed in `PyPI
-<http://pypi.python.org/pypi/iiif>`_ and can be installed with 
-``pip`` or ``easy_install``. 
+The PyPI version does not include all demonstration documentation and
+examples.
 
 **Manual installation from github**
 
-First, clone the code and examples from this repository::
+First, clone the code and examples from the `Github repository
+<https://github.com/zimeon/iiif>`_::
 
     cd /tmp
     git clone git://github.com/zimeon/iiif.git

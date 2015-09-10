@@ -2,17 +2,20 @@ language: python
 python:
   - "2.6"
   - "2.7"
+  - "3.4"
 # commands to install dependencies
 # need "python setup.py install" to install resync so that client tests work
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
-  - pip install Pillow iiif_validator coveralls
+  - pip install Pillow iiif_validator coveralls pep257 restructuredtext_lint
   - python setup.py install
 # commands to run tests
 # -- use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet. Also omit the netpbm manipulator from coverage tests because I haven't flashed those out
 script:
   - py.test
+  - pep257
+  - rst-lint README
   - ./run_validate.sh -n
   - coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test
 after_success:

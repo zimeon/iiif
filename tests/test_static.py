@@ -7,10 +7,12 @@ import tempfile
 import unittest
 import sys
 import contextlib
-try: #python3
-    import io
-except ImportError: #python2
+try: #python2
+    # Must try this first as io also exists in python2
+    # but in the wrong one!
     import StringIO as io
+except ImportError: #python3
+    import io
 
 from iiif.static import IIIFStatic, static_partial_tile_sizes, static_full_sizes
 

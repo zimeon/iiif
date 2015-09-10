@@ -1,2 +1,2 @@
-# This is the one place the version number for this iiif library is stored
-__version__ = '0.6.0'
+"""Version number for this IIIF library."""
+__version__ = '0.6.1'

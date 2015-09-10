@@ -1,9 +1,4 @@
-"""IIIF Authentication
-
-Base authentication object which does not actually implement an
-authentication scheme but is a foundation for specific sub-classes
-for different schemes.
-"""
+"""Support for IIIF Authentication."""
 
 import json
 import logging
@@ -12,10 +7,15 @@ import re
 
 class IIIFAuth(object):
 
+    """IIIF Authentication Class.
+
+    Base authentication class which does not actually implement an
+    authentication scheme but is a foundation for specific sub-classes
+    for different schemes.
+    """
+
     def __init__(self, cookie_prefix=None):
-        """Create IIIFAuth object
-          
-        """
+        """Initialize IIIFAuth object."""
         self.profile_base = 'http://iiif.io/api/auth/0/'
         self.name = "image server"
         self.login_uri = None
@@ -30,7 +30,7 @@ class IIIFAuth(object):
         self.token_cookie_name = self.cookie_prefix+'token'
 
     def set_cookie_prefix(self,cookie_prefix=None):
-        """Set a random cookie prefix unless one is specified
+        """Set a random cookie prefix unless one is specified.
 
         In order to run multiple demonstration auth services on the
         same server we need to have different cookie names for each
@@ -43,7 +43,7 @@ class IIIFAuth(object):
             self.cookie_prefix = cookie_prefix
 
     def add_services(self, info):
-        """Add auth service descriptions to an IIIFInfo object
+        """Add auth service descriptions to an IIIFInfo object.
 
         Login service description is the wrapper for all other
         auth service descriptions so we have nothing unless
@@ -67,23 +67,27 @@ class IIIFAuth(object):
             info.add_service( svc )
 
     def login_service_description(self):
+        """Login service description."""
         return( { "@id": self.login_uri,
                   "profile": self.profile_base+'login',
                   "label": 'Login to '+self.name
                 } )
 
     def logout_service_description(self):
+        """Logout service description."""
         return( { "@id": self.logout_uri,
                   "profile": self.profile_base+'logout',
                   "label": 'Logout from '+self.name
                 } )
 
     def client_id_service_description(self):
+        """Client Id service description."""
         return( { "@id": self.client_id_uri,
                   "profile": self.profile_base+'clientId'
                 } )
 
     def access_token_service_description(self):
+        """Access Token service description."""
         return( { "@id": self.access_token_uri,
                   "profile": self.profile_base+'token'
                 } )
@@ -98,7 +102,7 @@ class IIIFAuth(object):
     home_handler=None
 
     def info_authn(self): 
-        """Check to see if user is authenticated for info.json
+        """Check to see if user is authenticated for info.json.
 
         Null implementation that always returns False, must override
         to implement authorization.
@@ -106,7 +110,7 @@ class IIIFAuth(object):
         return False
 
     def info_authz(self): 
-        """Check to see if user is authenticated and authorized for info.json
+        """Check to see if user is authenticated and authorized for info.json.
 
         Null implementation that says that any authenticated user is
         authorized.
@@ -114,7 +118,7 @@ class IIIFAuth(object):
         return self.info_authn()
 
     def image_authn(self): 
-        """Check to see if user is authenticated for image requests
+        """Check to see if user is authenticated for image requests.
 
         Null implementation that always returns False, must override
         to implement authorization.
@@ -122,7 +126,7 @@ class IIIFAuth(object):
         return False
 
     def image_authz(self): 
-        """Check to see if user is authenticated and authorized for image requests
+        """Check to see if user is authenticated and authorized for image requests.
 
         Null implementation that says that any authenticated user is
         authorized.
@@ -130,7 +134,7 @@ class IIIFAuth(object):
         return self.image_authn()
 
     def scheme_host_port_prefix(self, scheme='http', host='host', port=None, prefix=None):
-        """Return URI composed of scheme, server, port, and prefix"""
+        """Return URI composed of scheme, server, port, and prefix."""
         uri = scheme+'://'+host
         if (port and not ((scheme=='http' and port==80) or
                           (scheme=='https' and port==443))):

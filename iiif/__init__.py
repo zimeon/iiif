@@ -1,3 +1,4 @@
+"""IIIF Image API module."""
 from iiif._version import __version__
 
 from iiif.error import IIIFError

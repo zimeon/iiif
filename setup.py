@@ -1,3 +1,4 @@
+"""Setup for IIIF Image Library implementation."""
 from setuptools import setup, Command
 import os
 # setuptools used instead of distutils.core so that 
@@ -17,16 +18,22 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
 
 class Coverage(Command):
+
+    """Class to allow coverage run from setup."""
+
     description = "run coverage"
     user_options = []
 
     def initialize_options(self):
+        """Empty initialize_options."""
         pass
 
     def finalize_options(self):
+        """Empty finalize_options."""
         pass
 
     def run(self):
+        """Run coverage program."""
         os.system("coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
         os.system("coverage report")
         os.system("coverage html")
@@ -39,7 +46,7 @@ setup(
     author_email='simeon.warner@cornell.edu',
     packages=['iiif'],
     scripts=['iiif_static.py','iiif_testserver.py'],
-    classifiers=["Development Status :: 3 - Alpha",
+    classifiers=["Development Status :: 4 - Beta",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
                  "Operating System :: OS Independent", #is this true? know Linux & OS X ok
@@ -47,6 +54,7 @@ setup(
                  "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
                  "Topic :: Internet :: WWW/HTTP",
+                 "Topic :: Multimedia :: Graphics :: Graphics Conversion",
                  "Topic :: Software Development :: Libraries :: Python Modules",
                  "Environment :: Web Environment"],
     url='https://github.com/zimeon/iiif',

@@ -1,4 +1,4 @@
-"""IIIF Image Information Response
+"""IIIF Image Information Response.
 
 Model for IIIF Image API 'Image Information Response'.
 Default version is 2.0 but also supports 2.1, 1.1 and 1.0
@@ -103,6 +103,8 @@ CONF = {
     
 class IIIFInfo(object):
 
+    """IIIF Image Information Class."""
+
     def __init__(self,api_version='2.0',profile=None,level=1,conf=None,
                  server_and_prefix='',
                  identifier=None,width=None,height=None,tiles=None,
@@ -114,14 +116,14 @@ class IIIFInfo(object):
                  # 2.0 only
                  supports=None
                  ):
-        """Create IIIFInfo object
+        """Initialize an IIIFInfo object.
 
-          api_version - defaults to 2.0 but may be set to 1.1
-          profile - usually not set but overrides handling via level
+        Parameters include:
+        api_version -- defaults to 2.0 but may be set to 1.1
+        profile -- usually not set but overrides handling via level
             (2.0 complex profile not supported except by explicitly
             passing in an array that matches JSON required)
-          level - default 1, generates compliance level for simple profile
-          
+        level -- default 1, generates compliance level for simple profile   
         """
         # API version (used in level settings)
         if (api_version not in CONF):
@@ -160,6 +162,7 @@ class IIIFInfo(object):
 
     @property
     def id(self):
+        """id property based on server_and_prefix and identifier."""
         id = ''
         if (self.server_and_prefix is not None and
             self.server_and_prefix!=''):
@@ -170,7 +173,7 @@ class IIIFInfo(object):
 
     @id.setter
     def id(self,value):
-        """Split into server_and_prefix and identifier"""
+        """Split into server_and_prefix and identifier."""
         i = value.rfind('/')
         if (i>0):
             self.server_and_prefix=value[:i]
@@ -183,7 +186,7 @@ class IIIFInfo(object):
             self.identifier=value
 
     def set_version_info(self, api_version=None):
-        """Set up normal values for given api_version
+        """Set up normal values for given api_version.
 
         Will use current value of self.api_version if a version number
         is not specified in the call.
@@ -200,7 +203,7 @@ class IIIFInfo(object):
 
     @property
     def level(self):
-        """Extract level number from profile URI
+        """Extract level number from profile URI.
 
         Returns integer level number or raises excpetion
         """
@@ -211,14 +214,14 @@ class IIIFInfo(object):
 
     @level.setter
     def level(self, value):
-        """Build profile URI from level
+        """Build profile URI from level.
         
         Level should be an integer 0,1,2
         """
         self.profile = self.profile_prefix + ("%d" % value) + self.profile_suffix
 
     def add_service(self, service):
-        """Add a service description
+        """Add a service description.
 
         Handles transition from self.service=None, self.service=dict for a
         single service, and then self.service=[dict,dict,...] for multiple
@@ -231,6 +234,7 @@ class IIIFInfo(object):
             self.service.append( service )
 
     def set(self,param,value):
+        """Setter handling both arrays and scalars."""
         if (param in self.array_params):
             # If we have an array then set directly, else eval. Perhaps not
             # pythonic to do a type check for array here but want to avoid
@@ -243,7 +247,7 @@ class IIIFInfo(object):
             self.__dict__[param]=value
 
     def validate(self):
-        """Validate this object as Image API data
+        """Validate this object as Image API data.
 
         Raise Exception with helpful message if not valid.
         """
@@ -256,7 +260,7 @@ class IIIFInfo(object):
         return True
 
     def as_json(self, validate=True):
-        """Return JSON serialization
+        """Return JSON serialization.
         
         Will raise exception if insufficient parameters are present to
         have a valid info.json response (unless validate is False).
@@ -303,7 +307,11 @@ class IIIFInfo(object):
         return( json.dumps(json_dict, sort_keys=True, indent=2 ) )
 
     def read(self, fh, api_version=None):
-        """Read info.json from file like object supporting fh.read()
+        """Read info.json from file like object.
+
+        Parameters:
+        fh -- file like object supporting fh.read()
+        api_version -- IIIF Image API version
 
         If version is set then the parsing will assume this API version. If
         there is a @context specified then an exception will be raised unless

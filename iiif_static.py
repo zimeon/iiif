@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-"""
-iiif_static: Generate static images implementing the IIIF Image API level 0.
+"""iiif_static: Generate static images implementing the IIIF Image API level 0.
 
 Copyright 2014,2015 Simeon Warner
 """
@@ -14,7 +13,7 @@ from iiif import __version__
 from iiif.static import IIIFStatic
 
 def main():
-    """Run static tile generator."""
+    """Parse arguments, instantiate IIIFStatic, run."""
     if (sys.version_info < (2,6)):
         sys.exit("This program requires python version 2.6 or later")
 

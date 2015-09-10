@@ -7,6 +7,7 @@ from werkzeug.datastructures import Headers
 import json
 import mock
 import re
+import sys
 import unittest
 
 from iiif.auth_google import IIIFAuthGoogle
@@ -24,7 +25,7 @@ class Struct(object):
 
 
 class Readable(object):
-    """Class supporting read() method to mock urllib2.urlopen"""
+    """Class supporting read() method to mock urlopen"""
     def __init__(self,value):
         self.value = value
     def read(self):
@@ -32,6 +33,12 @@ class Readable(object):
 
 
 class TestAll(unittest.TestCase):
+
+    def urlopen_name(self):
+        # Name of urlopen for python2 or python3 as imported
+        # into iiif.auth_google, see:
+        # http://stackoverflow.com/questions/11351382/mock-patching-from-import-statement-in-python
+        return('iiif.auth_google.urlopen')
 
     def setUp(self):
         self.app = dummy_app.test_client()
@@ -77,7 +84,7 @@ class TestAll(unittest.TestCase):
             self.assertEqual( response.status_code, 302 )
             self.assertEqual( response.headers['Content-type'], 'text/html; charset=utf-8' )
             self.assertTrue( re.match(r'https://accounts.google.com/o/oauth2/auth', response.headers['Location']) )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8')
             self.assertTrue( re.search('<h1>Redirecting...</h1>',html) )
  
     def test06_logout_handler(self):
@@ -86,7 +93,7 @@ class TestAll(unittest.TestCase):
             response = auth.logout_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'text/html' )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8')
             self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
 
     def test07_access_token_handler(self):
@@ -95,7 +102,7 @@ class TestAll(unittest.TestCase):
             response = auth.access_token_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/json' )
-            j = json.loads(response.get_data())
+            j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual( j['error_description'], "No login details received" )
             self.assertEqual( j['error'], "client_unauthorized" )
         # add callback but no account cookie
@@ -105,7 +112,7 @@ class TestAll(unittest.TestCase):
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/javascript' )
             # strip JavaScript wrapper and then check JSON
-            js = response.get_data()
+            js = response.get_data().decode('utf-8')
             self.assertTrue( re.match('CB\(.*\);',js) )
             j = json.loads(js.lstrip('CB(').rstrip(');'))
             self.assertEqual( j['error_description'], "No login details received" )
@@ -118,7 +125,7 @@ class TestAll(unittest.TestCase):
             response = auth.access_token_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/json' )
-            j = json.loads(response.get_data())
+            j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual( j['access_token'], "ACCOUNT_TOKEN" )
             self.assertEqual( j['token_type'], "Bearer" )
  
@@ -132,12 +139,12 @@ class TestAll(unittest.TestCase):
             response = auth.home_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'text/html' )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8')
             self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
 
     def test08_google_get_token(self):
         with dummy_app.test_request_context('/a_request'):
-            with mock.patch('urllib2.urlopen', return_value=Readable('{"a":"b"}')):
+            with mock.patch(self.urlopen_name(), return_value=Readable('{"a":"b"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host',port=None)
                 j = auth.google_get_token(config,'prefix')
@@ -145,7 +152,7 @@ class TestAll(unittest.TestCase):
 
     def test09_google_get_data(self):
         with dummy_app.test_request_context('/a_request'):
-            with mock.patch('urllib2.urlopen', return_value=Readable('{"c":"d"}')):
+            with mock.patch(self.urlopen_name(), return_value=Readable('{"c":"d"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host',port=None)
                 j = auth.google_get_data(config,{'access_token':'TOKEN'})

@@ -53,21 +53,21 @@ class TestAll(unittest.TestCase):
             response = auth.login_handler()
             self.assertEqual( response.status_code, 401 )
             self.assertEqual( response.headers['Content-type'], 'text/html' )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8') #data is bytes in python3
             self.assertEqual( html, '' )
         # add good login params and check OK, window close
         h = Headers()
-        h.add('Authorization', 'Basic ' + base64.b64encode('userpass:userpass'))
+        h.add('Authorization', b'Basic ' + base64.b64encode(b'userpass:userpass'))
         with dummy_app.test_request_context('/a_request', headers=h):
             response = auth.login_handler()
             self.assertEqual( response.status_code, 200 )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8')
             self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
             set_cookie = response.headers['Set-Cookie']
             self.assertTrue( re.search(auth.auth_cookie_name+'=valid-http-basic-login', set_cookie) )
         # add bad login params and check fail
         h = Headers()
-        h.add('Authorization', 'Basic ' + base64.b64encode('userpass:bad-pass'))
+        h.add('Authorization', b'Basic ' + base64.b64encode(b'userpass:bad-pass'))
         with dummy_app.test_request_context('/a_request', headers=h):
             response = auth.login_handler()
             self.assertEqual( response.status_code, 401 )
@@ -78,7 +78,7 @@ class TestAll(unittest.TestCase):
             response = auth.logout_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'text/html' )
-            html = response.get_data()
+            html = response.get_data().decode('utf-8') #get_data is bytes in python3
             self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
 
     def test07_access_token_handler(self):
@@ -87,18 +87,18 @@ class TestAll(unittest.TestCase):
             response = auth.access_token_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/json' )
-            j = json.loads(response.get_data())
+            j = json.loads(response.get_data().decode('utf-8')) #get_data is bytes in python3
             self.assertEqual( j['error_description'], "No login details received" )
             self.assertEqual( j['error'], "client_unauthorized" )
         # add Authorization header, check we get token
         h = Headers()
-        h.add('Authorization', 'Basic ' + base64.b64encode('userpass:userpass'))
+        h.add('Authorization', b'Basic ' + base64.b64encode(b'userpass:userpass'))
         with dummy_app.test_request_context('/a_request', headers=h):
             auth = IIIFAuthBasic()
             response = auth.access_token_handler()
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/json' )
-            j = json.loads(response.get_data())
+            j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual( j['access_token'], "secret_token_here" ) #FIXME
             self.assertEqual( j['token_type'], "Bearer" )
             self.assertEqual( j['expires_in'], 3600 )
@@ -109,7 +109,7 @@ class TestAll(unittest.TestCase):
             self.assertEqual( response.status_code, 200 )
             self.assertEqual( response.headers['Content-type'], 'application/javascript' )
             # strip JavaScript wrapper and then check JSON
-            js = response.get_data()
+            js = response.get_data().decode('utf-8')
             self.assertTrue( re.match('CB\(.*\);',js) )
             j = json.loads(js.lstrip('CB(').rstrip(');'))
             self.assertEqual( j['error_description'], "No login details received" )
