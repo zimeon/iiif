@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import sys
 import contextlib
+from testfixtures import LogCapture
 try: #python2
     # Must try this first as io also exists in python2
     # but in the wrong one!
@@ -287,6 +288,35 @@ class TestAll(unittest.TestCase):
         s.write_html(tmp, include_osd=True)
         self.assertTrue( os.path.isfile( os.path.join(tmp,'abc3.html') ) )
         self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        # add another, with osd already present (and marked as such)
+        s.identifier='abc4'
+        with LogCapture('iiif.static') as lc:
+            s.write_html(tmp, include_osd=True)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc4.html') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        self.assertEqual( lc.records[-1].msg, 'OpenSeadragon already copied' )
+        # add yet another, with osd already present (but not marked)
+        s.identifier='abc5'
+        s.copied_osd=False
+        with LogCapture('iiif.static') as lc:
+            s.write_html(tmp, include_osd=True)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc5.html') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        self.assertTrue( re.search( r'OpenSeadragon images directory .* already exists',
+                                    lc.records[-1].msg ) )
+        # add another but with a prefix
+        s.identifier='abc6'
+        s.prefix='z/y/x'
+        s.copied_osd=False
+        s.write_html(tmp, include_osd=True)
+        html_file = os.path.join(tmp,'abc6.html')
+        self.assertTrue( os.path.isfile( html_file ) )
+        with open(html_file,'r') as x:
+            html = x.read()
+        self.assertTrue( re.search(r'z/y/x/abc6/info.json',html) )
         # bad write to existing path
         tmp = tempfile.mkdtemp()
         tmp2 = os.path.join(tmp,'file')

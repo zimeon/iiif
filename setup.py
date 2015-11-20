@@ -53,6 +53,8 @@ setup(
                  "Programming Language :: Python",
                  "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
+                 "Programming Language :: Python :: 3.3",
+                 "Programming Language :: Python :: 3.4",
                  "Topic :: Internet :: WWW/HTTP",
                  "Topic :: Multimedia :: Graphics :: Graphics Conversion",
                  "Topic :: Software Development :: Libraries :: Python Modules",
@@ -68,6 +70,9 @@ setup(
         "mock"
     ],
     test_suite="tests",
+    tests_require=[
+        "testfixtures",
+    ],
     cmdclass={
         'coverage': Coverage,
     },

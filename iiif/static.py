@@ -63,17 +63,17 @@ def static_full_sizes(width,height,tilesize):
     """
     # FIXME - Not sure what correct algorithm is for this, from
     # observation of Openseadragon it seems that one keeps halving
-    # the pixel size of the full until until both width and height
-    # are less than the tile size. The output that tile and further
-    # halvings for some time. It seems that without this Openseadragon
-    # will not display any unzoomed image in small windows.
+    # the pixel size of the full image until until both width and 
+    # height are less than the tile size. After that all subsequent
+    # halving of the image size are used, all the way down to 1,1.
+    # It seems that without these reduced size full-region images,
+    # OpenSeadragon will not display any unzoomed image in small windows.
     #
-    # I do not understand the algorithm that openseadragon uses (or
+    # I do not understand the algorithm that OpenSeadragon uses (or
     # know where it is in the code) to decide how small a version of
     # the complete image to request. It seems that there is a bug in
-    # openseadragon here because in some cases it requests images
-    # of size 1,1 multiple times. For now, just go all the way down to
-    # this size
+    # OpenSeadragon here because in some cases it requests images
+    # of size 1,1 multiple times, which is anyway a useless image.
     for level in range(1,20):
         factor = 2.0**level
         sw = int(width/factor + 0.5)
@@ -294,6 +294,7 @@ class IIIFStatic(object):
                 else:
                     shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
                     print("%s / %s/*" % (html_dir,osd_images))
+                self.copied_osd = True # don't try again for next img
         print()
 
 
