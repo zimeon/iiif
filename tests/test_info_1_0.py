@@ -63,9 +63,9 @@ class TestAll(unittest.TestCase):
         self.assertTrue( i.validate() )
 
     def test10_read_example_from_spec(self):
-        i = IIIFInfo(api_version='1.0')
+        i = IIIFInfo()
         fh = open('test_info/1.0/info_from_spec.json')
-        i.read(fh)
+        i.read(fh,api_version='1.0')
         self.assertEqual( i.id, "1E34750D-38DB-4825-A38A-B60A345E591C" )
         self.assertEqual( i.profile, "http://library.stanford.edu/iiif/image-api/compliance.html#level0" )
         self.assertEqual( i.width, 6000 )
@@ -76,7 +76,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual( i.formats, ['jpg','png'] )
         self.assertEqual( i.qualities, ['native','grey'] )
 
-    def test20_read_unknown_contect(self):
+    def test20_read_unknown_context(self):
         i = IIIFInfo()
         fh = open('test_info/1.0/info_bad_context.json')
         self.assertRaises( Exception, i.read, fh )
