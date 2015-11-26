@@ -63,7 +63,7 @@ class TestAll(unittest.TestCase):
             print((tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]))
             iiif = IIIFRequest(**data[tname][0])
             self.assertEqual(iiif.url(),data[tname][1])
-        print()
+        print('')
   
     def test2_decode(self):
         print("Decoding tests...")
@@ -75,7 +75,7 @@ class TestAll(unittest.TestCase):
                 tstr = self.pstr(iiif.__dict__)
                 print(("    <tr>\n      <td>" + tstr + "</td>\n      <td>" + turl + "</td>\n    </tr>"))
                 self.assertEqual(tstr,pstr)
-        print()
+        print('')
 
     def pstr(self,p):
         s=''

@@ -214,7 +214,7 @@ class TestAll(unittest.TestCase):
             print(tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1])
             iiif = IIIFRequest(api_version='1.0',**data[tname][0])
             self.assertEqual(iiif.url(),data[tname][1])
-        print()
+        print('')
   
     def test11_decode(self):
         for tname in sorted(data.keys()):
@@ -225,7 +225,7 @@ class TestAll(unittest.TestCase):
                 tstr = self.pstr(iiif.__dict__)
                 print(tname + "   " + turl + " -> " + tstr)
                 self.assertEqual(tstr,pstr)
-        print()
+        print('')
 
     def test12_decode_except(self):
         self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id"))
