@@ -15,7 +15,7 @@ try: #python2
 except ImportError: #python3
     import io
 
-from iiif.static import IIIFStatic, static_partial_tile_sizes, static_full_sizes
+from iiif.static import IIIFStatic, IIIFStaticError, static_partial_tile_sizes, static_full_sizes
 
 # From http://stackoverflow.com/questions/2654834/capturing-stdout-within-the-same-process-in-python
 class Data(object):
@@ -46,7 +46,13 @@ class TestAll(unittest.TestCase):
         s=IIIFStatic( src='abc', dst='def', tilesize=1024, api_version='1', dryrun=True )
         self.assertEqual( s.api_version, '1.1' )
 
-    def test02_generate(self):
+    def test02_get_osd_config(self):
+        s=IIIFStatic()
+        self.assertEqual( s.get_osd_config('2.0.0')['use_canonical'], True )
+        self.assertRaises( IIIFStaticError, s.get_osd_config, 'abc' )
+        self.assertRaises( IIIFStaticError, s.get_osd_config, '0.0.0' ) 
+
+    def test03_generate(self):
         # dryrun covers most
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
@@ -87,7 +93,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp2)
 
-    def test03_generate_tile(self):
+    def test04_generate_tile(self):
         # most tested via other calls, make sure zero size skip works
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
@@ -113,7 +119,7 @@ class TestAll(unittest.TestCase):
                 sizes.add( str(region)+str(size) )
         return sizes
 
-    def test04_static_partial_tile_sizes(self):
+    def test05_static_partial_tile_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = self._generate_tile_sizes(100,100,64,[1,2,4])
         self.assertTrue( '[0, 0, 64, 64][64, 64]' in sizes ) #would use assertIn for >=2.7
@@ -224,7 +230,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[512, 4608, 512, 509][512,]' in sizes )
         self.assertTrue( '[512, 512, 512, 512][512,]' in sizes )
 
-    def test05_static_full_sizes(self):
+    def test06_static_full_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = set()
         for (size) in static_full_sizes(100,100,64):
@@ -242,7 +248,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[1, 1]' in sizes )
         self.assertEqual( len(sizes), 7 )
 
-    def test06_setup_destination(self):
+    def test07_setup_destination(self):
         s=IIIFStatic()
         # no dst
         self.assertRaises( Exception, s.setup_destination )
@@ -283,7 +289,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
-    def test07_write_html(self):
+    def test08_write_html(self):
         s=IIIFStatic()
         # bad output dir
         self.assertRaises( Exception, s.write_html, '/tmp/path_does_no_exist_(i_hope)' )
