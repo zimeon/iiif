@@ -6,7 +6,6 @@ from urllib2 import *
 baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
-
     """TestAll class to run tests."""
 
     def get(self,path,map_404_to_400=False):

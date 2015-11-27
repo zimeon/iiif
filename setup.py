@@ -18,7 +18,6 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
 
 class Coverage(Command):
-
     """Class to allow coverage run from setup."""
 
     description = "run coverage"

@@ -105,13 +105,11 @@ CONF = {
 }
 
 class IIIFInfoError(Exception):
-
     """IIIFInfoErrors from IIIFInfo."""
 
     pass
 
 class IIIFInfo(object):
-
     """IIIF Image Information Class."""
 
     def __init__(self,api_version='2.0',profile=None,level=1,conf=None,

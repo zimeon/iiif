@@ -24,7 +24,6 @@ from iiif.request import IIIFRequest
 from iiif.info import IIIFInfo
 
 class CGI_responder(object):
-
     """Simple helper class for CGI response."""
 
     def send_response(self,code,text=''):
@@ -41,7 +40,6 @@ class CGI_responder(object):
 
     
 class IIIFRequestHandler(CGI_responder):
-
     """Class to handle IIIF request.
 
     Minimal implementation of HTTP request handler to do IIIF GET.

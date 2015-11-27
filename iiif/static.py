@@ -85,7 +85,6 @@ def static_full_sizes(width,height,tilesize):
 
 
 class IIIFStatic(object):
-
     """Provide static generation of IIIF images.
 
     Simplest, using source image as model for directory which
@@ -99,11 +98,11 @@ class IIIFStatic(object):
         sg = IIIFStatic(dst="outdir")
         sg.generate("image2.jpg")
         sg.generate("image3.jpg")
-
     """
 
     def __init__(self, src=None, dst=None, tilesize=None,
-                 api_version='2.0', dryrun=None, prefix=''):
+                 api_version='2.0', dryrun=None, prefix='',
+                 osd_version1=False):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -113,6 +112,7 @@ class IIIFStatic(object):
         api_version -- IIIF Image API version to support (default 2.0)
         dryrun -- True to not write any output (default None)
         prefix -- identifier prefix
+        osd_version1 -- support old OSD1.1 instead of current OSD2
         """
         self.src = src
         self.dst = dst
@@ -124,8 +124,9 @@ class IIIFStatic(object):
             self.api_version = '2.0'
         self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger(__name__)
-        # used internally:
         self.prefix = prefix
+        self.osd_version1 = osd_version1
+        # used internally:
         self.identifier = None
         self.copied_osd = False
         self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
@@ -159,8 +160,8 @@ class IIIFStatic(object):
             self.generate_tile(region,size)
         sizes = []
         for (size) in static_full_sizes(width,height,self.tilesize):
-            #FIXME - see https://github.com/zimeon/iiif/issues/9
-            #sizes.append({'width': size[0], 'height': size[1]})
+            # See https://github.com/zimeon/iiif/issues/9
+            sizes.append({'width': size[0], 'height': size[1]})
             self.generate_tile('full',size)
         # Write info.json
         qualities = ['default'] if (self.api_version>'1.1') else ['native']
@@ -179,22 +180,27 @@ class IIIFStatic(object):
                 f.write(info.as_json())
                 f.close()
             self.logger.info("Written %s"%(json_file))
-        # Write out images
-        for (region,size) in static_partial_tile_sizes(width,height,self.tilesize,scale_factors):
-            self.generate_tile(region,size)
-        for (size) in static_full_sizes(width,height,self.tilesize):
-            self.generate_tile('full',size)
-        print()
+        print('')
 
 
     def generate_tile(self,region,size):
-        """Generate one tile for this given region,size of this region."""
+        """Generate one tile for this given region,size of this region.
+
+        Logically we might use `w,h` instead of the Image API v2.0 canonical
+        form `w,` if the api_version is 1.x. However, OSD2 assumes the new 
+        canonical form even in the case where the API version is declared 
+        earlier. This, determine whether to use the `w,h` form based solely
+        on the setting of osd_version1. 
+        """
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
         if (region == 'full'):
             r.region_full = True
         else:
             r.region_xywh = region # [rx,ry,rw,rh]
-        r.size_wh = [size[0],None] # [sw,sh] -> [sw,] canonical form
+        if (self.osd_version1):
+            r.size_wh = size # old form, full `w,h`
+        else:
+            r.size_wh = [ size[0], None ] # [sw,sh] -> [sw,]
         r.format = 'jpg'
         path = r.url()
         # Generate...
@@ -207,6 +213,30 @@ class IIIFStatic(object):
                 print("%s / %s" % (self.dst,path))
             except IIIFZeroSizeError:
                 print("%s / %s - zero size, skipped" % (self.dst,path))
+                return() #done if zero size
+        if (region == 'full' and not self.osd_version1):
+            # In v2.0 of the spec, the canonical URI form `w,` for scaled 
+            # images of the full region was introduced. This is somewhat at
+            # odds with the requirement for `w,h` specified in `sizes` to
+            # be available, and has problems of precision with tall narrow
+            # images. Hopefully will be fixed in 3.0 but for now symlink
+            # the `w,h` form to the `w,` dirs so that might use the specified
+            # `w,h` also work. See
+            # <https://github.com/IIIF/iiif.io/issues/544>
+            #
+            # FIXME - This is ugly because we duplicate code in
+            # iiif.request.url to construct the partial URL
+            region_dir = os.path.join(r.quote(r.identifier),"full")
+            wh_dir = "%d,%d" % (size[0],size[1])
+            wh_path = os.path.join(region_dir,wh_dir)
+            wc_dir = "%d," % (size[0])
+            wc_path = os.path.join(region_dir,wc_dir)
+            if (not self.dryrun):
+                ln = os.path.join(self.dst,wh_path)
+                if (os.path.exists(ln)):
+                    os.remove(ln)
+                os.symlink(wc_dir, ln)
+            print("%s / %s -> %s" % (self.dst,wh_path,wc_path))
 
 
     def setup_destination(self):
@@ -244,7 +274,7 @@ class IIIFStatic(object):
         self.logger.info("Output directory %s" % outd)
 
 
-    def write_html(self, html_dir, include_osd=False):
+    def write_html(self, html_dir, include_osd=False, osd_version1=False):
         """Write HTML test page using OpenSeadragon for the tiles generated.
 
         Assumes that the generate(..) method has already been called to set up
@@ -295,7 +325,7 @@ class IIIFStatic(object):
                     shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
                     print("%s / %s/*" % (html_dir,osd_images))
                 self.copied_osd = True # don't try again for next img
-        print()
+        print('')
 
 
 

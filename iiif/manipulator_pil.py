@@ -17,7 +17,6 @@ from iiif.request import IIIFRequest
 from iiif.manipulator import IIIFManipulator
 
 class IIIFManipulatorPIL(IIIFManipulator):
-
     """Class to manipulate an image with PIL according to IIIF.
 
     All exceptions are raised as IIIFError objects which directly

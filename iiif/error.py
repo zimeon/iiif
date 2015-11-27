@@ -28,7 +28,6 @@ except ImportError: #python3
 I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
 
 class IIIFError(Exception):
-
     """Class to represent IIIF error conditions."""
 
     def __init__(self,code=500,parameter='unknown',text='',headers=None):
@@ -74,7 +73,6 @@ class IIIFError(Exception):
 
 
 class IIIFZeroSizeError(IIIFError):
-
     """Sub-class of IIIFError to indicate request for a zero-size image."""
 
     pass

@@ -21,7 +21,6 @@ from flask import request, make_response, redirect
 from iiif.auth import IIIFAuth
 
 class IIIFAuthGoogle(IIIFAuth):
-
     """IIIF Authentication Class using Google Auth."""
 
     def __init__(self, client_secret_file='client_secret.json', cookie_prefix=None):

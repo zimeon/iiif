@@ -29,7 +29,6 @@ from iiif.request import IIIFRequest,IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 class Config(object):
-
     """Class to share configuration information in IIIFHandler instances.
 
     Designed to allow initialization from other Config
@@ -117,7 +116,6 @@ def host_port_prefix(host,port,prefix):
 #########################################################################
 
 class IIIFHandler(object):
-
     """IIIFHandler class."""
 
     def __init__(self, prefix, identifier, config, klass, auth):

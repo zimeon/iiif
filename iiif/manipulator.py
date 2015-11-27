@@ -16,7 +16,6 @@ from iiif.error import IIIFError,IIIFZeroSizeError
 from iiif.request import IIIFRequest
 
 class IIIFManipulator(object):
-
     """Manipulate an image according to IIIF rules.
 
     All exceptions are raise as IIIFError objects which directly

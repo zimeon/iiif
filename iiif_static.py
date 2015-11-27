@@ -46,6 +46,10 @@ def main():
                       "OpenSeadragon will be copied to these locations")
     p.add_option('--include-osd', action='store_true',
                  help="Include OpenSeadragon files with --write-html flag")
+    p.add_option('--osd1', action='store_true',
+                 help="Generate static images for OSD v1.1 rather than v2.x. Uses /w,h/ for size "
+                      "parameter instead of /w,/. Likely useful only in combination with "
+                      "--api-version=1.1")
     p.add_option('--dryrun', '-n', action='store_true',
                  help="do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
@@ -64,14 +68,14 @@ def main():
     else:
         sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
                          api_version=opt.api_version, dryrun=opt.dryrun,
-                         prefix=opt.prefix )
+                         prefix=opt.prefix, osd_version1=opt.osd1 )
         for source in sources:
             # File or directory (or neither)?
             if (os.path.isfile(source)):
                 logger.info("source file: %s" % (source))
                 sg.generate(source, identifier=opt.identifier)
                 if (opt.write_html):
-                    sg.write_html(opt.write_html,opt.include_osd)
+                    sg.write_html(opt.write_html,opt.include_osd,opt.os1)
             elif (os.path.isdir(source)):
                 logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
             else:

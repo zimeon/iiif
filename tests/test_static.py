@@ -51,12 +51,28 @@ class TestAll(unittest.TestCase):
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
         try:
-            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', dryrun=True )
+            # v1.1 with osd_version1 (no canonical syntax)
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', osd_version1=True, dryrun=True )
             with capture_stdout() as capturer:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
             self.assertTrue( re.search(' / a/info.json', capturer.result ))
-            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/native.jpg', capturer.result ))
-            self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,464/0/native.jpg', capturer.result ))
+            # largest full region (and symlink from w,h)
+            self.assertTrue( re.search(' / a/full/375,500/0/native.jpg', capturer.result ))
+            # smallest full region
+            self.assertTrue( re.search(' / a/full/1,1/0/native.jpg', capturer.result ))
+            # v2.0
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0', dryrun=True )
+            with capture_stdout() as capturer:
+                s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
+            self.assertTrue( re.search(' / a/info.json', capturer.result ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/default.jpg', capturer.result ))
+            # largest full region (and symlink from w,h)
+            self.assertTrue( re.search(' / a/full/375,/0/default.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/full/375,500 -> a/full/375,', capturer.result ))
+            # smallest full region
+            self.assertTrue( re.search(' / a/full/1,/0/default.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/full/1,1 -> a/full/1,', capturer.result ))
         finally:
             shutil.rmtree(tmp1)
         # real write 

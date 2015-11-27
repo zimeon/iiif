@@ -16,13 +16,11 @@ except ImportError: #python2
 from iiif.error import IIIFError, IIIFZeroSizeError
 
 class IIIFRequestBaseURI(Exception):
-
     """Subclass of Exception to indicate request for base URI."""
 
     pass
 
 class IIIFRequest(object):
-
     """Implement IIIF request URL syntax.
     
     There are two URL forms defined in section 2:
