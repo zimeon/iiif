@@ -3,7 +3,7 @@
 <title>IIIF OpenSeadragon Two-up Auth Test</title>
 </head>
 <body>    		
-<script src="openseadragon/openseadragon.min.js"></script>
+<script src="openseadragon121/openseadragon.min.js"></script>
 <script src="jquery-1.11.1.min.js"></script>
 
 <h2>IIIF OpenSeadragon Auth Test - Two-up Stanford & Cornell / OAuth and HTTP Basic</h1>
@@ -110,7 +110,7 @@ function on_got_info(data, lr) {
         id: "openseadragon" + lr,
         tileSources: data,
         showNavigator: true,
-        prefixUrl: "openseadragon/images/"
+        prefixUrl: "openseadragon121/images/"
     });
 }
 
@@ -193,7 +193,7 @@ function make_viewer(lr) {
         id: "openseadragon"+lr,
         tileSources: base+get_id(lr)+"/info.json?t=" + new Date().getTime(),
         showNavigator: true,
-        prefixUrl: "openseadragon/images/"
+        prefixUrl: "openseadragon121/images/"
     });
     if (lr == "left") {
         viewer.addHandler('open', handle_open_left)

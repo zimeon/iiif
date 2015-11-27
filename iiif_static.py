@@ -10,7 +10,7 @@ import sys
 import os.path
 
 from iiif import __version__
-from iiif.static import IIIFStatic
+from iiif.static import IIIFStatic, IIIFStaticError
 
 def main():
     """Parse arguments, instantiate IIIFStatic, run."""
@@ -46,10 +46,10 @@ def main():
                       "OpenSeadragon will be copied to these locations")
     p.add_option('--include-osd', action='store_true',
                  help="Include OpenSeadragon files with --write-html flag")
-    p.add_option('--osd1', action='store_true',
-                 help="Generate static images for OSD v1.1 rather than v2.x. Uses /w,h/ for size "
-                      "parameter instead of /w,/. Likely useful only in combination with "
-                      "--api-version=1.1")
+    p.add_option('--osd-version', action='store', default='2.0.0',
+                 help="Generate static images for older versions of OpenSeadragon. Use of versions "
+                      "prior to 1.2.1 will force use of /w,h/ for size parameter instead of /w,/. "
+                      "Likely useful only in combination with --api-version=1.1")
     p.add_option('--dryrun', '-n', action='store_true',
                  help="do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
@@ -61,25 +61,31 @@ def main():
                          level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
     logger = logging.getLogger(os.path.basename(__file__))
 
+    if (not opt.write_html and opt.include_osd):
+        logger.warn("--include-osd has no effect without --write-html, ignoring")
     if (len(sources)==0):
         logger.warn("No sources specified, nothing to do, bye! (-h for help)")
     elif (len(sources)>1 and opt.identifier):
         logger.warn("Cannot use --identifier/-i option with multiple sources, aborting.")
     else:
-        sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
-                         api_version=opt.api_version, dryrun=opt.dryrun,
-                         prefix=opt.prefix, osd_version1=opt.osd1 )
-        for source in sources:
-            # File or directory (or neither)?
-            if (os.path.isfile(source)):
-                logger.info("source file: %s" % (source))
-                sg.generate(source, identifier=opt.identifier)
-                if (opt.write_html):
-                    sg.write_html(opt.write_html,opt.include_osd,opt.os1)
-            elif (os.path.isdir(source)):
-                logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
-            else:
-                logger.warn("Ignoring source '%s': neither file nor path" % (source))
+        try:
+            sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
+                             api_version=opt.api_version, dryrun=opt.dryrun,
+                             prefix=opt.prefix, osd_version=opt.osd_version )
+            for source in sources:
+                # File or directory (or neither)?
+                if (os.path.isfile(source)):
+                    logger.info("source file: %s" % (source))
+                    sg.generate(source, identifier=opt.identifier)
+                    if (opt.write_html):
+                        sg.write_html(html_dir=opt.write_html,include_osd=opt.include_osd)
+                elif (os.path.isdir(source)):
+                    logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
+                else:
+                    logger.warn("Ignoring source '%s': neither file nor path" % (source))
+        except IIIFStaticError as e:
+            # catch known errors and report nicely...
+            logger.error("Error: "+str(e))
 
 if __name__ == '__main__':
     main()

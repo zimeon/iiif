@@ -15,7 +15,7 @@ function initOpenSeadragon() {
   OpenSeadragon({
     id: "openseadragon1",
     minZoomImageRatio: 1,
-    prefixUrl: "$osd_images_prefix",
+    prefixUrl: "$osd_images_prefix/", // OSD needs trailing slash
     tileSources: "$info_json_uri",
     crossOriginPolicy: false});
 }
@@ -25,6 +25,7 @@ document.addEventListener("page:load", initOpenSeadragon); // Initialize when us
 </script>
 
 <h4>Debugging links</h4>
+<p>Images compiled for IIIF Image API v$api_version, and OpenSeadragon version v$osd_version.</p> 
 <ul>
 <li><code><a href="$info_json_uri">info.json</a></code></li>
 <li><a href="$osd_uri">OpenSeadragon JavaScript</a></li>

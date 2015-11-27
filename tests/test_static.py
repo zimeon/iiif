@@ -51,8 +51,8 @@ class TestAll(unittest.TestCase):
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
         try:
-            # v1.1 with osd_version1 (no canonical syntax)
-            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', osd_version1=True, dryrun=True )
+            # no canonical syntax with osd_version='1.0.0'
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', osd_version='1.0.0', dryrun=True )
             with capture_stdout() as capturer:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
             self.assertTrue( re.search(' / a/info.json', capturer.result ))
@@ -303,14 +303,14 @@ class TestAll(unittest.TestCase):
         s.identifier='abc3'
         s.write_html(tmp, include_osd=True)
         self.assertTrue( os.path.isfile( os.path.join(tmp,'abc3.html') ) )
-        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
         self.assertTrue( s.copied_osd )
         # add another, with osd already present (and marked as such)
         s.identifier='abc4'
         with LogCapture('iiif.static') as lc:
             s.write_html(tmp, include_osd=True)
         self.assertTrue( os.path.isfile( os.path.join(tmp,'abc4.html') ) )
-        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
         self.assertTrue( s.copied_osd )
         self.assertEqual( lc.records[-1].msg, 'OpenSeadragon already copied' )
         # add yet another, with osd already present (but not marked)
@@ -319,7 +319,7 @@ class TestAll(unittest.TestCase):
         with LogCapture('iiif.static') as lc:
             s.write_html(tmp, include_osd=True)
         self.assertTrue( os.path.isfile( os.path.join(tmp,'abc5.html') ) )
-        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
         self.assertTrue( s.copied_osd )
         self.assertTrue( re.search( r'OpenSeadragon images directory .* already exists',
                                     lc.records[-1].msg ) )

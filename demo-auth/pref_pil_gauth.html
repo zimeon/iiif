@@ -1,4 +1,4 @@
-<script src="openseadragon/openseadragon.min.js"></script>
+<script src="openseadragon121/openseadragon.min.js"></script>
 <script src="jquery-1.11.1.min.js"></script>
 
 <h2>IIIF OpenSeadragon Authentication Test</h2>
@@ -61,7 +61,7 @@ function on_got_info(data) {
         id: "openseadragon",
         tileSources: data,
         showNavigator: true,
-        prefixUrl: "openseadragon/images/"
+        prefixUrl: "openseadragon121/images/"
     });
 }
 
@@ -122,7 +122,7 @@ function make_viewer() {
         id: "openseadragon",
         tileSources: "http://localhost:8001/2.1_pil_gauth/tetons/info.json?t=" + new Date().getTime(),
         showNavigator: true,
-        prefixUrl: "openseadragon/images/"
+        prefixUrl: "openseadragon121/images/"
     });
 
     viewer.addHandler('open', handle_open)

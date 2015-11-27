@@ -83,6 +83,10 @@ def static_full_sizes(width,height,tilesize):
                 break
             yield([sw,sh])
 
+class IIIFStaticError(Exception):
+    """Error class for errors to be resported to user."""
+
+    pass
 
 class IIIFStatic(object):
     """Provide static generation of IIIF images.
@@ -102,7 +106,7 @@ class IIIFStatic(object):
 
     def __init__(self, src=None, dst=None, tilesize=None,
                  api_version='2.0', dryrun=None, prefix='',
-                 osd_version1=False):
+                 osd_version=None):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -112,7 +116,7 @@ class IIIFStatic(object):
         api_version -- IIIF Image API version to support (default 2.0)
         dryrun -- True to not write any output (default None)
         prefix -- identifier prefix
-        osd_version1 -- support old OSD1.1 instead of current OSD2
+        osd_version -- use a specific version of OpenSeadragon
         """
         self.src = src
         self.dst = dst
@@ -125,12 +129,52 @@ class IIIFStatic(object):
         self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger(__name__)
         self.prefix = prefix
-        self.osd_version1 = osd_version1
+        self.osd_version = osd_version if osd_version else '2.0.0'
+        # config for locations of OpenSeadragon
+        # - dir is relative to base, will be copied to dir under html_dir
+        # - js and images are relative to dir
+        self.osd_config = {
+            '1.0.0': {
+                'base': 'third_party',
+                'dir': 'openseadragon100',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': False,
+                'notes' : 'Uses /w,h/ for size, algorithm not quite right, API v1.1'
+                  },
+            '1.2.1': {
+                'base': 'third_party',
+                'dir': 'openseadragon121',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': True,
+                'notes' : "Uses /w,/ canonical syntax, works with API v1.1,2.0"
+                  },
+            '2.0.0': {
+                'base': 'third_party',
+                'dir': 'openseadragon200',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': True,
+                'notes' : "Uses /w,/ canonical syntax, works with API v1.1,2.0"
+                  }
+        }
         # used internally:
         self.identifier = None
         self.copied_osd = False
         self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
+    def get_osd_config(self,osd_version):
+        """Select appropriate portion of config.
+
+        If the version requested is not supported the raise an exception with 
+        a helpful error message listing the versions supported.
+        """
+        if (osd_version in self.osd_config):
+            return(self.osd_config[osd_version])
+        else:
+            raise IIIFStaticError("OpenSeadragon version %s not supported, available versions are %s" %
+                (osd_version, ', '.join(sorted(self.osd_config.keys()))))
 
     def generate(self, src=None, identifier=None):
         """Generate static files for one source image."""
@@ -187,20 +231,22 @@ class IIIFStatic(object):
         """Generate one tile for this given region,size of this region.
 
         Logically we might use `w,h` instead of the Image API v2.0 canonical
-        form `w,` if the api_version is 1.x. However, OSD2 assumes the new 
-        canonical form even in the case where the API version is declared 
-        earlier. This, determine whether to use the `w,h` form based solely
-        on the setting of osd_version1. 
+        form `w,` if the api_version is 1.x. However, OSD 1.2.1 and 2.x assume
+        the new canonical form even in the case where the API version is declared 
+        earlier. Thus, determine whether to use the canonical or `w,h` form based
+        solely on the setting of osd_version. 
         """
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
+        osd_config = self.get_osd_config(self.osd_version);
+        use_canonical = osd_config['use_canonical']
         if (region == 'full'):
             r.region_full = True
         else:
             r.region_xywh = region # [rx,ry,rw,rh]
-        if (self.osd_version1):
-            r.size_wh = size # old form, full `w,h`
-        else:
+        if (use_canonical):
             r.size_wh = [ size[0], None ] # [sw,sh] -> [sw,]
+        else:
+            r.size_wh = size # old form, full `w,h`
         r.format = 'jpg'
         path = r.url()
         # Generate...
@@ -214,7 +260,7 @@ class IIIFStatic(object):
             except IIIFZeroSizeError:
                 print("%s / %s - zero size, skipped" % (self.dst,path))
                 return() #done if zero size
-        if (region == 'full' and not self.osd_version1):
+        if (region == 'full' and use_canonical):
             # In v2.0 of the spec, the canonical URI form `w,` for scaled 
             # images of the full region was introduced. This is somewhat at
             # odds with the requirement for `w,h` specified in `sizes` to
@@ -246,13 +292,13 @@ class IIIFStatic(object):
         failure.
         """
         if (not self.dst):
-            raise Exception("No destination directory specified!")
+            raise IIIFStaticError("No destination directory specified!")
         dst = self.dst
         if (os.path.isdir(dst)):
             # Exists, OK
             pass
         elif (os.path.isfile(dst)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % dst)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % dst)
         else:
             os.makedirs(dst)
         # Now have dst directory, do we have a separate identifier?
@@ -267,30 +313,32 @@ class IIIFStatic(object):
             self.logger.warn("Output directory %s already exists, adding/updating files" % outd)
             pass
         elif (os.path.isfile(outd)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % outd)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % outd)
         else:
             os.makedirs(outd)
         #
         self.logger.info("Output directory %s" % outd)
 
 
-    def write_html(self, html_dir, include_osd=False, osd_version1=False):
+    def write_html(self, html_dir='/tmp', include_osd=False):
         """Write HTML test page using OpenSeadragon for the tiles generated.
 
         Assumes that the generate(..) method has already been called to set up
         identifier etc.
         """
-        osd_dir = 'osd'
-        osd_js = 'osd/openseadragon.min.js'
-        osd_images = 'osd/images'
-      
+        osd_config = self.get_osd_config(self.osd_version);
+        osd_base = osd_config['base']
+        osd_dir = osd_config['dir'] # relative to base
+        osd_js = os.path.join(osd_dir,osd_config['js'])
+        osd_images = os.path.join(osd_dir,osd_config['images'])
         if (os.path.isdir(html_dir)):
             # Exists, fine
             pass
         elif (os.path.isfile(html_dir)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % html_dir)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % html_dir)
         else:
             os.makedirs(html_dir)
+        self.logger.info("Writing HTML to %s" % (html_dir))
         with open(os.path.join(self.template_dir,'static_osd.html'),'r') as f:
             template = f.read()
         outfile = self.identifier+'.html'
@@ -300,8 +348,10 @@ class IIIFStatic(object):
             if (self.prefix):
                 info_json_uri = '/'.join([self.prefix,info_json_uri])
             d = dict( identifier = self.identifier,
+                      api_version = self.api_version,
+                      osd_version = self.osd_version,
                       osd_uri = osd_js,
-                      osd_images_prefix = osd_images+'/', #OSD needs trailing slash
+                      osd_images_prefix = osd_images,
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
             print("%s / %s" % (html_dir,outfile))
@@ -316,13 +366,13 @@ class IIIFStatic(object):
                 osd_path = os.path.join(html_dir,osd_dir)
                 if (not os.path.isdir(osd_path)):
                     os.makedirs(osd_path)
-                shutil.copyfile(os.path.join('demo-static',osd_js), os.path.join(html_dir,osd_js))
+                shutil.copyfile(os.path.join(osd_base,osd_js), os.path.join(html_dir,osd_js))
                 print("%s / %s" % (html_dir,osd_js))
                 osd_images_path = os.path.join(html_dir,osd_images)
                 if (os.path.isdir(osd_images_path)):
                     self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
                 else:
-                    shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
+                    shutil.copytree(os.path.join(osd_base,osd_images), osd_images_path)
                     print("%s / %s/*" % (html_dir,osd_images))
                 self.copied_osd = True # don't try again for next img
         print('')
