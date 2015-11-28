@@ -40,8 +40,10 @@ Regerating tiles
 To remove and regenerate tiles and `info.json` files:
 ```
 iiif> rm -rf demo-static/tetons demo-static/tetons.html; ./iiif_static.py --write-html demo-static -d demo-static --api-version=1.1 testimages/tetons.jpg
+
 iiif> rm -rf demo-static/starfish demo-static/starfish.html; ./iiif_static.py --write-html demo-static -d demo-static -t 1024 testimages/starfish.jpg
-iiif> rm -rf demo-static/starfish2 demo-static/starfish2.html; ./iiif_static.py -d demo-static -t 256 testimages/starfish2.jpg
+
+iiif> rm -rf demo-static/starfish2 demo-static/starfish2.html; ./iiif_static.py --write-html demo-static -d demo-static -t 200 --osd-version=1.2.1 --osd-width=200 --osd-height=200 testimages/starfish2.jpg
 ```
 
 Storage space

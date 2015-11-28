@@ -320,11 +320,17 @@ class IIIFStatic(object):
         self.logger.info("Output directory %s" % outd)
 
 
-    def write_html(self, html_dir='/tmp', include_osd=False):
+    def write_html(self, html_dir='/tmp', include_osd=False,
+                   osd_width=500, osd_height=500):
         """Write HTML test page using OpenSeadragon for the tiles generated.
 
         Assumes that the generate(..) method has already been called to set up
-        identifier etc.
+        identifier etc. Parameters:
+          html_dir - output directory for HTML files, will be created if it 
+                     does not already exist
+          include_osd - true to include OpenSeadragon code
+          osd_width - width of OpenSeadragon pane in pixels
+          osd_height - height of OpenSeadragon pane in pixels
         """
         osd_config = self.get_osd_config(self.osd_version);
         osd_base = osd_config['base']
@@ -352,6 +358,8 @@ class IIIFStatic(object):
                       osd_version = self.osd_version,
                       osd_uri = osd_js,
                       osd_images_prefix = osd_images,
+                      osd_height = osd_width,
+                      osd_width = osd_height,
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
             print("%s / %s" % (html_dir,outfile))

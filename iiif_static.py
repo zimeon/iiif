@@ -23,9 +23,9 @@ def main():
                               version='%prog '+__version__ )
 
     p.add_option('--dst', '-d', action='store', default='/tmp',
-                 help="destination directory [default '%default']")
+                 help="Destination directory for images [default '%default']")
     p.add_option('--tilesize', '-t', action='store', type='int', default=512,
-                 help="tilesize in pixels [default %default]")
+                 help="Tilesize in pixels [default %default]")
     p.add_option('--api-version', '--api','-a', action='store', default='2.0',
                  help="API version, may be 1.1 or 2.0 [default %default]")
     p.add_option('--prefix', '-p', action='store', default=None,
@@ -41,19 +41,27 @@ def main():
                  help="Write HTML page to the specified directory using the 'identifier.html' "
                       "as the filename. HTML will launch OpenSeadragon for this image and to "
                       "display some of information about info.json and tile locations. HTML will "
-                      "assume OpenSeadragon at relative path osd/openseadragon.min.js and interface "
-                      "icons in osd/images. The --include-osd flag is also specified then "
-                      "OpenSeadragon will be copied to these locations")
+                      "assume OpenSeadragon at relative path openseadragonVVV/openseadragon.min.js "
+                      "and user-interface icons in openseadragonVVV/images, where VVV are the "
+                      "three parts of the version number. The --include-osd flag is also specified "
+                      "then OpenSeadragon will be copied to these locations")
     p.add_option('--include-osd', action='store_true',
                  help="Include OpenSeadragon files with --write-html flag")
     p.add_option('--osd-version', action='store', default='2.0.0',
                  help="Generate static images for older versions of OpenSeadragon. Use of versions "
                       "prior to 1.2.1 will force use of /w,h/ for size parameter instead of /w,/. "
-                      "Likely useful only in combination with --api-version=1.1")
+                      "Likely useful only in combination with --api-version=1.1 "
+                      "[default %default]")
+    p.add_option('--osd-width', action='store', type='int', default='500',
+                 help="Width of OpenSeadragon pane in pixels. Applies only with "
+                      "--write-html [default %default]")
+    p.add_option('--osd-height', action='store', type='int', default='500',
+                 help="Height of OpenSeadragon pane in pixels. Applies only with "
+                      "--write-html [default %default]")
     p.add_option('--dryrun', '-n', action='store_true',
-                 help="do not write anything, say what would be done")
+                 help="Do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
-                 help="verbose")
+                 help="Verbose")
 
     (opt, sources) = p.parse_args()
 
@@ -78,7 +86,8 @@ def main():
                     logger.info("source file: %s" % (source))
                     sg.generate(source, identifier=opt.identifier)
                     if (opt.write_html):
-                        sg.write_html(html_dir=opt.write_html,include_osd=opt.include_osd)
+                        sg.write_html(html_dir=opt.write_html,include_osd=opt.include_osd,
+                                      osd_width=opt.osd_width, osd_height=opt.osd_height  )
                 elif (os.path.isdir(source)):
                     logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
                 else:
