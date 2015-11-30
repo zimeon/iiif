@@ -8,7 +8,7 @@ versions of the specification via different base URIs (prefixes).
 Simeon Warner - 2014...
 """
 
-from flask import Flask, request, make_response, redirect, abort, send_file, url_for
+from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory
 
 import base64
 import logging 
@@ -17,6 +17,7 @@ import json
 import optparse
 import os
 import os.path
+from string import Template
 try: #python3
     from urllib.parse import quote as urlquote
     from urllib.request import parse_keqv_list, parse_http_list
@@ -67,6 +68,29 @@ def top_level_index_page(config):
     body += "</ul>\n"
     return html_page( title, body )
 
+def identifiers(config):
+    """Show list of identifiers for this prefix.
+
+    Handles both the case of local file based identifiers and
+    also image generators.
+    """
+    ids = []
+    if (config.klass_name == 'gen'):
+        for generator in os.listdir(config.generator_dir):
+            if (generator == '__init__.py'):
+                continue
+            (gid,ext) = os.path.splitext(generator)
+            if (ext == '.py' and
+                os.path.isfile(os.path.join(config.generator_dir,generator))):
+                ids.append(gid)
+    else:
+        for image_file in os.listdir(config.image_dir):
+            (iid,ext) = os.path.splitext(image_file)
+            if (ext in ['.jpg','.png','.tif'] and
+                os.path.isfile(os.path.join(config.image_dir,image_file))):
+                ids.append(iid)
+    return ids 
+
 def prefix_index_page(config=None, prefix=None):
     """HTML index page for a specific prefix."""
     http_host = request.environ.get('HTTP_HOST','')
@@ -76,33 +100,54 @@ def prefix_index_page(config=None, prefix=None):
     body += 'api_version = %s<br/>\n' % (config.api_version)
     body += 'manipulator = %s<br/>\n' % (config.klass_name)
     body += 'auth_type = %s\n</p>\n' % (config.auth_type)
-    # table of files and example requests
-    files = os.listdir(config.image_dir)
+    # table of identifiers and example requests
+    ids = identifiers(config)
     api_version = config.api_version
     default = 'native' if api_version<'2.0' else 'default'
-    body += '<table border="1">\n<tr><th>Source image</th>'
+    body += '<table border="1">\n<tr><th align="left">Source image</th>'
     body += '<th> </th><th>full</th>'
     if (prefix!='dummy'):
         body += '<th>256,256</th>'
         body += '<th>30deg</th>'
+        if (config.include_osd):
+            body += '<th> </th>'
     body += "</tr>\n"
-    for file in sorted(files):
-        body += "<tr><th>%s</th>" % (file)
-        info = "/%s/%s/info.json" % (prefix,file)
+    for identifier in sorted(ids):
+        body += '<tr><th align="left">%s</th>' % (identifier)
+        info = "/%s/%s/info.json" % (prefix,identifier)
         body += '<td><a href="%s">%s</a></td>' % (info,'info')
         suffix = "full/full/0/%s" % (default)
-        url = "/%s/%s/%s" % (prefix,file,suffix)
+        url = "/%s/%s/%s" % (prefix,identifier,suffix)
         body += '<td><a href="%s">%s</a></td>' % (url,suffix)
         if (prefix!='dummy'):
             suffix = "full/256,256/0/%s" % (default)
-            url = "/%s/%s/%s" % (prefix,file,suffix)
+            url = "/%s/%s/%s" % (prefix,identifier,suffix)
             body += '<td><a href="%s">%s</a></td>' % (url,suffix)
             suffix = "full/100,/30/%s" % (default)
-            url = "/%s/%s/%s" % (prefix,file,suffix)
+            url = "/%s/%s/%s" % (prefix,identifier,suffix)
             body += '<td><a href="%s">%s</a></td>' % (url,suffix)
+            if (config.include_osd):
+                url = "/%s/%s/osd.html" % (prefix,identifier)
+                body += '<td><a href="%s">OSD</a></td>' % (url)
         body += "</tr>\n"
     body += "</table<\n"
     return html_page( title, body )
+
+def osd_page_handler(config=None, identifier=None, prefix=None, **args):
+    """Produce HTML response for OpenSeadragon view of identifier."""
+    template_dir = os.path.join(os.path.dirname(__file__), 'iiif', 'templates')
+    with open(os.path.join(template_dir,'testserver_osd.html'),'r') as f:
+        template = f.read()
+    d = dict( prefix = prefix,
+              identifier = identifier,
+              api_version = '99',
+              osd_version = '2.0.0',
+              osd_uri = '/openseadragon200/openseadragon.min.js',
+              osd_images_prefix = '/openseadragon200/images',
+              osd_height = 500,
+              osd_width = 500,
+              info_json_uri = 'info.json' )
+    return make_response( Template(template).safe_substitute(d) )
 
 def host_port_prefix(host,port,prefix):
     """Return URI composed of scheme, server, port, and prefix."""
@@ -171,17 +216,20 @@ class IIIFHandler(object):
     def file(self):
         """Filename property for the source image for the current identifier."""
         file = None
-        for ext in ['','.jpg','.png','.tif']:
-            file = os.path.join(self.config.image_dir,self.identifier+ext)
-            if (os.path.isfile(file)):
-                return file
-        # failed, show list of files as error
-        images_available=""
-        for image_file in os.listdir(self.config.image_dir):
-            if (os.path.isfile(os.path.join(self.config.image_dir,image_file))):
-                images_available += "  "+image_file+"\n"
+        if (self.config.klass_name == 'gen'):
+            for ext in ['.py']:
+                file = os.path.join(self.config.generator_dir,self.identifier+ext)
+                if (os.path.isfile(file)):
+                    return file
+        else:
+            for ext in ['.jpg','.png','.tif']:
+                file = os.path.join(self.config.image_dir,self.identifier+ext)
+                if (os.path.isfile(file)):
+                    return file
+        # failed, show list of idemtifiers as error
+        available = "\n ".join(identifiers(self.config))
         raise IIIFError(code=404,parameter="identifier",
-                        text="Image resource '"+self.identifier+"' not found. Local image files available:\n" + images_available)
+                        text="Image resource '"+self.identifier+"' not found. Local resources available:" + available + "\n")
 
     def add_compliance_header(self):
         """Add IIIF Compliance level header to response."""
@@ -290,7 +338,8 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, aut
     """Handler for IIIF Image Information requests."""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
-        print("Authorized for image %s" % identifier)
+        if (auth):
+            print("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_information_response()
@@ -314,7 +363,8 @@ def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, kla
     """
     if (not auth or degraded_request(identifier) or auth.image_authz()):
         # serve image
-        print("Authorized for image %s" % identifier)
+        if (auth):
+            print("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_request_response(path)
@@ -449,6 +499,8 @@ def setup_options():
                  help="Server port (default %default)")
     p.add_option('--image-dir','-d', default='testimages',
                  help="Image directory (default %default)")
+    p.add_option('--generator-dir', default='iiif/generators',
+                 help="Generator directory for manipulator='gen' (default %default)")
     p.add_option('--tile-height', type='int', default=256,
                  help="Tile height (default %default)")
     p.add_option('--tile-width', type='int', default=256,
@@ -457,14 +509,16 @@ def setup_options():
                  help="Set of tile scale factors (default %default)")
     p.add_option('--api-versions', default='1.0,1.1,2.0',
                  help="Set of API versions to support (default %default)")
-    p.add_option('--manipulators',default='pil',
+    p.add_option('--manipulators', default='pil',
                  help="Set of manipuators to instantiate (from dummy,netpbm,pil; default %default")
-    p.add_option('--auth-types',default='none',
+    p.add_option('--auth-types', default='none',
                  help="Set of authentication types to support (default %default)")
     p.add_option('--gauth-client-secret', default='client_secret.json',
                  help="Name of file with Google auth client secret (default %default)")
     p.add_option('--pages-dir', default='testpages',
                  help="Test pages directory (default %default)")
+    p.add_option('--include-osd', action='store_true',
+                 help="Include a page with OpenSeadragon for each source" )
     p.add_option('--draft', action='store_true',
                  help="Enable features implementing draft IIIF specifications: v2.1 and auth")
     p.add_option('--debug', action='store_true',
@@ -529,6 +583,9 @@ def add_handler(app, config, prefixes):
     elif (config.klass_name=='dummy'):
         from iiif.manipulator import IIIFManipulator
         klass=IIIFManipulator
+    elif (config.klass_name=='gen'):
+        from iiif.manipulator_gen import IIIFManipulatorGen
+        klass=IIIFManipulatorGen
     else:
         print("Unknown manipulator type %s, ignoring" % (config.klass_name))
         return
@@ -537,12 +594,19 @@ def add_handler(app, config, prefixes):
     app.add_url_rule('/'+wsgi_prefix, 'prefix_index_page', prefix_index_page, defaults={'config':config,'prefix':prefix})
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'options_handler', options_handler, methods=['OPTIONS'])
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/info.json', 'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
+    if (config.include_osd):
+        app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/osd.html', 'osd_page_handler', osd_page_handler, methods=['GET'], defaults=params)
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/<path:path>', 'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
     if (auth):
         setup_auth_paths(app, auth, wsgi_prefix, params)
     # redirects to info.json must come after auth
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
     app.add_url_rule('/'+wsgi_prefix+'/<string(minlength=1):identifier>/', 'iiif_info_handler', redirect_to='/'+prefix+'/<identifier>/info.json')
+
+def serve_static(filename=None, prefix=None, basedir=''):
+    """Handler for static files under basedir."""
+    return send_from_directory(os.path.join('third_party',prefix),
+                               filename)
 
 def create_app(opt):
     """Create Flask application with one or more IIIF handlers."""
@@ -579,6 +643,11 @@ def create_app(opt):
     # Index page
     config.prefixes = prefixes
     app.add_url_rule('/', 'top_level_index_page', top_level_index_page, defaults={'config':config})
+    if (config.include_osd):
+        # OpenSeadragon files
+        #app.add_url_rule('/openseadragon100/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon100','basedir':'third_party'})
+        #app.add_url_rule('/openseadragon121/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon121','basedir':'third_party'})
+        app.add_url_rule('/openseadragon200/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon200','basedir':'third_party'})
 
     return(app)
 
@@ -602,12 +671,14 @@ else:
     mydir=os.path.dirname(os.path.realpath(__file__))
     opt.pages_dir = mydir+'/testpages'
     opt.image_dir = mydir+'/testimages'
+    opt.generator_dir = mydir+'/iiif/generators'
     opt.tile_width = 512
     opt.tile_height = 512
     opt.scale_factors = [1,2,4,8]
     opt.api_versions = ['1.0','1.1','2.0','2.1']
     opt.auth_types = ['none','gauth','basic']
     opt.manipulators = ['dummy','netpbm','pil']
+    opt.include_osd = False
     opt.container_prefix = 'iiif_auth_test'
     # Should get the following from WSGI environ, 
     # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines

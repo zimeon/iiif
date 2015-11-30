@@ -15,7 +15,7 @@ install:
 # -- use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet. Also omit the netpbm manipulator from coverage tests because I haven't flashed those out
 script:
   - py.test
-  - pep257 *.py iiif tests
+  - pep257 *.py iiif/*.py iiif/generators/*.py
   - rst-lint README
   - ./run_validate.sh -n
   - coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test
