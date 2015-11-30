@@ -95,6 +95,10 @@ class IIIFManipulatorPIL(IIIFManipulator):
         elif (quality == 'bitonal'):
             self.logger.info("quality: converting to bitonal")
             self.image = self.image.convert('1')
+        elif (self.image.mode == 'P'):
+            # Need to convert from palette in order to write out
+            self.logger.error("quality: converting from palette to RGB")
+            self.image = self.image.convert('RGB')
         else:
             self.logger.info("quality: quality (nop)")
 
