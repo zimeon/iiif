@@ -140,7 +140,7 @@ def osd_page_handler(config=None, identifier=None, prefix=None, **args):
         template = f.read()
     d = dict( prefix = prefix,
               identifier = identifier,
-              api_version = '99',
+              api_version = config.api_version,
               osd_version = '2.0.0',
               osd_uri = '/openseadragon200/openseadragon.min.js',
               osd_images_prefix = '/openseadragon200/images',
@@ -259,6 +259,15 @@ class IIIFHandler(object):
                  'tile_width': self.config.tile_width,
                  'scale_factors' : self.config.scale_factors
                }
+        # calculate scale factors if not hard-coded
+        if ('auto' in self.config.scale_factors):
+            info['scale_factors'] = [1]
+            for power in range(1,10):
+                sf = 2**power
+                if ( self.config.tile_width*sf > self.manipulator.width and
+                     self.config.tile_height*sf > self.manipulator.height ):
+                    break
+                info['scale_factors'].append(sf)
         i = IIIFInfo(conf=info,api_version=self.api_version)
         i.server_and_prefix = self.server_and_prefix
         i.identifier = self.iiif.identifier
@@ -505,8 +514,9 @@ def setup_options():
                  help="Tile height (default %default)")
     p.add_option('--tile-width', type='int', default=256,
                  help="Tile width (default %default)")
-    p.add_option('--scale-factors', default='1,2,4,8',
-                 help="Set of tile scale factors (default %default)")
+    p.add_option('--scale-factors', default='auto',
+                 help="Set of tile scale factors or 'auto' to calculate for each image "
+                      "such that there are tiles up to the full image (default %default)")
     p.add_option('--api-versions', default='1.0,1.1,2.0',
                  help="Set of API versions to support (default %default)")
     p.add_option('--manipulators', default='pil',
@@ -674,7 +684,7 @@ else:
     opt.generator_dir = mydir+'/iiif/generators'
     opt.tile_width = 512
     opt.tile_height = 512
-    opt.scale_factors = [1,2,4,8]
+    opt.scale_factors = ['auto']
     opt.api_versions = ['1.0','1.1','2.0','2.1']
     opt.auth_types = ['none','gauth','basic']
     opt.manipulators = ['dummy','netpbm','pil']
