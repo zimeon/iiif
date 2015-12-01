@@ -1,4 +1,9 @@
-"""Image generator for 3x3 check pattern with self-similar repeat."""
+"""Image generator for 3x3 check pattern with self-similar repeat.
+
+Middle square is a repeat of the check pattern, with its middle
+square also a repeat, and so on. Each sucessive level is colored
+more and more red
+"""
 
 def _num(x,y):
     """PRIVATE function to return cell number in 3x3 square, 1..9."""
@@ -10,7 +15,6 @@ class PixelGen(object):
     def __init__(self):
         """Set size."""
         self.sz = 3**9 #19k
-        #self.sz = 3**10 #54k
 
     @property
     def size(self):
@@ -41,7 +45,7 @@ class PixelGen(object):
         n = _num(x//divisor,y//divisor)
         if (n==5):
             # Middle square further divided
-            return self.pixel(x%divisor,y%divisor,divisor,red+30)
+            return self.pixel(x%divisor,y%divisor,divisor,min(red+25,255))
         elif (n%2):
             return (red,0,0)
         else:
