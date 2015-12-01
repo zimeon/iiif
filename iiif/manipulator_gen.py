@@ -1,6 +1,5 @@
 """Generator for IIIF Image API using the Python Image Library."""
 
-import importlib
 import os.path
 import sys
 
@@ -48,7 +47,10 @@ class IIIFManipulatorGen(IIIFManipulatorPIL):
                     module = sys.modules[module_name]
                 except KeyError:
                     self.logger.info("Loading generator module %s"%(module_name))
-                    module = importlib.import_module(module_name)
+                    # Would be nice to use importlib but this is available only
+                    # in python 2.7 and higher
+                    pack = __import__(module_name) #returns iiif package
+                    module = getattr(pack.generators,mod)
                 self.gen = module.PixelGen()
             except ImportError:
                 raise IIIFError(text=("Failed to load generator %s"%(str(self.srcfile))))
