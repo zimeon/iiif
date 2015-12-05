@@ -37,12 +37,40 @@ class IIIFManipulatorPIL(IIIFManipulator):
         self.compliance_level=2
         self.outtmp = None
 
+    def set_max_image_pixels(self, pixels):
+        """Set PIL limit on pixel size of images to load if non-zero.
+
+        WARNING: This is a global setting in PIL, it is
+        not local to this manipulator instance!
+
+        Setting a value here will not only set the given limit but
+        also convert the PIL "DecompressionBombWarning" into an 
+        error. Thus setting a moderate limit sets a hard limit on
+        image size loaded, setting a very large limit will have the
+        effect of disabling the warning
+        """
+        if (pixels):
+            Image.MAX_IMAGE_PIXELS = pixels
+            Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
+
     def do_first(self):
-        """Create PIL object from input image file."""
+        """Create PIL object from input image file.
+
+        Image location must be in self.srcfile. Will result in
+        self.width and self.height being set to the image dimensions.
+
+        Will raise an IIIFError on failure to load the image
+        """
         self.logger.info("do_first: src=%s" % (self.srcfile))
         try:
             self.image=Image.open(self.srcfile)
             self.image.load()
+        except Image.DecompressionBombWarning as e:
+            # This exception will be raised only if PIL has been
+            # configured to raise an error in the case of images
+            # that exceeed Image.MAX_IMAGE_PIXELS, with
+            # Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
+            raise IIIFError(text=("Image size limit exceeded, failed to open %s: %s"%(self.srcfile,str(e))))
         except Exception as e:
             raise IIIFError(text=("PIL Image.open(%s) barfed: %s"%(self.srcfile,str(e))))
         (self.width,self.height)=self.image.size

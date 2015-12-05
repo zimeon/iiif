@@ -10,6 +10,7 @@ import sys
 import os.path
 
 from iiif import __version__
+from iiif.error import IIIFError
 from iiif.static import IIIFStatic, IIIFStaticError
 
 def main():
@@ -58,6 +59,12 @@ def main():
     p.add_option('--osd-height', action='store', type='int', default='500',
                  help="Height of OpenSeadragon pane in pixels. Applies only with "
                       "--write-html [default %default]")
+    p.add_option('--max-image-pixels', action='store', type='int', default=0,
+                 help="Set the maximum number of pixels in an image. A non-zero value "
+                      "will set a hard limit on the image size. If left unset then the "
+                      "default configuration of the Python Image Libary (PIL) will give "
+                      "a DecompressionBombWarning if the image size exceeds a default "
+                      "maximum, but otherwise continue as normal")
     p.add_option('--dryrun', '-n', action='store_true',
                  help="Do not write anything, say what would be done")
     p.add_option('--verbose', '-v', action='store_true',
@@ -79,7 +86,8 @@ def main():
         try:
             sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
                              api_version=opt.api_version, dryrun=opt.dryrun,
-                             prefix=opt.prefix, osd_version=opt.osd_version )
+                             prefix=opt.prefix, osd_version=opt.osd_version,
+                             max_image_pixels=opt.max_image_pixels )
             for source in sources:
                 # File or directory (or neither)?
                 if (os.path.isfile(source)):
@@ -92,7 +100,7 @@ def main():
                     logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
                 else:
                     logger.warn("Ignoring source '%s': neither file nor path" % (source))
-        except IIIFStaticError as e:
+        except (IIIFStaticError, IIIFError) as e:
             # catch known errors and report nicely...
             logger.error("Error: "+str(e))
 

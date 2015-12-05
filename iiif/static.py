@@ -106,7 +106,7 @@ class IIIFStatic(object):
 
     def __init__(self, src=None, dst=None, tilesize=None,
                  api_version='2.0', dryrun=None, prefix='',
-                 osd_version=None):
+                 osd_version=None, max_image_pixels=0):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -130,6 +130,7 @@ class IIIFStatic(object):
         self.logger = logging.getLogger(__name__)
         self.prefix = prefix
         self.osd_version = osd_version if osd_version else '2.0.0'
+        self.max_image_pixels = max_image_pixels
         # config for locations of OpenSeadragon
         # - dir is relative to base, will be copied to dir under html_dir
         # - js and images are relative to dir
@@ -183,6 +184,7 @@ class IIIFStatic(object):
         # Get image details and calculate tiles
         im=IIIFManipulatorPIL()
         im.srcfile = self.src
+        im.set_max_image_pixels(self.max_image_pixels)
         im.do_first()
         width = im.width
         height = im.height
@@ -223,6 +225,7 @@ class IIIFStatic(object):
             with open(json_file,'w') as f:
                 f.write(info.as_json())
                 f.close()
+            print("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
             self.logger.info("Written %s"%(json_file))
         print('')
 
@@ -319,7 +322,6 @@ class IIIFStatic(object):
             raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % outd)
         else:
             os.makedirs(outd)
-        #
         self.logger.info("Output directory %s" % outd)
 
 
@@ -366,7 +368,6 @@ class IIIFStatic(object):
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
             print("%s / %s" % (html_dir,outfile))
-            self.logger.info("Wrote info.json to %s" % outpath)
         # Do we want to copy OSD in there too? If so, do it only if
         # we haven't already
         if (include_osd):
