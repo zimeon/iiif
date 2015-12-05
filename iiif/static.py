@@ -291,6 +291,14 @@ class IIIFStatic(object):
         Returns the output directory name on success, raises and exception on
         failure.
         """
+        # Do we have a separate identifier?
+        if (not self.identifier):
+            # No separate identifier specified, split off the last path segment
+            # of the source name, strip the extension to get the identifier
+            self.identifier = os.path.splitext( os.path.split(self.src)[1] )[0]
+        # Done if dryrun, else setup self.dst first
+        if (self.dryrun):
+            return
         if (not self.dst):
             raise IIIFStaticError("No destination directory specified!")
         dst = self.dst
@@ -301,12 +309,7 @@ class IIIFStatic(object):
             raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % dst)
         else:
             os.makedirs(dst)
-        # Now have dst directory, do we have a separate identifier?
-        if (not self.identifier):
-            # No separate identifier specified, split off the last path segment
-            # of the source name, strip the extension to get the identifier
-            self.identifier = os.path.splitext( os.path.split(self.src)[1] )[0]
-        # Create that subdir if necessary
+        # Second, create identifier based subdir if necessary
         outd = os.path.join(dst,self.identifier)
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
