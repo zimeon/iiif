@@ -107,7 +107,7 @@ class IIIFError(Exception):
             s += "parameter=%s\n" % self.parameter
         if (self.code):
             s += "code=%d\n\n" % self.code
-        for header in self.headers:
+        for header in sorted(self.headers):
             s += "header %s=%s\n" % (header,self.headers[header])
         return s
 
@@ -115,7 +115,8 @@ class IIIFError(Exception):
         """Default human readable version of IIIF error.
 
         Intention is that image server implementations will use
-        image_server_response(api_version) instead
+        image_server_response(api_version) instead. Does not include
+        header values in output
         """
         s = self.text if (self.text) else 'UNKNOWN_ERROR'
         if (self.parameter):
