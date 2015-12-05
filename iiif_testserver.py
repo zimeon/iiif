@@ -236,10 +236,11 @@ class IIIFHandler(object):
         if (self.manipulator.compliance_uri is not None):
             self.headers['Link']='<'+self.manipulator.compliance_uri+'>;rel="profile"'   
 
-    def make_response(self, content, code=200, content_type=None):
-        """Wrapper around Flask.make_response which also added headers."""
-        if (content_type):
-            self.headers['Content-Type']=content_type
+    def make_response(self, content, code=200, headers=None):
+        """Wrapper around Flask.make_response which also adds any local headers."""
+        if headers:
+            for header in headers:
+                self.headers[header]=headers[header]
         return make_response(content,code,self.headers)
 
     def image_information_response(self):
@@ -280,7 +281,8 @@ class IIIFHandler(object):
         i.formats = [ "jpg", "png" ] #FIXME - should come from manipulator
         if (self.auth):
             self.auth.add_services(i)
-        return self.make_response(i.as_json(),content_type=self.json_mime_type)
+        return self.make_response(i.as_json(),
+                                  headers={"Content-Type":self.json_mime_type})
 
     def image_request_response(self, path):
         """Parse image request and create response."""
@@ -335,13 +337,10 @@ class IIIFHandler(object):
     def error_response(self, e):
         """Make response for an IIIFError e.
 
-        Looks also to see whether an extra attribute e.headers is set to
-        a dict with extra header fields.
+        Also add compliance header.
         """
-        for header in e.headers:
-            self.headers[header]=e.headers[header]
         self.add_compliance_header()
-        return make_response(str(e),e.code,{'Content-Type':e.content_type})
+        return self.make_response( *e.image_server_response(self.api_version) )
 
 def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Information requests."""
