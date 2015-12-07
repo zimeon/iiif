@@ -262,13 +262,7 @@ class IIIFHandler(object):
                }
         # calculate scale factors if not hard-coded
         if ('auto' in self.config.scale_factors):
-            info['scale_factors'] = [1]
-            for power in range(1,10):
-                sf = 2**power
-                if ( self.config.tile_width*sf > self.manipulator.width and
-                     self.config.tile_height*sf > self.manipulator.height ):
-                    break
-                info['scale_factors'].append(sf)
+            info['scale_factors'] = self.manipulator.scale_factors(self.config.tile_width, self.config.tile_height)
         i = IIIFInfo(conf=info,api_version=self.api_version)
         i.server_and_prefix = self.server_and_prefix
         i.identifier = self.iiif.identifier
@@ -519,7 +513,8 @@ def setup_options():
     p.add_option('--api-versions', default='1.0,1.1,2.0',
                  help="Set of API versions to support (default %default)")
     p.add_option('--manipulators', default='pil',
-                 help="Set of manipuators to instantiate (from dummy,netpbm,pil; default %default")
+                 help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
+                      "or gen for generated image. (default %default")
     p.add_option('--auth-types', default='none',
                  help="Set of authentication types to support (default %default)")
     p.add_option('--gauth-client-secret', default='client_secret.json',

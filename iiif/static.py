@@ -12,6 +12,7 @@ import shutil
 from string import Template
 
 from iiif.manipulator_pil import IIIFManipulatorPIL
+from iiif.manipulator_gen import IIIFManipulatorGen
 from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
 from iiif.error import IIIFZeroSizeError
@@ -106,7 +107,8 @@ class IIIFStatic(object):
 
     def __init__(self, src=None, dst=None, tilesize=None,
                  api_version='2.0', dryrun=None, prefix='',
-                 osd_version=None, max_image_pixels=0):
+                 osd_version=None, generator=False,
+                 max_image_pixels=0):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -130,6 +132,10 @@ class IIIFStatic(object):
         self.logger = logging.getLogger(__name__)
         self.prefix = prefix
         self.osd_version = osd_version if osd_version else '2.0.0'
+        if (generator):
+            self.manipulator_klass = IIIFManipulatorGen
+        else:
+            self.manipulator_klass = IIIFManipulatorPIL
         self.max_image_pixels = max_image_pixels
         # config for locations of OpenSeadragon
         # - dir is relative to base, will be copied to dir under html_dir
@@ -182,23 +188,13 @@ class IIIFStatic(object):
         self.src=src
         self.identifier=identifier
         # Get image details and calculate tiles
-        im=IIIFManipulatorPIL()
+        im=self.manipulator_klass()
         im.srcfile = self.src
         im.set_max_image_pixels(self.max_image_pixels)
         im.do_first()
         width = im.width
         height = im.height
-        #print "w=%d h=%d ts=%d" % (im.width,im.height,tilesize)
-        xtiles = int(width/self.tilesize)
-        ytiles = int(height/self.tilesize)
-        max_tiles = xtiles if (xtiles>ytiles) else ytiles
-        scale_factors = [ 1 ]
-        factor = 1
-        for n in range(10):
-            if (factor >= max_tiles):
-                break
-            factor = factor+factor
-            scale_factors.append(factor)
+        scale_factors = im.scale_factors(self.tilesize)
         # Setup destination and IIIF identifier
         self.setup_destination()
         # Write out images
@@ -256,7 +252,7 @@ class IIIFStatic(object):
         if (self.dryrun):
             print("%s / %s" % (self.dst,path))
         else:
-            m = IIIFManipulatorPIL(api_version=self.api_version)
+            m = self.manipulator_klass(api_version=self.api_version)
             try:
                 m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))
                 print("%s / %s" % (self.dst,path))

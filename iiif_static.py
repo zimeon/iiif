@@ -59,6 +59,9 @@ def main():
     p.add_option('--osd-height', action='store', type='int', default='500',
                  help="Height of OpenSeadragon pane in pixels. Applies only with "
                       "--write-html [default %default]")
+    p.add_option('--generator', action='store_true', default=False,
+                 help="Use named generator modules in iiif.generators package instead "
+                      "of a starting image [default %default]")
     p.add_option('--max-image-pixels', action='store', type='int', default=0,
                  help="Set the maximum number of pixels in an image. A non-zero value "
                       "will set a hard limit on the image size. If left unset then the "
@@ -87,10 +90,11 @@ def main():
             sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
                              api_version=opt.api_version, dryrun=opt.dryrun,
                              prefix=opt.prefix, osd_version=opt.osd_version,
+                             generator=opt.generator,
                              max_image_pixels=opt.max_image_pixels )
             for source in sources:
                 # File or directory (or neither)?
-                if (os.path.isfile(source)):
+                if (os.path.isfile(source) or opt.generator):
                     logger.info("source file: %s" % (source))
                     sg.generate(source, identifier=opt.identifier)
                     if (opt.write_html):
