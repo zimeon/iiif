@@ -18,3 +18,9 @@ class TestAll(unittest.TestCase):
     def test03_pizel(self):
         gen = PixelGen()
         self.assertEqual( gen.pixel(0,0), (0,0,0) )
+        # n<=0
+        self.assertEqual( gen.pixel(0,0,3), (0,0,0) )
+        self.assertEqual( gen.pixel(1,1,3), None )
+        # next iter
+        self.assertEqual( gen.pixel(3,3,9), None )
+

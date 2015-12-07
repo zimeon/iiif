@@ -41,6 +41,10 @@ class TestAll(unittest.TestCase):
         self.assertEqual( m.do_first(), None )
         self.assertEqual( m.width, 19683 )
         self.assertEqual( m.height, 19683 )
+        # module does not exist
+        m = IIIFManipulatorGen()
+        m.srcfile = 'does_not_exits_really'
+        self.assertRaises( IIIFError, m.do_first )
 
     def test_do_region(self):
         m = IIIFManipulatorGen()

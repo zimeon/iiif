@@ -15,6 +15,10 @@ class TestAll(unittest.TestCase):
         gen = PixelGen()
         self.assertEqual( len(gen.background_color), 3 )
 
-    def test03_pizel(self):
+    def test03_pixel(self):
         gen = PixelGen()
         self.assertEqual( gen.pixel(0,0), (0,0,0) )
+        # size <=3 
+        self.assertEqual( gen.pixel(1,0,3), None )
+        # off diag
+        self.assertEqual( gen.pixel(3,0,9), None )
