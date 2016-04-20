@@ -17,3 +17,4 @@ dist
 MANIFEST
 iiif.egg-info
 client_secret.json
+.eggs
