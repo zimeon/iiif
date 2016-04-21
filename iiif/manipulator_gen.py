@@ -46,7 +46,7 @@ class IIIFManipulatorGen(IIIFManipulatorPIL):
                 try:
                     module = sys.modules[module_name]
                 except KeyError:
-                    self.logger.info("Loading generator module %s"%(module_name))
+                    self.logger.debug("Loading generator module %s"%(module_name))
                     # Would be nice to use importlib but this is available only
                     # in python 2.7 and higher
                     pack = __import__(module_name) #returns iiif package

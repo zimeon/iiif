@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """iiif_static: Generate static images implementing the IIIF Image API level 0.
 
-Copyright 2014,2015 Simeon Warner
+Copyright 2014--2016 Simeon Warner
 """
 
 import logging
@@ -70,13 +70,17 @@ def main():
                       "maximum, but otherwise continue as normal")
     p.add_option('--dryrun', '-n', action='store_true',
                  help="Do not write anything, say what would be done")
+    p.add_option('--quiet', '-q', action='store_true',
+                 help="Quite (no output unless there is a warning/error)")
     p.add_option('--verbose', '-v', action='store_true',
                  help="Verbose")
 
     (opt, sources) = p.parse_args()
 
+    level = logging.DEBUG if (opt.verbose) else \
+            logging.WARNING if (opt.quiet) else logging.INFO
     logging.basicConfig( format='%(name)s: %(message)s',
-                         level=( logging.INFO if (opt.verbose) else logging.WARNING ) )
+                         level=level )
     logger = logging.getLogger(os.path.basename(__file__))
 
     if (not opt.write_html and opt.include_osd):
@@ -84,7 +88,7 @@ def main():
     if (len(sources)==0):
         logger.warn("No sources specified, nothing to do, bye! (-h for help)")
     elif (len(sources)>1 and opt.identifier):
-        logger.warn("Cannot use --identifier/-i option with multiple sources, aborting.")
+        logger.error("Cannot use --identifier/-i option with multiple sources, aborting.")
     else:
         try:
             sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,

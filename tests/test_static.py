@@ -17,19 +17,15 @@ except ImportError: #python3
 
 from iiif.static import IIIFStatic, IIIFStaticError, static_partial_tile_sizes, static_full_sizes
 
-# From http://stackoverflow.com/questions/2654834/capturing-stdout-within-the-same-process-in-python
-class Data(object):
-    pass
+class MyLogCapture(LogCapture):
 
-@contextlib.contextmanager
-def capture_stdout():
-    old = sys.stdout
-    capturer = io.StringIO()
-    sys.stdout = capturer
-    data = Data()
-    yield data
-    sys.stdout = old
-    data.result = capturer.getvalue()
+    @property
+    def all_msgs(self):
+        """Return string with all messages recorded."""
+        msgs = ''
+        for r in self.records:
+            msgs += r.msg
+        return(msgs)
 
 class TestAll(unittest.TestCase):
 
@@ -59,33 +55,33 @@ class TestAll(unittest.TestCase):
         try:
             # no canonical syntax with osd_version='1.0.0'
             s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', osd_version='1.0.0', dryrun=True )
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
-            self.assertTrue( re.search(' / a/info.json', capturer.result ))
-            self.assertTrue( re.search(' / a/1024,1536,476,464/476,464/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/info.json', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,464/0/native.jpg', lc.all_msgs ))
             # largest full region (and symlink from w,h)
-            self.assertTrue( re.search(' / a/full/375,500/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/full/375,500/0/native.jpg', lc.all_msgs ))
             # smallest full region
-            self.assertTrue( re.search(' / a/full/1,1/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/full/1,1/0/native.jpg', lc.all_msgs ))
             # v2.0
             s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0', dryrun=True )
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
-            self.assertTrue( re.search(' / a/info.json', capturer.result ))
-            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/default.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/info.json', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/default.jpg', lc.all_msgs ))
             # largest full region (and symlink from w,h)
-            self.assertTrue( re.search(' / a/full/375,/0/default.jpg', capturer.result ))
-            self.assertTrue( re.search(' / a/full/375,500 -> a/full/375,', capturer.result ))
+            self.assertTrue( re.search(' / a/full/375,/0/default.jpg', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/full/375,500 -> a/full/375,', lc.all_msgs ))
             # smallest full region
-            self.assertTrue( re.search(' / a/full/1,/0/default.jpg', capturer.result ))
-            self.assertTrue( re.search(' / a/full/1,1 -> a/full/1,', capturer.result ))
+            self.assertTrue( re.search(' / a/full/1,/0/default.jpg', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/full/1,1 -> a/full/1,', lc.all_msgs ))
         finally:
             shutil.rmtree(tmp1)
         # real write 
         tmp2 = tempfile.mkdtemp()
         try:
             s=IIIFStatic( dst=tmp2, tilesize=1024, api_version='2.0' )
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='b' )
             self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/info.json')) )
             self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/1024,1024,476,976/476,/0/default.jpg')) )
@@ -101,9 +97,9 @@ class TestAll(unittest.TestCase):
             s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0' )
             s.identifier = 'fgh'
             s.src = 'testimages/starfish_1500x2000.png'
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate_tile( region='full', size=[0,1] )
-            self.assertTrue( re.search(r'zero size, skipped', capturer.result) )
+            self.assertTrue( re.search(r'zero size, skipped', lc.all_msgs) )
         finally:
             shutil.rmtree(tmp1)
 

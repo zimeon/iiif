@@ -55,7 +55,7 @@ class IIIFAuthGoogle(IIIFAuth):
         Must have Authorization header with value that is the appropriate
         token.
         """
-        print("info_authn: Authorization header = " + request.headers.get('Authorization', '[none]'))
+        self.logger.info("info_authn: Authorization header = " + request.headers.get('Authorization', '[none]'))
         return(request.headers.get('Authorization', '') != '')
 
     def image_authn(self):
@@ -63,7 +63,7 @@ class IIIFAuthGoogle(IIIFAuth):
 
         Must have auth cookie with known token value.
         """
-        print("image_authn: auth cookie = " + request.cookies.get(self.auth_cookie_name,default='[none]'))
+        self.logger.info("image_authn: auth cookie = " + request.cookies.get(self.auth_cookie_name,default='[none]'))
         return request.cookies.get(self.auth_cookie_name,default='')
 
     def login_handler(self, config=None, prefix=None, **args):

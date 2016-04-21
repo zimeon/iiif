@@ -5,7 +5,7 @@ Relies upon IIIFManipulator objects to do any manipulations
 requested and is thus very slow. Supports a number of different
 versions of the specification via different base URIs (prefixes).
 
-Simeon Warner - 2014...
+Simeon Warner - 2014--2016
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory

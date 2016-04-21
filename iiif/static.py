@@ -103,6 +103,10 @@ class IIIFStatic(object):
         sg = IIIFStatic(dst="outdir")
         sg.generate("image2.jpg")
         sg.generate("image3.jpg")
+
+    The class is quite noisy at level logging.INFO, set the logging
+    level to logging.WARNING to get log output only when there are
+    warnings or errors.
     """
 
     def __init__(self, src=None, dst=None, tilesize=None,
@@ -214,17 +218,14 @@ class IIIFStatic(object):
                       api_version=self.api_version)
         json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
-            print("dryrun mode, would write the following files:")
-            print("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
-            self.logger.info(info.as_json())
+            self.logger.warn("dryrun mode, would write the following files:")
+            self.logger.warn("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
         else:
             with open(json_file,'w') as f:
                 f.write(info.as_json())
                 f.close()
-            print("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
-            self.logger.info("Written %s"%(json_file))
-        print('')
-
+            self.logger.info("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
+            self.logger.debug("Written %s"%(json_file))
 
     def generate_tile(self,region,size):
         """Generate one tile for this given region,size of this region.
@@ -250,14 +251,14 @@ class IIIFStatic(object):
         path = r.url()
         # Generate...
         if (self.dryrun):
-            print("%s / %s" % (self.dst,path))
+            self.logger.info("%s / %s" % (self.dst,path))
         else:
             m = self.manipulator_klass(api_version=self.api_version)
             try:
                 m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))
-                print("%s / %s" % (self.dst,path))
+                self.logger.info("%s / %s" % (self.dst,path))
             except IIIFZeroSizeError:
-                print("%s / %s - zero size, skipped" % (self.dst,path))
+                self.logger.info("%s / %s - zero size, skipped" % (self.dst,path))
                 return() #done if zero size
         if (region == 'full' and use_canonical):
             # In v2.0 of the spec, the canonical URI form `w,` for scaled 
@@ -281,7 +282,7 @@ class IIIFStatic(object):
                 if (os.path.exists(ln)):
                     os.remove(ln)
                 os.symlink(wc_dir, ln)
-            print("%s / %s -> %s" % (self.dst,wh_path,wc_path))
+            self.logger.info("%s / %s -> %s" % (self.dst,wh_path,wc_path))
 
 
     def setup_destination(self):
@@ -318,7 +319,7 @@ class IIIFStatic(object):
             raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % outd)
         else:
             os.makedirs(outd)
-        self.logger.info("Output directory %s" % outd)
+        self.logger.debug("Output directory %s" % outd)
 
 
     def write_html(self, html_dir='/tmp', include_osd=False,
@@ -363,7 +364,7 @@ class IIIFStatic(object):
                       osd_width = osd_height,
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
-            print("%s / %s" % (html_dir,outfile))
+            self.logger.info("%s / %s" % (html_dir,outfile))
         # Do we want to copy OSD in there too? If so, do it only if
         # we haven't already
         if (include_osd):
@@ -375,15 +376,14 @@ class IIIFStatic(object):
                 if (not os.path.isdir(osd_path)):
                     os.makedirs(osd_path)
                 shutil.copyfile(os.path.join(osd_base,osd_js), os.path.join(html_dir,osd_js))
-                print("%s / %s" % (html_dir,osd_js))
+                self.logger.info("%s / %s" % (html_dir,osd_js))
                 osd_images_path = os.path.join(html_dir,osd_images)
                 if (os.path.isdir(osd_images_path)):
                     self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
                 else:
                     shutil.copytree(os.path.join(osd_base,osd_images), osd_images_path)
-                    print("%s / %s/*" % (html_dir,osd_images))
+                    self.logger.info("%s / %s/*" % (html_dir,osd_images))
                 self.copied_osd = True # don't try again for next img
-        print('')
-
+ 
 
 

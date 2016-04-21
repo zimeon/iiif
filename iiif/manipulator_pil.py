@@ -61,7 +61,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
 
         Will raise an IIIFError on failure to load the image
         """
-        self.logger.info("do_first: src=%s" % (self.srcfile))
+        self.logger.debug("do_first: src=%s" % (self.srcfile))
         try:
             self.image=Image.open(self.srcfile)
             self.image.load()
@@ -78,9 +78,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_region(self,x,y,w,h):
         """Apply region selection."""
         if (x is None):
-            self.logger.info("region: full (nop)")
+            self.logger.debug("region: full (nop)")
         else:
-            self.logger.info("region: (%d,%d,%d,%d)" % (x,y,w,h))
+            self.logger.debug("region: (%d,%d,%d,%d)" % (x,y,w,h))
             self.image = self.image.crop( (x,y,x+w,y+h) )
             self.width = w
             self.height = h
@@ -88,9 +88,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_size(self,w,h):
         """Apply size scaling."""
         if (w is None):
-            self.logger.info("size: no scaling (nop)")
+            self.logger.debug("size: no scaling (nop)")
         else:
-            self.logger.info("size: scaling to (%d,%d)" % (w,h))
+            self.logger.debug("size: scaling to (%d,%d)" % (w,h))
             self.image = self.image.resize( (w,h) )
             self.width = w
             self.height = h
@@ -98,16 +98,16 @@ class IIIFManipulatorPIL(IIIFManipulator):
     def do_rotation(self,mirror,rot):
         """Apply rotation and/or mirroring."""
         if (not mirror and rot==0.0):
-            self.logger.info("rotation: no rotation (nop)")
+            self.logger.debug("rotation: no rotation (nop)")
         else:
             #FIXME - with PIL one can use the transpose() method to do 90deg
             #FIXME - rotations as well as mirroring. This would be more efficient
             #FIXME - for these cases than mirror _then_ rotate.
             if (mirror):
-                self.logger.info("rotation: mirror (about vertical axis)")
+                self.logger.debug("rotation: mirror (about vertical axis)")
                 self.image = self.image.transpose( Image.FLIP_LEFT_RIGHT )
             if (rot!=0.0):
-                self.logger.info("rotation: by %f degrees clockwise" % (rot))
+                self.logger.debug("rotation: by %f degrees clockwise" % (rot))
                 self.image = self.image.rotate( -rot, expand=True )
 
     def do_quality(self,quality):
@@ -118,17 +118,17 @@ class IIIFManipulatorPIL(IIIFManipulator):
         """
         if (quality == 'grey' or quality == 'gray'):
             # Checking for 1.1 gray or 20.0 grey elsewhere
-            self.logger.info("quality: converting to gray")
+            self.logger.debug("quality: converting to gray")
             self.image = self.image.convert('L')
         elif (quality == 'bitonal'):
-            self.logger.info("quality: converting to bitonal")
+            self.logger.debug("quality: converting to bitonal")
             self.image = self.image.convert('1')
         elif (self.image.mode == 'P'):
             # Need to convert from palette in order to write out
             self.logger.error("quality: converting from palette to RGB")
             self.image = self.image.convert('RGB')
         else:
-            self.logger.info("quality: quality (nop)")
+            self.logger.debug("quality: quality (nop)")
 
     def do_format(self,format):
         """Apply format selection.
@@ -138,17 +138,17 @@ class IIIFManipulatorPIL(IIIFManipulator):
         """
         fmt = ( 'jpg' if (format is None) else format)
         if (fmt == 'png'):
-            self.logger.info("format: png")
+            self.logger.debug("format: png")
             self.mime_type="image/png"
             self.output_format=fmt
             format = 'png'
         elif (fmt == 'jpg'):
-            self.logger.info("format: jpg")
+            self.logger.debug("format: jpg")
             self.mime_type="image/jpeg"
             self.output_format=fmt
             format = 'jpeg';
         elif (fmt == 'webp'):
-            self.logger.info("format: webp")
+            self.logger.debug("format: webp")
             self.mime_type="image/webp"
             self.output_format=fmt
             format = 'webp';
