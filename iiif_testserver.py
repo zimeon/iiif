@@ -394,12 +394,6 @@ def options_handler(**args):
                 'Access-Control-Allow-Headers': 'Origin, Accept, Authorization' }
     return make_response("", 200, headers)
 
-def cmp(x, y):
-    """Define cmp() as missing in python3.
-
-    negative if x<y, zero if x==y, positive if x>y."""
-    return( -1 if (x<y) else +1 if x>y else 0 )
-
 def parse_accept_header(accept):
     """Parse an HTTP Accept header.
 
