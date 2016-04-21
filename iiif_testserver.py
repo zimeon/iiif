@@ -394,18 +394,24 @@ def options_handler(**args):
                 'Access-Control-Allow-Headers': 'Origin, Accept, Authorization' }
     return make_response("", 200, headers)
 
+def cmp(x, y):
+    """Define cmp() as missing in python3.
+
+    negative if x<y, zero if x==y, positive if x>y."""
+    return( -1 if (x<y) else +1 if x>y else 0 )
+
 def parse_accept_header(accept):
     """Parse an HTTP Accept header.
 
     Parses *accept*, returning a list with pairs of
     (media_type, q_value), ordered by q values.
     
-    Taken from <https://djangosnippets.org/snippets/1042/>
+    Adapted from <https://djangosnippets.org/snippets/1042/>
     """
     result = []
     for media_range in accept.split(","):
         parts = media_range.split(";")
-        media_type = parts.pop(0)
+        media_type = parts.pop(0).strip()
         media_params = []
         q = 1.0
         for part in parts:
@@ -415,7 +421,7 @@ def parse_accept_header(accept):
             else:
                 media_params.append((key, value))
         result.append((media_type, tuple(media_params), q))
-    result.sort(lambda x, y: -cmp(x[2], y[2]))
+    result.sort(key = lambda x: -x[2])
     return result
 
 def parse_authorization_header(value):
