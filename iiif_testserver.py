@@ -326,7 +326,7 @@ class IIIFHandler(object):
         (outfile,mime_type)=self.manipulator.derive(file,self.iiif)
         # FIXME - find efficient way to serve file with headers
         self.add_compliance_header()
-        return send_file(open(outfile,'r'),mimetype=mime_type)
+        return send_file(open(outfile,'rb'),mimetype=mime_type)
 
     def error_response(self, e):
         """Make response for an IIIFError e.
