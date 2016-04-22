@@ -2,7 +2,7 @@ iiif changelog
 ==============
 
 2016-04-22 v0.6.1
-- Now works with python 2.6, 2.7, 3.3 and 3.4
+- Now works with python 2.6, 2.7, 3.3, 3.4 and 3.5
 - Static tile generation supports both use of canonical size syntax for
   OpenSeadragon >= 1.2.1, and the old syntax for earlier versions
 - Better surface/handle image size warnings from Pillow
