@@ -12,6 +12,7 @@ import shutil
 from string import Template
 
 from iiif.manipulator_pil import IIIFManipulatorPIL
+from iiif.manipulator_gen import IIIFManipulatorGen
 from iiif.info import IIIFInfo
 from iiif.request import IIIFRequest
 from iiif.error import IIIFZeroSizeError
@@ -32,22 +33,22 @@ def static_partial_tile_sizes(width,height,tilesize,scale_factors):
         if (sf*tilesize>=width and sf*tilesize>=height):
             continue #avoid any full-region tiles
         rts = tilesize*sf #tile size in original region
-        xt = (width-1)/rts+1
-        yt = (height-1)/rts+1
+        xt = (width-1)//rts+1
+        yt = (height-1)//rts+1
         for nx in range(xt):
             rx = nx*rts
             rxe = rx+rts
             if (rxe>width):
                 rxe=width
             rw = rxe-rx
-            sw = (rw+sf-1)/sf #same as sw = int(math.ceil(rw/float(sf)))
+            sw = (rw+sf-1)//sf #same as sw = int(math.ceil(rw/float(sf)))
             for ny in range(yt):
                 ry = ny*rts
                 rye = ry+rts
                 if (rye>height):
                     rye=height
                 rh = rye-ry
-                sh = (rh+sf-1)/sf #same as sh = int(math.ceil(rh/float(sf)))
+                sh = (rh+sf-1)//sf #same as sh = int(math.ceil(rh/float(sf)))
                 yield([rx,ry,rw,rh],[sw,sh])
 
 
@@ -63,17 +64,17 @@ def static_full_sizes(width,height,tilesize):
     """
     # FIXME - Not sure what correct algorithm is for this, from
     # observation of Openseadragon it seems that one keeps halving
-    # the pixel size of the full until until both width and height
-    # are less than the tile size. The output that tile and further
-    # halvings for some time. It seems that without this Openseadragon
-    # will not display any unzoomed image in small windows.
+    # the pixel size of the full image until until both width and 
+    # height are less than the tile size. After that all subsequent
+    # halving of the image size are used, all the way down to 1,1.
+    # It seems that without these reduced size full-region images,
+    # OpenSeadragon will not display any unzoomed image in small windows.
     #
-    # I do not understand the algorithm that openseadragon uses (or
+    # I do not understand the algorithm that OpenSeadragon uses (or
     # know where it is in the code) to decide how small a version of
     # the complete image to request. It seems that there is a bug in
-    # openseadragon here because in some cases it requests images
-    # of size 1,1 multiple times. For now, just go all the way down to
-    # this size
+    # OpenSeadragon here because in some cases it requests images
+    # of size 1,1 multiple times, which is anyway a useless image.
     for level in range(1,20):
         factor = 2.0**level
         sw = int(width/factor + 0.5)
@@ -83,9 +84,12 @@ def static_full_sizes(width,height,tilesize):
                 break
             yield([sw,sh])
 
+class IIIFStaticError(Exception):
+    """Error class for errors to be resported to user."""
+
+    pass
 
 class IIIFStatic(object):
-
     """Provide static generation of IIIF images.
 
     Simplest, using source image as model for directory which
@@ -100,10 +104,15 @@ class IIIFStatic(object):
         sg.generate("image2.jpg")
         sg.generate("image3.jpg")
 
+    The class is quite noisy at level logging.INFO, set the logging
+    level to logging.WARNING to get log output only when there are
+    warnings or errors.
     """
 
     def __init__(self, src=None, dst=None, tilesize=None,
-                 api_version='2.0', dryrun=None, prefix=''):
+                 api_version='2.0', dryrun=None, prefix='',
+                 osd_version=None, generator=False,
+                 max_image_pixels=0):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -113,6 +122,7 @@ class IIIFStatic(object):
         api_version -- IIIF Image API version to support (default 2.0)
         dryrun -- True to not write any output (default None)
         prefix -- identifier prefix
+        osd_version -- use a specific version of OpenSeadragon
         """
         self.src = src
         self.dst = dst
@@ -124,34 +134,71 @@ class IIIFStatic(object):
             self.api_version = '2.0'
         self.dryrun = (dryrun is not None)
         self.logger = logging.getLogger(__name__)
-        # used internally:
         self.prefix = prefix
+        self.osd_version = osd_version if osd_version else '2.0.0'
+        if (generator):
+            self.manipulator_klass = IIIFManipulatorGen
+        else:
+            self.manipulator_klass = IIIFManipulatorPIL
+        self.max_image_pixels = max_image_pixels
+        # config for locations of OpenSeadragon
+        # - dir is relative to base, will be copied to dir under html_dir
+        # - js and images are relative to dir
+        self.osd_config = {
+            '1.0.0': {
+                'base': 'third_party',
+                'dir': 'openseadragon100',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': False,
+                'notes' : 'Uses /w,h/ for size, algorithm not quite right, API v1.1'
+                  },
+            '1.2.1': {
+                'base': 'third_party',
+                'dir': 'openseadragon121',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': True,
+                'notes' : "Uses /w,/ canonical syntax, works with API v1.1,2.0"
+                  },
+            '2.0.0': {
+                'base': 'third_party',
+                'dir': 'openseadragon200',
+                'js': 'openseadragon.min.js',
+                'images': 'images',
+                'use_canonical': True,
+                'notes' : "Uses /w,/ canonical syntax, works with API v1.1,2.0"
+                  }
+        }
+        # used internally:
         self.identifier = None
         self.copied_osd = False
         self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 
+    def get_osd_config(self,osd_version):
+        """Select appropriate portion of config.
+
+        If the version requested is not supported the raise an exception with 
+        a helpful error message listing the versions supported.
+        """
+        if (osd_version in self.osd_config):
+            return(self.osd_config[osd_version])
+        else:
+            raise IIIFStaticError("OpenSeadragon version %s not supported, available versions are %s" %
+                (osd_version, ', '.join(sorted(self.osd_config.keys()))))
 
     def generate(self, src=None, identifier=None):
         """Generate static files for one source image."""
         self.src=src
         self.identifier=identifier
         # Get image details and calculate tiles
-        im=IIIFManipulatorPIL()
+        im=self.manipulator_klass()
         im.srcfile = self.src
+        im.set_max_image_pixels(self.max_image_pixels)
         im.do_first()
         width = im.width
         height = im.height
-        #print "w=%d h=%d ts=%d" % (im.width,im.height,tilesize)
-        xtiles = int(width/self.tilesize)
-        ytiles = int(height/self.tilesize)
-        max_tiles = xtiles if (xtiles>ytiles) else ytiles
-        scale_factors = [ 1 ]
-        factor = 1
-        for n in range(10):
-            if (factor >= max_tiles):
-                break
-            factor = factor+factor
-            scale_factors.append(factor)
+        scale_factors = im.scale_factors(self.tilesize)
         # Setup destination and IIIF identifier
         self.setup_destination()
         # Write out images
@@ -159,8 +206,8 @@ class IIIFStatic(object):
             self.generate_tile(region,size)
         sizes = []
         for (size) in static_full_sizes(width,height,self.tilesize):
-            #FIXME - see https://github.com/zimeon/iiif/issues/9
-            #sizes.append({'width': size[0], 'height': size[1]})
+            # See https://github.com/zimeon/iiif/issues/9
+            sizes.append({'width': size[0], 'height': size[1]})
             self.generate_tile('full',size)
         # Write info.json
         qualities = ['default'] if (self.api_version>'1.1') else ['native']
@@ -171,37 +218,71 @@ class IIIFStatic(object):
                       api_version=self.api_version)
         json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
-            print "dryrun mode, would write the following files:"
-            print "%s / %s/%s" % (self.dst, self.identifier, 'info.json')
-            self.logger.info(info.as_json())
+            self.logger.warn("dryrun mode, would write the following files:")
+            self.logger.warn("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
         else:
             with open(json_file,'w') as f:
                 f.write(info.as_json())
                 f.close()
-            self.logger.info("Written %s"%(json_file))
-        print
-
+            self.logger.info("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
+            self.logger.debug("Written %s"%(json_file))
 
     def generate_tile(self,region,size):
-        """Generate one tile for this given region,size of this region."""
+        """Generate one tile for this given region,size of this region.
+
+        Logically we might use `w,h` instead of the Image API v2.0 canonical
+        form `w,` if the api_version is 1.x. However, OSD 1.2.1 and 2.x assume
+        the new canonical form even in the case where the API version is declared 
+        earlier. Thus, determine whether to use the canonical or `w,h` form based
+        solely on the setting of osd_version. 
+        """
         r = IIIFRequest(identifier=self.identifier,api_version=self.api_version)
+        osd_config = self.get_osd_config(self.osd_version);
+        use_canonical = osd_config['use_canonical']
         if (region == 'full'):
             r.region_full = True
         else:
             r.region_xywh = region # [rx,ry,rw,rh]
-        r.size_wh = [size[0],None] # [sw,sh] -> [sw,] canonical form
+        if (use_canonical):
+            r.size_wh = [ size[0], None ] # [sw,sh] -> [sw,]
+        else:
+            r.size_wh = size # old form, full `w,h`
         r.format = 'jpg'
         path = r.url()
         # Generate...
         if (self.dryrun):
-            print "%s / %s" % (self.dst,path)
+            self.logger.info("%s / %s" % (self.dst,path))
         else:
-            m = IIIFManipulatorPIL(api_version=self.api_version)
+            m = self.manipulator_klass(api_version=self.api_version)
             try:
                 m.derive(srcfile=self.src, request=r, outfile=os.path.join(self.dst,path))
-                print "%s / %s" % (self.dst,path)
-            except IIIFZeroSizeError as e:
-                print "%s / %s - zero size, skipped" % (self.dst,path)
+                self.logger.info("%s / %s" % (self.dst,path))
+            except IIIFZeroSizeError:
+                self.logger.info("%s / %s - zero size, skipped" % (self.dst,path))
+                return() #done if zero size
+        if (region == 'full' and use_canonical):
+            # In v2.0 of the spec, the canonical URI form `w,` for scaled 
+            # images of the full region was introduced. This is somewhat at
+            # odds with the requirement for `w,h` specified in `sizes` to
+            # be available, and has problems of precision with tall narrow
+            # images. Hopefully will be fixed in 3.0 but for now symlink
+            # the `w,h` form to the `w,` dirs so that might use the specified
+            # `w,h` also work. See
+            # <https://github.com/IIIF/iiif.io/issues/544>
+            #
+            # FIXME - This is ugly because we duplicate code in
+            # iiif.request.url to construct the partial URL
+            region_dir = os.path.join(r.quote(r.identifier),"full")
+            wh_dir = "%d,%d" % (size[0],size[1])
+            wh_path = os.path.join(region_dir,wh_dir)
+            wc_dir = "%d," % (size[0])
+            wc_path = os.path.join(region_dir,wc_dir)
+            if (not self.dryrun):
+                ln = os.path.join(self.dst,wh_path)
+                if (os.path.exists(ln)):
+                    os.remove(ln)
+                os.symlink(wc_dir, ln)
+            self.logger.info("%s / %s -> %s" % (self.dst,wh_path,wc_path))
 
 
     def setup_destination(self):
@@ -210,52 +291,62 @@ class IIIFStatic(object):
         Returns the output directory name on success, raises and exception on
         failure.
         """
+        # Do we have a separate identifier?
+        if (not self.identifier):
+            # No separate identifier specified, split off the last path segment
+            # of the source name, strip the extension to get the identifier
+            self.identifier = os.path.splitext( os.path.split(self.src)[1] )[0]
+        # Done if dryrun, else setup self.dst first
+        if (self.dryrun):
+            return
         if (not self.dst):
-            raise Exception("No destination directory specified!")
+            raise IIIFStaticError("No destination directory specified!")
         dst = self.dst
         if (os.path.isdir(dst)):
             # Exists, OK
             pass
         elif (os.path.isfile(dst)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % dst)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % dst)
         else:
             os.makedirs(dst)
-        # Now have dst directory, do we have a separate identifier?
-        if (not self.identifier):
-            # No separate identifier specified, split off the last path segment
-            # of the source name, strip the extension to get the identifier
-            self.identifier = os.path.splitext( os.path.split(self.src)[1] )[0]
-        # Create that subdir if necessary
+        # Second, create identifier based subdir if necessary
         outd = os.path.join(dst,self.identifier)
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
             self.logger.warn("Output directory %s already exists, adding/updating files" % outd)
             pass
         elif (os.path.isfile(outd)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % outd)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % outd)
         else:
             os.makedirs(outd)
-        #
-        self.logger.info("Output directory %s" % outd)
+        self.logger.debug("Output directory %s" % outd)
 
 
-    def write_html(self, html_dir, include_osd=False):
+    def write_html(self, html_dir='/tmp', include_osd=False,
+                   osd_width=500, osd_height=500):
         """Write HTML test page using OpenSeadragon for the tiles generated.
 
         Assumes that the generate(..) method has already been called to set up
-        identifier etc.
+        identifier etc. Parameters:
+          html_dir - output directory for HTML files, will be created if it 
+                     does not already exist
+          include_osd - true to include OpenSeadragon code
+          osd_width - width of OpenSeadragon pane in pixels
+          osd_height - height of OpenSeadragon pane in pixels
         """
-        osd_dir = 'osd'
-        osd_js = 'osd/openseadragon.min.js'
-        osd_images = 'osd/images'
-      
+        osd_config = self.get_osd_config(self.osd_version);
+        osd_base = osd_config['base']
+        osd_dir = osd_config['dir'] # relative to base
+        osd_js = os.path.join(osd_dir,osd_config['js'])
+        osd_images = os.path.join(osd_dir,osd_config['images'])
         if (os.path.isdir(html_dir)):
             # Exists, fine
             pass
         elif (os.path.isfile(html_dir)):
-            raise Exception("Can't write to directory %s: a file of that name exists" % html_dir)
+            raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % html_dir)
         else:
             os.makedirs(html_dir)
+        self.logger.info("Writing HTML to %s" % (html_dir))
         with open(os.path.join(self.template_dir,'static_osd.html'),'r') as f:
             template = f.read()
         outfile = self.identifier+'.html'
@@ -265,12 +356,15 @@ class IIIFStatic(object):
             if (self.prefix):
                 info_json_uri = '/'.join([self.prefix,info_json_uri])
             d = dict( identifier = self.identifier,
+                      api_version = self.api_version,
+                      osd_version = self.osd_version,
                       osd_uri = osd_js,
-                      osd_images_prefix = osd_images+'/', #OSD needs trailing slash
+                      osd_images_prefix = osd_images,
+                      osd_height = osd_width,
+                      osd_width = osd_height,
                       info_json_uri = info_json_uri )
             f.write( Template(template).safe_substitute(d) )
-            print "%s / %s" % (html_dir,outfile)
-            self.logger.info("Wrote info.json to %s" % outpath)
+            self.logger.info("%s / %s" % (html_dir,outfile))
         # Do we want to copy OSD in there too? If so, do it only if
         # we haven't already
         if (include_osd):
@@ -281,15 +375,15 @@ class IIIFStatic(object):
                 osd_path = os.path.join(html_dir,osd_dir)
                 if (not os.path.isdir(osd_path)):
                     os.makedirs(osd_path)
-                shutil.copyfile(os.path.join('demo-static',osd_js), os.path.join(html_dir,osd_js))
-                print "%s / %s" % (html_dir,osd_js)
+                shutil.copyfile(os.path.join(osd_base,osd_js), os.path.join(html_dir,osd_js))
+                self.logger.info("%s / %s" % (html_dir,osd_js))
                 osd_images_path = os.path.join(html_dir,osd_images)
                 if (os.path.isdir(osd_images_path)):
                     self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
                 else:
-                    shutil.copytree(os.path.join('demo-static',osd_images), osd_images_path)
-                    print "%s / %s/*" % (html_dir,osd_images)
-        print
-
+                    shutil.copytree(os.path.join(osd_base,osd_images), osd_images_path)
+                    self.logger.info("%s / %s/*" % (html_dir,osd_images))
+                self.copied_osd = True # don't try again for next img
+ 
 
 

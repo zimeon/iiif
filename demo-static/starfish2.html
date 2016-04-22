@@ -1,29 +1,36 @@
+<!-- Created from HTML template iiif/templates/static_osd.html in https://github.com/zimeon/iiif -->
 <html>
 <head>
-  <title>IIIF Static Files Image API Demo</title>
-  <script src="osd/openseadragon.min.js"></script>
+  <title>IIIF Static Files Demo</title>
+  <script src="openseadragon121/openseadragon.min.js"></script>
 </head>
 <body>
 
-<h1>IIIF Static Files Image API Demo</h1>
-
-<p>200x200 pixel window, 256x256 pixel tiles</p>
+<h1>IIIF Static Files Demo: starfish2</h1>
 
 <div id="openseadragon1" style="width: 200px; height: 200px;"></div>  
 <script>
 //<![CDATA[
-        function initOpenSeadragon() {
-          OpenSeadragon({
-  id: "openseadragon1",
-  minZoomImageRatio: 1,
-  prefixUrl: "osd/images/",
-  tileSources: "starfish2/info.json",
-  crossOriginPolicy: false});
-        }
-        window.onload = initOpenSeadragon;
-        document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
+function initOpenSeadragon() {
+  OpenSeadragon({
+    id: "openseadragon1",
+    minZoomImageRatio: 1,
+    prefixUrl: "openseadragon121/images/", // OSD needs trailing slash
+    tileSources: "starfish2/info.json",
+    crossOriginPolicy: false});
+}
+window.onload = initOpenSeadragon;
+document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
 //]]>
 </script>
+
+<h4>Debugging links</h4>
+<p>Images compiled for IIIF Image API v2.0, and OpenSeadragon version v1.2.1.</p> 
+<ul>
+<li><code><a href="starfish2/info.json">info.json</a></code></li>
+<li><a href="openseadragon121/openseadragon.min.js">OpenSeadragon JavaScript</a></li>
+<li><a href="openseadragon121/images/home_rest.png">OpenSeadragon home icon</a> (example in icons dir)</li>
+</ul>
 
 </body>
 </html>

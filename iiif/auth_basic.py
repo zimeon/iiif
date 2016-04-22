@@ -6,14 +6,11 @@ FIXME - this code assumes Flask webapp framework, should be abstracted
 import json
 import re
 import os.path
-import urllib
-import urllib2
 from flask import request, make_response, redirect
 
 from iiif.auth import IIIFAuth
 
 class IIIFAuthBasic(IIIFAuth):
-
     """IIIF Authentication Class using HTTP Basic Auth."""
 
     def __init__(self, cookie_prefix=None):

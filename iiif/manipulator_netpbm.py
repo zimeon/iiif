@@ -12,12 +12,11 @@ import glob
 import magic
 import subprocess
 
-from error import IIIFError
-from request import IIIFRequest
-from manipulator import IIIFManipulator
+from iiif.error import IIIFError
+from iiif.request import IIIFRequest
+from iiif.manipulator import IIIFManipulator
 
 class IIIFManipulatorNetpbm(IIIFManipulator):
-
     """Class to manipulate an image with netpbm according to IIIF.
 
     All exceptions are raised as IIIFError objects which directly

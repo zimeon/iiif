@@ -12,11 +12,10 @@ import re
 import shutil
 import subprocess
 
-from error import IIIFError,IIIFZeroSizeError
-from request import IIIFRequest
+from iiif.error import IIIFError,IIIFZeroSizeError
+from iiif.request import IIIFRequest
 
 class IIIFManipulator(object):
-
     """Manipulate an image according to IIIF rules.
 
     All exceptions are raise as IIIFError objects which directly
@@ -320,3 +319,25 @@ class IIIFManipulator(object):
         This method empty in base class.
         """
         pass
+
+    def scale_factors(self, tile_width, tile_height=None):
+        """Return a set of scale factors for given tile and window size.
+
+        Gives a set of scale factors, starting at 1, and in multiples 
+        of 2. Largest scale_factor is so that one tile will cover the
+        entire image (self.width,self.height).
+
+        If tile_height is not specified then tiles are assumed to be
+        squares of tile_width pixels.
+        """
+        if (not tile_height):
+            tile_height = tile_width
+        sf = 1
+        scale_factors = [sf]
+        for j in range(30): #limit of 2^30, should be enough!
+            sf = 2*sf
+            if ( tile_width*sf > self.width and
+                 tile_height*sf > self.height ):
+                break
+            scale_factors.append(sf)
+        return scale_factors

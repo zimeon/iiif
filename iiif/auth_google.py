@@ -6,14 +6,21 @@ FIXME - this code assumes Flask webapp framework, should be abstracted
 import json
 import re
 import os.path
-import urllib
-import urllib2
+try:
+    # python3
+    from urllib.request import urlopen
+    from urllib.request import Request
+    from urllib.parse import urlencode
+except ImportError:
+    # fall back to python2
+    from urllib2 import urlopen
+    from urllib2 import Request
+    from urllib import urlencode
 from flask import request, make_response, redirect
 
 from iiif.auth import IIIFAuth
 
 class IIIFAuthGoogle(IIIFAuth):
-
     """IIIF Authentication Class using Google Auth."""
 
     def __init__(self, client_secret_file='client_secret.json', cookie_prefix=None):
@@ -48,15 +55,15 @@ class IIIFAuthGoogle(IIIFAuth):
         Must have Authorization header with value that is the appropriate
         token.
         """
-        print "info_authn: Authorization header = " + request.headers.get('Authorization', '[none]')
-        return (request.headers.get('Authorization', '') != '')
+        self.logger.info("info_authn: Authorization header = " + request.headers.get('Authorization', '[none]'))
+        return(request.headers.get('Authorization', '') != '')
 
     def image_authn(self):
         """Check to see if user if authenticated for image requests.
 
         Must have auth cookie with known token value.
         """
-        print "image_authn: auth cookie = " + request.cookies.get(self.auth_cookie_name,default='[none]')
+        self.logger.info("image_authn: auth cookie = " + request.cookies.get(self.auth_cookie_name,default='[none]'))
         return request.cookies.get(self.auth_cookie_name,default='')
 
     def login_handler(self, config=None, prefix=None, **args):
@@ -68,7 +75,7 @@ class IIIFAuthGoogle(IIIFAuth):
             'scope': self.google_api_scope,
             'state': request.args.get('next',default=''),
         }
-        url = self.google_oauth2_url + 'auth?' + urllib.urlencode(params)
+        url = self.google_oauth2_url + 'auth?' + urlencode(params)
         response = redirect(url)
         response.headers['Access-control-allow-origin']='*'
         return response 
@@ -140,17 +147,17 @@ class IIIFAuthGoogle(IIIFAuth):
             'redirect_uri': self.scheme_host_port_prefix('http',config.host,config.port,prefix)+'/home',
             'grant_type': 'authorization_code',
         }
-        payload = urllib.urlencode(params)
+        payload = urlencode(params).encode('utf-8')
         url = self.google_oauth2_url + 'token'
-        req = urllib2.Request(url, payload) 
-        return json.loads(urllib2.urlopen(req).read())
+        req = Request(url, payload) 
+        return json.loads(urlopen(req).read())
 
     def google_get_data(self, config, response):
         """Make request to Google API to get profile data for the user."""
         params = {
             'access_token': response['access_token'],
         }
-        payload = urllib.urlencode(params)
+        payload = urlencode(params)
         url = self.google_api_url + 'userinfo?' + payload
-        req = urllib2.Request(url)  # must be GET
-        return json.loads(urllib2.urlopen(req).read())
+        req = Request(url)
+        return json.loads(urlopen(req).read())

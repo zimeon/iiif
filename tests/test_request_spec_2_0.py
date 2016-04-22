@@ -57,25 +57,25 @@ data  = {
 class TestAll(unittest.TestCase):
 
     def test1_encode(self):
-        print "Encoding tests..."
-        for tname in sorted(data.iterkeys()):
+        print("Encoding tests...")
+        for tname in sorted(data.keys()):
             tdata=data[tname]
-            print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
+            print((tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]))
             iiif = IIIFRequest(**data[tname][0])
             self.assertEqual(iiif.url(),data[tname][1])
-        print
+        print('')
   
     def test2_decode(self):
-        print "Decoding tests..."
-        for tname in sorted(data.iterkeys()):
+        print("Decoding tests...")
+        for tname in sorted(data.keys()):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
             for turl in data[tname][1:]:
                 iiif = IIIFRequest().parse_url(turl)
                 tstr = self.pstr(iiif.__dict__)
-                print "    <tr>\n      <td>" + tstr + "</td>\n      <td>" + turl + "</td>\n    </tr>"
+                print(("    <tr>\n      <td>" + tstr + "</td>\n      <td>" + turl + "</td>\n    </tr>"))
                 self.assertEqual(tstr,pstr)
-        print
+        print('')
 
     def pstr(self,p):
         s=''

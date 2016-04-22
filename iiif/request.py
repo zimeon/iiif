@@ -4,20 +4,23 @@ This class is a thorough implementation of restrictions in the
 IIIF specification. It does not add any implementation specific 
 restrictions.
 """
-import urllib
 import re
 import string
+try: #python3
+    from urllib.parse import quote as urlquote
+    from urllib.parse import unquote as urlunquote
+except ImportError: #python2
+    from urllib import quote as urlquote
+    from urllib import unquote as urlunquote
 
-from error import IIIFError, IIIFZeroSizeError
+from iiif.error import IIIFError, IIIFZeroSizeError
 
 class IIIFRequestBaseURI(Exception):
-
     """Subclass of Exception to indicate request for base URI."""
 
     pass
 
 class IIIFRequest(object):
-
     """Implement IIIF request URL syntax.
     
     There are two URL forms defined in section 2:
@@ -112,7 +115,7 @@ class IIIFRequest(object):
          
         to-encode = "%" / "/" / "?" / "#" / "[" / "]" / "@"
         """
-        return( urllib.quote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
+        return( urlquote(path_segment,"-._~!$&'()*+,;=:") ) #FIXME - quotes too much
 
     def url(self, **params):
         """Build a URL path for image or info request.
@@ -197,23 +200,23 @@ class IIIFRequest(object):
                 raise(IIIFError("URL does not match baseurl (server/prefix)."))
             url=path
         # Break up by path segments, count to decide format
-        segs = string.split( url, '/', 5)
+        segs = url.split( '/', 5)
         if (identifier is not None):
             segs.insert(0, identifier)
         if (len(segs) > 5):
             raise(IIIFError(code=404,text="Too many path segments in URL (got %d: %s) in URL."%(len(segs),' | '.join(segs))))
         elif (len(segs) == 5):
-            self.identifier = urllib.unquote(segs[0])
-            self.region = urllib.unquote(segs[1])
-            self.size  = urllib.unquote(segs[2])
-            self.rotation = urllib.unquote(segs[3])
-            self.quality = self.strip_format(urllib.unquote(segs[4]))
+            self.identifier = urlunquote(segs[0])
+            self.region = urlunquote(segs[1])
+            self.size  = urlunquote(segs[2])
+            self.rotation = urlunquote(segs[3])
+            self.quality = self.strip_format(urlunquote(segs[4]))
             self.info = False
         elif (len(segs) == 2):
-            self.identifier = urllib.unquote(segs[0])
-            info_name = self.strip_format(urllib.unquote(segs[1]))
+            self.identifier = urlunquote(segs[0])
+            info_name = self.strip_format(urlunquote(segs[1]))
             if (info_name != "info"):
-                raise(IIIFError(code=400,text="Badly formed information request, must be info.json or info.xml"))
+                raise IIIFError
             if (self.api_version=='1.0'):
                 if (self.format not in ['json','xml']):
                     raise(IIIFError(code=400,text="Bad information request format, must be json or xml"))
@@ -221,7 +224,7 @@ class IIIFRequest(object):
                 raise(IIIFError(code=400,text="Bad information request format, must be json"))
             self.info = True
         elif (len(segs) == 1):
-            self.identifier = urllib.unquote(segs[0])
+            self.identifier = urlunquote(segs[0])
             raise(IIIFRequestBaseURI())
         else:
             raise(IIIFError(code=400,text="Bad number of path segments (%d: %s) in URL."%(len(segs),' | '.join(segs))))
@@ -283,7 +286,7 @@ class IIIFRequest(object):
             xywh=pct_match.group(1)
             self.region_pct=True
         # Now whether this was pct: or now, we expect 4 values...
-        str_values = string.split(xywh, ',', 5)
+        str_values = xywh.split(',', 5)
         if (len(str_values) != 4):
             raise IIIFError(code=400,parameter="region",
                             text="Bad number of values in region specification, must be x,y,w,h but got %d value(s) from '%s'"%(len(str_values),xywh))
@@ -385,7 +388,7 @@ class IIIFRequest(object):
         throw a ValueError if there is a problem with one or both.
         """
         try:
-            (wstr,hstr) = string.split(whstr, ',', 2)
+            (wstr,hstr) = whstr.split(',', 2)
             w = self._parse_non_negative_int(wstr,'w')
             h = self._parse_non_negative_int(hstr,'h')
         except ValueError as e:

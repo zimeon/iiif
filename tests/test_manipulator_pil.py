@@ -16,6 +16,19 @@ class TestAll(unittest.TestCase):
         m = IIIFManipulatorPIL()
         self.assertEqual( m.api_version, '2.0' )
 
+    def test02_max_image_pizels(self):
+        m = IIIFManipulatorPIL()
+        orig = Image.MAX_IMAGE_PIXELS
+        m.set_max_image_pixels(12345)
+        self.assertTrue( Image.MAX_IMAGE_PIXELS, 12345 )
+        m.set_max_image_pixels(0)
+        self.assertTrue( Image.MAX_IMAGE_PIXELS, 12345 )
+        # check error raise with test image
+        m.srcfile = 'testimages/test1.png'
+        self.assertRaises( IIIFError, m.do_first )
+        # back to normal
+        m.set_max_image_pixels(orig)
+
     def test_do_first(self):
         m = IIIFManipulatorPIL()
         # no image

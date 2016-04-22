@@ -18,7 +18,6 @@ else:
     raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE))
 
 class Coverage(Command):
-
     """Class to allow coverage run from setup."""
 
     description = "run coverage"
@@ -37,7 +36,7 @@ class Coverage(Command):
         os.system("coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
         os.system("coverage report")
         os.system("coverage html")
-        print "See htmlcov/index.html for details."
+        print("See htmlcov/index.html for details.")
 
 setup(
     name='iiif',
@@ -46,14 +45,17 @@ setup(
     author_email='simeon.warner@cornell.edu',
     packages=['iiif'],
     scripts=['iiif_static.py','iiif_testserver.py'],
-    classifiers=["Development Status :: 3 - Alpha",
+    classifiers=["Development Status :: 4 - Beta",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
                  "Operating System :: OS Independent", #is this true? know Linux & OS X ok
                  "Programming Language :: Python",
                  "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
+                 "Programming Language :: Python :: 3.3",
+                 "Programming Language :: Python :: 3.4",
                  "Topic :: Internet :: WWW/HTTP",
+                 "Topic :: Multimedia :: Graphics :: Graphics Conversion",
                  "Topic :: Software Development :: Libraries :: Python Modules",
                  "Environment :: Web Environment"],
     url='https://github.com/zimeon/iiif',
@@ -67,6 +69,9 @@ setup(
         "mock"
     ],
     test_suite="tests",
+    tests_require=[
+        "testfixtures",
+    ],
     cmdclass={
         'coverage': Coverage,
     },

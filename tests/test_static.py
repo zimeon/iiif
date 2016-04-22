@@ -5,23 +5,27 @@ import re
 import shutil
 import tempfile
 import unittest
-import sys, StringIO, contextlib
+import sys
+import contextlib
+from testfixtures import LogCapture
+try: #python2
+    # Must try this first as io also exists in python2
+    # but in the wrong one!
+    import StringIO as io
+except ImportError: #python3
+    import io
 
-from iiif.static import IIIFStatic, static_partial_tile_sizes, static_full_sizes
+from iiif.static import IIIFStatic, IIIFStaticError, static_partial_tile_sizes, static_full_sizes
 
-# From http://stackoverflow.com/questions/2654834/capturing-stdout-within-the-same-process-in-python
-class Data(object):
-    pass
+class MyLogCapture(LogCapture):
 
-@contextlib.contextmanager
-def capture_stdout():
-    old = sys.stdout
-    capturer = StringIO.StringIO()
-    sys.stdout = capturer
-    data = Data()
-    yield data
-    sys.stdout = old
-    data.result = capturer.getvalue()
+    @property
+    def all_msgs(self):
+        """Return string with all messages recorded."""
+        msgs = ''
+        for r in self.records:
+            msgs += r.msg
+        return(msgs)
 
 class TestAll(unittest.TestCase):
 
@@ -38,24 +42,46 @@ class TestAll(unittest.TestCase):
         s=IIIFStatic( src='abc', dst='def', tilesize=1024, api_version='1', dryrun=True )
         self.assertEqual( s.api_version, '1.1' )
 
-    def test02_generate(self):
+    def test02_get_osd_config(self):
+        s=IIIFStatic()
+        self.assertEqual( s.get_osd_config('2.0.0')['use_canonical'], True )
+        self.assertRaises( IIIFStaticError, s.get_osd_config, 'abc' )
+        self.assertRaises( IIIFStaticError, s.get_osd_config, '0.0.0' ) 
+
+    def test03_generate(self):
         # dryrun covers most
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
         try:
-            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', dryrun=True )
-            with capture_stdout() as capturer:
+            # no canonical syntax with osd_version='1.0.0'
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='1.1', osd_version='1.0.0', dryrun=True )
+            with MyLogCapture('iiif.static') as lc:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
-            self.assertTrue( re.search(' / a/info.json', capturer.result ))
-            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/native.jpg', capturer.result ))
-            self.assertTrue( re.search(' / a/full/1,/0/native.jpg', capturer.result ))
+            self.assertTrue( re.search(' / a/info.json', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,464/0/native.jpg', lc.all_msgs ))
+            # largest full region (and symlink from w,h)
+            self.assertTrue( re.search(' / a/full/375,500/0/native.jpg', lc.all_msgs ))
+            # smallest full region
+            self.assertTrue( re.search(' / a/full/1,1/0/native.jpg', lc.all_msgs ))
+            # v2.0
+            s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0', dryrun=True )
+            with MyLogCapture('iiif.static') as lc:
+                s.generate( src='testimages/starfish_1500x2000.png', identifier='a' )
+            self.assertTrue( re.search(' / a/info.json', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/1024,1536,476,464/476,/0/default.jpg', lc.all_msgs ))
+            # largest full region (and symlink from w,h)
+            self.assertTrue( re.search(' / a/full/375,/0/default.jpg', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/full/375,500 -> a/full/375,', lc.all_msgs ))
+            # smallest full region
+            self.assertTrue( re.search(' / a/full/1,/0/default.jpg', lc.all_msgs ))
+            self.assertTrue( re.search(' / a/full/1,1 -> a/full/1,', lc.all_msgs ))
         finally:
             shutil.rmtree(tmp1)
         # real write 
         tmp2 = tempfile.mkdtemp()
         try:
             s=IIIFStatic( dst=tmp2, tilesize=1024, api_version='2.0' )
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate( src='testimages/starfish_1500x2000.png', identifier='b' )
             self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/info.json')) )
             self.assertTrue( os.path.isfile(os.path.join(tmp2,'b/1024,1024,476,976/476,/0/default.jpg')) )
@@ -63,7 +89,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp2)
 
-    def test03_generate_tile(self):
+    def test04_generate_tile(self):
         # most tested via other calls, make sure zero size skip works
         tmp1 = tempfile.mkdtemp()
         os.mkdir( os.path.join(tmp1,'a') )
@@ -71,9 +97,9 @@ class TestAll(unittest.TestCase):
             s=IIIFStatic( dst=tmp1, tilesize=512, api_version='2.0' )
             s.identifier = 'fgh'
             s.src = 'testimages/starfish_1500x2000.png'
-            with capture_stdout() as capturer:
+            with MyLogCapture('iiif.static') as lc:
                 s.generate_tile( region='full', size=[0,1] )
-            self.assertTrue( re.search(r'zero size, skipped', capturer.result) )
+            self.assertTrue( re.search(r'zero size, skipped', lc.all_msgs) )
         finally:
             shutil.rmtree(tmp1)
 
@@ -89,7 +115,7 @@ class TestAll(unittest.TestCase):
                 sizes.add( str(region)+str(size) )
         return sizes
 
-    def test04_static_partial_tile_sizes(self):
+    def test05_static_partial_tile_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = self._generate_tile_sizes(100,100,64,[1,2,4])
         self.assertTrue( '[0, 0, 64, 64][64, 64]' in sizes ) #would use assertIn for >=2.7
@@ -100,7 +126,7 @@ class TestAll(unittest.TestCase):
         # Test cases for 3467 by 5117 with osd 2.0.0
         # see https://gist.github.com/zimeon/d97bc554ead393b7588d
         sizes = self._generate_tile_sizes(3467,5117,512,[1,2,4,8],True)
-        print sizes
+        #print(sizes)
         self.assertTrue( '[0, 0, 1024, 1024][512,]' in sizes )
         self.assertTrue( '[0, 0, 2048, 2048][512,]' in sizes )
         self.assertTrue( '[0, 0, 3467, 4096][434,]' in sizes )
@@ -200,7 +226,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[512, 4608, 512, 509][512,]' in sizes )
         self.assertTrue( '[512, 512, 512, 512][512,]' in sizes )
 
-    def test05_static_full_sizes(self):
+    def test06_static_full_sizes(self):
         # generate set of static tile sizes to look for examples in
         sizes = set()
         for (size) in static_full_sizes(100,100,64):
@@ -218,7 +244,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue( '[1, 1]' in sizes )
         self.assertEqual( len(sizes), 7 )
 
-    def test06_setup_destination(self):
+    def test07_setup_destination(self):
         s=IIIFStatic()
         # no dst
         self.assertRaises( Exception, s.setup_destination )
@@ -259,7 +285,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
-    def test07_write_html(self):
+    def test08_write_html(self):
         s=IIIFStatic()
         # bad output dir
         self.assertRaises( Exception, s.write_html, '/tmp/path_does_no_exist_(i_hope)' )
@@ -279,7 +305,36 @@ class TestAll(unittest.TestCase):
         s.identifier='abc3'
         s.write_html(tmp, include_osd=True)
         self.assertTrue( os.path.isfile( os.path.join(tmp,'abc3.html') ) )
-        self.assertTrue( os.path.isfile( os.path.join(tmp,'osd/openseadragon.min.js') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        # add another, with osd already present (and marked as such)
+        s.identifier='abc4'
+        with LogCapture('iiif.static') as lc:
+            s.write_html(tmp, include_osd=True)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc4.html') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        self.assertEqual( lc.records[-1].msg, 'OpenSeadragon already copied' )
+        # add yet another, with osd already present (but not marked)
+        s.identifier='abc5'
+        s.copied_osd=False
+        with LogCapture('iiif.static') as lc:
+            s.write_html(tmp, include_osd=True)
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'abc5.html') ) )
+        self.assertTrue( os.path.isfile( os.path.join(tmp,'openseadragon200/openseadragon.min.js') ) )
+        self.assertTrue( s.copied_osd )
+        self.assertTrue( re.search( r'OpenSeadragon images directory .* already exists',
+                                    lc.records[-1].msg ) )
+        # add another but with a prefix
+        s.identifier='abc6'
+        s.prefix='z/y/x'
+        s.copied_osd=False
+        s.write_html(tmp, include_osd=True)
+        html_file = os.path.join(tmp,'abc6.html')
+        self.assertTrue( os.path.isfile( html_file ) )
+        with open(html_file,'r') as x:
+            html = x.read()
+        self.assertTrue( re.search(r'z/y/x/abc6/info.json',html) )
         # bad write to existing path
         tmp = tempfile.mkdtemp()
         tmp2 = os.path.join(tmp,'file')

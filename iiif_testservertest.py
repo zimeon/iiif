@@ -6,12 +6,11 @@ from urllib2 import *
 baseurl='http://localhost:8000/1.1_pil/'
 
 class TestAll(unittest.TestCase):
-
     """TestAll class to run tests."""
 
     def get(self,path,map_404_to_400=False):
         """Make a get request and handle exceptions."""
-        print "get("+path+")..."
+        print("get("+path+")...")
         try:
             f = urlopen(baseurl+path)
             img_size = 0
@@ -30,8 +29,8 @@ class TestAll(unittest.TestCase):
 
     def test1_success(self):
         """Test set that should succeed."""
-        print "Success tests..."
-        id = "214-2.png"
+        print("Success tests...")
+        id = "214-2"
         size = 2601 #default output is jpg
         self.assertEqual( self.get(id+'/full/pct:100/0/color'), size)
         self.assertEqual( self.get(id+'/full/pct:100/360/color'), size)
@@ -40,7 +39,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual( self.get(id+'/full/pct:100/.000/color'), size)
         self.assertEqual( self.get(id+'/full/pct:100/0/color.jpg'), size)
         self.assertEqual( self.get(id+'/full/pct:99.99/0/color'), size)
-        #self.assertEqual( self.get('/214-2.png/0,0,50,100/pct:100/360/color.png'), 0 )
+        #self.assertEqual( self.get('/214-2/0,0,50,100/pct:100/360/color.png'), 0 )
         # ask for png
         size = 13929
         self.assertEqual( self.get(id+'/full/pct:100/0/color.png'), size)
@@ -53,8 +52,8 @@ class TestAll(unittest.TestCase):
 
     def test2_errors(self):
         """Test set that is expected to generate errors."""
-        print "Error tests..."
-        id = "214-2.png"
+        print("Error tests...")
+        id = "214-2"
         # Numbers of params
         self.assertEqual( self.get('1param'), 'code404' )
         self.assertEqual( self.get('1param/2/3'), 'code400' )

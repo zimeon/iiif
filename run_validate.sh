@@ -9,6 +9,14 @@
 #
 # See http://tldp.org/LDP/abs/html/arithexp.html for bash arithmetic
 
+# Abort with exit code 0 if we have python3 because iiif_validate.py will
+# not run with python3.
+major_version=`/usr/bin/env python -c 'import sys; print(sys.version_info[0])'`
+if test $major_version -ne 2; then
+  echo "Python major version is $major_version, validator works only with python2, exiting"
+  exit 0
+fi
+
 verbosity='--quiet'
 test_netpbm=true
 show_test_name=false
@@ -44,23 +52,23 @@ errors=0
 if $show_test_name; then
   echo "Testing PIL manipulator, API version 1.1"
 fi
-iiif-validate.py -s localhost:8000 -p 1.1_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 2 $verbosity
+iiif-validate.py -s localhost:8000 -p 1.1_pil -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=1.1 --level 2 $verbosity
 ((errors+=$?))
 if $show_test_name; then
   echo "Testing PIL manipulator, API version 2.0"
 fi
-iiif-validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 2 $verbosity
+iiif-validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=2.0 --level 2 $verbosity
 ((errors+=$?))
 if $test_netpbm; then
   if $show_test_name; then
     echo "Testing netpbm manipulator, API version 1.1"
   fi
-  iiif-validate.py -s localhost:8000 -p 1.1_netpbm -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=1.1 --level 2 $verbosity
+  iiif-validate.py -s localhost:8000 -p 1.1_netpbm -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=1.1 --level 2 $verbosity
   ((errors+=$?))
   if $show_test_name; then
     echo "Testing netpbm manipulator, API version 2.0"
   fi
-  iiif-validate.py -s localhost:8000 -p 2.0_netpbm -i 67352ccc-d1b0-11e1-89ae-279075081939.png --version=2.0 --level 2 $verbosity
+  iiif-validate.py -s localhost:8000 -p 2.0_netpbm -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=2.0 --level 2 $verbosity
   ((errors+=$?))
 fi
 

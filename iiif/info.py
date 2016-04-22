@@ -7,8 +7,6 @@ Default version is 2.0 but also supports 2.1, 1.1 and 1.0
 import sys
 import json
 import re
-import StringIO
-
 
 def _parse_int_array(info,json_data):
     return [int(x) for x in json_data] #force simple array
@@ -17,16 +15,24 @@ def _parse_noop(info,json_data):
     #format is already what we want
     return json_data
 
+def _parse_tile(info,json_data):
+    # Parse data for a single tile specification. Sets properties
+    # of info as a side effect
+    info.tile_width = json_data['width']
+    if ('height' in json_data):
+        info.tile_height = json_data['height']
+    else:
+        info.tile_height = json_data['width']
+    info.scale_factors = json_data['scaleFactors']
+
 def _parse_tiles(info,json_data):
     # Expect common case in 2.0 to map to 1.1 idea of tile_width,
-    # tile_height and scale_factors. This is the case when len()==1
+    # tile_height and scale_factors. This is the case when len()==1.
+    # Sets items as side-effect
     if (len(json_data)==1):
-        # set items as side-effect
-        info.tile_width = json_data[0]['width']
-        info.tile_height = json_data[0]['width']
-        info.scale_factors = json_data[0]['scaleFactors']
+        _parse_tile(info,json_data[0])
     else:
-        raise Exception("FIXME - support for multiple tile sizes not imeplemented")
+        raise IIIFInfoError("FIXME - support for multiple tile sizes not imeplemented")
     return json_data
 
 def _parse_service(info,json_data):
@@ -97,9 +103,13 @@ CONF = {
         'required_params': ['identifier','protocol','width','height','profile'],
         }
 }
-    
-class IIIFInfo(object):
 
+class IIIFInfoError(Exception):
+    """IIIFInfoErrors from IIIFInfo."""
+
+    pass
+
+class IIIFInfo(object):
     """IIIF Image Information Class."""
 
     def __init__(self,api_version='2.0',profile=None,level=1,conf=None,
@@ -124,7 +134,7 @@ class IIIFInfo(object):
         """
         # API version (used in level settings)
         if (api_version not in CONF):
-            raise Exception("Unknown IIIF Image API version '%s', versions supported are ('%s')" % (api_version,sorted(CONF.keys())))
+            raise IIIFInfoError("Unknown IIIF Image API version '%s', versions supported are ('%s')" % (api_version,sorted(CONF.keys())))
         self.api_version = api_version
         self.set_version_info()
         if (profile is not None):
@@ -186,10 +196,12 @@ class IIIFInfo(object):
         """Set up normal values for given api_version.
 
         Will use current value of self.api_version if a version number
-        is not specified in the call.
+        is not specified in the call. Will raise an IIIFInfoError
         """
         if (api_version is None):
             api_version = self.api_version
+        if (api_version not in CONF):
+            raise IIIFInfoError("Unknown API version %s" % (api_version))
         self.params = CONF[api_version]['params']
         self.array_params = CONF[api_version]['array_params']
         self.complex_params = CONF[api_version]['complex_params']
@@ -202,12 +214,12 @@ class IIIFInfo(object):
     def level(self):
         """Extract level number from profile URI.
 
-        Returns integer level number or raises excpetion
+        Returns integer level number or raises IIIFInfoError
         """
-        m = re.match(self.profile_prefix+r'(\d)'+self.profile_suffix+"$",self.profile)
+        m = re.match(self.profile_prefix+r'(\d)'+self.profile_suffix+r'$',self.profile)
         if (m):
             return int(m.group(1))
-        raise Exception("Bad compliance profile URI, failed to extract level number")
+        raise IIIFInfoError("Bad compliance profile URI, failed to extract level number")
 
     @level.setter
     def level(self, value):
@@ -233,11 +245,11 @@ class IIIFInfo(object):
     def set(self,param,value):
         """Setter handling both arrays and scalars."""
         if (param in self.array_params):
-            # If we have an array then set directly, else eval. Perhaps not
+            # If we have an array then set directly, make list. Perhaps not
             # pythonic to do a type check for array here but want to avoid
             # accidentally iterating on chars in string etc..
             if (type(value) == str):
-                self.__dict__[param]=eval(value) #FIXME - avoid eval
+                self.__dict__[param]=[value]
             else:
                 self.__dict__[param]=value
         else:
@@ -246,20 +258,20 @@ class IIIFInfo(object):
     def validate(self):
         """Validate this object as Image API data.
 
-        Raise Exception with helpful message if not valid.
+        Raise IIIFInfoError with helpful message if not valid.
         """
         errors = []
         for param in self.required_params:
             if (not hasattr(self,param) or getattr(self,param) is None):
                 errors.append("missing %s parameter" % (param))
         if (len(errors)>0):
-            raise Exception("Bad data for info.json: "+", ".join(errors))
+            raise IIIFInfoError("Bad data for info.json: "+", ".join(errors))
         return True
 
     def as_json(self, validate=True):
         """Return JSON serialization.
         
-        Will raise exception if insufficient parameters are present to
+        Will raise IIIFInfoError if insufficient parameters are present to
         have a valid info.json response (unless validate is False).
         """
         if (self.api_version>='2.0' and not self.tiles and
@@ -308,42 +320,61 @@ class IIIFInfo(object):
 
         Parameters:
         fh -- file like object supporting fh.read()
-        api_version -- IIIF Image API version
+        api_version -- IIIF Image API version expected
 
-        If version is set then the parsing will assume this API version. If
-        there is a @context specified then an exception will be raised unless
-        it matches. If no known @context is present and no api_version set 
-        then an exception will be raised.
+        If api_version is set then the parsing will assume this API version, 
+        else the version will be determined from the incoming data. NOTE that
+        the value of self.api_version is NOT used in this routine.
+        If an api_version is specified and there is a @context specified then
+        an IIIFInfoError will be raised unless these match. If no known 
+        @context is present and no api_version set then an IIIFInfoError
+        will be raised.
         """
         j = json.load(fh)
+        #
+        # @context and API version
         self.context=None
-        if (self.api_version!='1.0'):
+        if (api_version=='1.0'):
+            # v1.0 did not have a @context so we simply take the version
+            # passed in
+            self.api_version = api_version
+        elif ('@context' in j):
+            # determine API version from context
             self.context = j['@context']
-            # Determine API version from context
             api_version_read = None
             for v in CONF:
                 if (v>'1.0' and self.context==CONF[v]['context']):
                     api_version_read = v
+                    break
             if (api_version_read is None):
-                if (api_version is not None):
-                    self.api_version = api_version
-                else:
-                    raise Exception("Unknown @context, cannot determine API version (%s)"%(self.context))
+                raise IIIFInfoError("Unknown @context, cannot determine API version (%s)"%(self.context))
             else:
                 if (api_version is not None and
                     api_version != api_version_read):
-                    raise Exception("Expected API version '%s' but got context for API version '%s'" % (api_version,api_version_read))
+                    raise IIIFInfoError("Expected API version '%s' but got @context for API version '%s'" % (api_version,api_version_read))
                 else:
                     self.api_version = api_version_read
+        else: #no @context and not 1.0
+            if (api_version is None):
+                raise IIIFInfoError("No @context (and no default given)")
+            self.api_version = api_version
         self.set_version_info()
         #
+        # @id or identifier
         if (self.api_version=='1.0'):
-            self.id = j['identifier']
+            if ('identifier' in j):
+                self.id = j['identifier']
+            else:
+                raise IIIFInfoError("Missing identifier in info.json")
         else:
-            self.id = j['@id']
+            if ('@id' in j):
+                self.id = j['@id']
+            else:
+                raise IIIFInfoError("Missing @id in info.json")
+        #
+        # other params
         for param in self.params:
-            if (param == 'indentifier' or
-                param == '@id'):
+            if (param == 'identifier'):
                 continue #dealt with above
             if (param in j):
                 if (param in self.complex_params):

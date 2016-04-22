@@ -7,9 +7,14 @@ htmlcov
 iiif_testserver.pid
 iiif_testserver_flask.pid
 client_secret
+# test files
+demo-static/biggie
+demo-static/mandlebrot_100k.html
+demo-static/mandlebrot_100k
 # setup stuff
 build
 dist
 MANIFEST
 iiif.egg-info
 client_secret.json
+.eggs

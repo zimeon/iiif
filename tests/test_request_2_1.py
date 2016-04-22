@@ -235,23 +235,23 @@ class TestAll(unittest.TestCase):
         self.assertRaises( IIIFError, r.parse_quality )
 
     def test10_encode(self):
-        for tname in sorted(data.iterkeys()):
+        for tname in sorted(data.keys()):
             tdata=data[tname]
-            print tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1]
+            print(tname + "   " + self.pstr(data[tname][0]) + "  " + data[tname][1])
             iiif = IIIFRequest(**data[tname][0])
             self.assertEqual(iiif.url(),data[tname][1])
-        print
+        print('')
   
     def test11_decode(self):
-        for tname in sorted(data.iterkeys()):
+        for tname in sorted(data.keys()):
             tdata=data[tname]
             pstr = self.pstr(data[tname][0])
             for turl in data[tname][1:]:
                 iiif = IIIFRequest().split_url(turl)
                 tstr = self.pstr(iiif.__dict__)
-                print tname + "   " + turl + " -> " + tstr
+                print(tname + "   " + turl + " -> " + tstr)
                 self.assertEqual(tstr,pstr)
-        print
+        print('')
 
     def test12_decode_except(self):
         self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id"))
@@ -316,13 +316,13 @@ class TestAll(unittest.TestCase):
 
     def test20_parse_w_comma_h(self):
         r = IIIFRequest()
-        self.assertEquals( r._parse_w_comma_h('1,2','a'), (1,2) )
+        self.assertEqual( r._parse_w_comma_h('1,2','a'), (1,2) )
         self.assertRaises( IIIFError, r._parse_w_comma_h, ',', 'region' )
         self.assertRaises( IIIFError, r._parse_w_comma_h, '1.0,1.0', 'size' )
 
     def test21_parse_non_negative_int(self):
         r = IIIFRequest()
-        self.assertEquals( r._parse_non_negative_int('1','a'), (1) )
+        self.assertEqual( r._parse_non_negative_int('1','a'), (1) )
         self.assertRaises( ValueError, r._parse_non_negative_int, 'a', 'region' )
         self.assertRaises( ValueError, r._parse_non_negative_int, '-1', 'region' )
 

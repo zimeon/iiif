@@ -5,7 +5,7 @@ Relies upon IIIFManupulator object to do the image
 manipulations requested.
 """
 
-import BaseHTTPServer
+import http.server
 import re
 import sys
 import os
@@ -24,25 +24,22 @@ from iiif.request import IIIFRequest
 from iiif.info import IIIFInfo
 
 class CGI_responder(object):
-
     """Simple helper class for CGI response."""
 
     def send_response(self,code,text=''):
         """Write HTTP status code and optional explanation."""
-        print "Status: %s %s\r" % (str(code),text)
+        print("Status: %s %s\r" % (str(code),text))
 
     def send_header(self,header,value):
         """Write HTTP header."""
-        print "%s: %s\r" % (header,value)
+        print("%s: %s\r" % (header,value))
 
     def end_headers(self):
         """End HTTP headers with blank line."""
-        print "\r"
+        print("\r")
 
     
-#class IIIFRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class IIIFRequestHandler(CGI_responder):
-
     """Class to handle IIIF request.
 
     Minimal implementation of HTTP request handler to do IIIF GET.
@@ -153,15 +150,12 @@ class IIIFRequestHandler(CGI_responder):
             i.identifier = self.iiif.identifier
             i.width = manipulator.width
             i.height = manipulator.height
-            import StringIO
-            return(StringIO.StringIO(i.as_json()),"application/json")
+            import io
+            return(io.StringIO(i.as_json()),"application/json")
         else:
             (outfile,mime_type)=manipulator.derive(file,iiif)
             return(open(outfile,'r'),mime_type)
                
-#print "Content-type: text/plain\r\n\r"
-#print "hello"
-#exit(0)
 myname = ( os.environ['SCRIPT_NAME'] if ('SCRIPT_NAME' in os.environ) else '/iiif_dummy.cgi')
 #sys.stderr = sys.stdout
 if (re.match(myname,'/iiif_dummy') is not None):
@@ -178,9 +172,9 @@ else:
     from iiif.manipulator_pil import IIIFManipulatorPIL
     IIIFRequestHandler.manipulator_class = IIIFManipulatorPIL
 #else:
-#    print "Status: 500\r"
-#    print "Content-type: text/plain\r\n\r"
-#    print "Bad script name '%s'" % myname
+#    print("Status: 500\r")
+#    print("Content-type: text/plain\r\n\r")
+#    print("Bad script name '%s'" % myname)
 #    exit(0)
 
 rh = IIIFRequestHandler()

@@ -4,7 +4,7 @@ import shutil
 import tempfile
 import unittest
 
-from iiif.manipulator import IIIFManipulator
+from iiif.manipulator import IIIFManipulator, IIIFZeroSizeError
 from iiif.request import IIIFRequest
 from iiif.error import IIIFError
 
@@ -156,6 +156,24 @@ class TestAll(unittest.TestCase):
         m.request.region_pct = None
         m.request.region_xywh = (0,0,2000,4000)
         self.assertEqual( m.region_to_apply(), (None,None,None,None) )
+        # square
+        m.width = 100
+        m.height = 200
+        m.request.region_pct = None
+        m.request.region_xywh = None
+        m.request.region_square = True
+        self.assertEqual( m.region_to_apply(), (0,50,100,100) )
+        m.width = 104
+        m.height = 100
+        self.assertEqual( m.region_to_apply(), (2,0,100,100) )
+        # zero size
+        m.width = 100
+        m.height = 100
+        m.request.region_pct = None
+        m.request.region_xywh = (0,0,0,100)
+        m.request.region_square = False
+        self.assertRaises( IIIFZeroSizeError, m.region_to_apply )
+
 
     def test11_size_to_apply(self):
         m = IIIFManipulator()
@@ -205,22 +223,25 @@ class TestAll(unittest.TestCase):
         m.request = IIIFRequest()
         # 0
         m.request.rotation_deg=0
-        self.assertEqual( m.rotation_to_apply(), (False,0) )
+        self.assertEqual( m.rotation_to_apply(), (False, False) )
         # 90 and only90s
         m.request.rotation_deg=90
-        self.assertEqual( m.rotation_to_apply(True), (False,90) )
+        self.assertEqual( m.rotation_to_apply(True), (False, 90) )
         # 100
         m.request.rotation_deg=100
-        self.assertEqual( m.rotation_to_apply(), (False,100) )
+        self.assertEqual( m.rotation_to_apply(), (False, 100) )
         # 100 and only90s
         m.request.rotation_deg=100
-        self.assertRaises( IIIFError, m.rotation_to_apply, (True) )
+        self.assertRaises( IIIFError, m.rotation_to_apply, True )
         # 45 and mirror
         m.request.rotation_mirror=True
         m.request.rotation_deg=45
-        self.assertEqual( m.rotation_to_apply(), (True,45) )
+        self.assertEqual( m.rotation_to_apply(), (True, 45) )
         # 45 and no-mirror
-        self.assertRaises( IIIFError, m.rotation_to_apply, (True,True) )
+        self.assertRaises( IIIFError, m.rotation_to_apply, True, True )
+        # mirror request and no-mirror
+        m.request.rotation_mirror = True
+        self.assertRaises( IIIFError, m.rotation_to_apply, False, True )
 
     def test13_quality_to_apply(self):
         m = IIIFManipulator()

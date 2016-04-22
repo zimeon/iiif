@@ -1,22 +1,64 @@
 {
-  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", 
+  "@context": "http://iiif.io/api/image/2/context.json", 
   "@id": "starfish2", 
-  "formats": [
-    "jpg"
-  ], 
   "height": 3176, 
-  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0", 
-  "qualities": [
-    "native"
+  "profile": [
+    "http://iiif.io/api/image/2/level0.json", 
+    {
+      "formats": [
+        "jpg"
+      ], 
+      "qualities": [
+        "default"
+      ]
+    }
   ], 
-  "scale_factors": [
-    1, 
-    2, 
-    4, 
-    8, 
-    16
+  "protocol": "http://iiif.io/api/image", 
+  "sizes": [
+    {
+      "height": 199, 
+      "width": 120
+    }, 
+    {
+      "height": 99, 
+      "width": 60
+    }, 
+    {
+      "height": 50, 
+      "width": 30
+    }, 
+    {
+      "height": 25, 
+      "width": 15
+    }, 
+    {
+      "height": 12, 
+      "width": 8
+    }, 
+    {
+      "height": 6, 
+      "width": 4
+    }, 
+    {
+      "height": 3, 
+      "width": 2
+    }, 
+    {
+      "height": 2, 
+      "width": 1
+    }
   ], 
-  "tile_height": 256, 
-  "tile_width": 256, 
+  "tiles": [
+    {
+      "scaleFactors": [
+        1, 
+        2, 
+        4, 
+        8, 
+        16
+      ], 
+      "width": 200
+    }
+  ], 
   "width": 1920
 }
