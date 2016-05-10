@@ -5,6 +5,7 @@ See <check.py> for details. This version overrides size
 
 from iiif.generators.check import PixelGen as PixelGenBase
 
+
 class PixelGen(PixelGenBase):
     """Pixel generation class."""
 

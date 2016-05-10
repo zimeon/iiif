@@ -5,9 +5,10 @@ See <check.py> for details. This version overrides size
 
 from iiif.generators.check import PixelGen as PixelGenBase
 
+
 class PixelGen(PixelGenBase):
     """Pixel generation class."""
 
     def __init__(self):
         """Set size."""
-        self.sz = 3**14 #4.8M
+        self.sz = 3**14  # 4.8M
