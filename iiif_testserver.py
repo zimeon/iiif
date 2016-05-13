@@ -202,9 +202,9 @@ class IIIFHandler(object):
     def json_mime_type(self):
         """Return the MIME type for a JSON response.
 
-        For version 2.0 the server must return json-ld MIME type if that
+        For version 2.0+ the server must return json-ld MIME type if that
         format is requested. Implement for 1.1 also.
-        http://iiif.io/api/image/2.0/#information-request
+        http://iiif.io/api/image/2.1/#information-request
         """
         mime_type = "application/json"
         if (self.api_version>='1.1' and
@@ -510,7 +510,7 @@ def setup_options():
     p.add_option('--scale-factors', default='auto',
                  help="Set of tile scale factors or 'auto' to calculate for each image "
                       "such that there are tiles up to the full image (default %default)")
-    p.add_option('--api-versions', default='1.0,1.1,2.0',
+    p.add_option('--api-versions', default='1.0,1.1,2.0,2.1',
                  help="Set of API versions to support (default %default)")
     p.add_option('--manipulators', default='pil',
                  help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
@@ -524,7 +524,7 @@ def setup_options():
     p.add_option('--include-osd', action='store_true',
                  help="Include a page with OpenSeadragon for each source" )
     p.add_option('--draft', action='store_true',
-                 help="Enable features implementing draft IIIF specifications: v2.1 and auth")
+                 help="Enable features implementing draft of IIIF auth specification")
     p.add_option('--debug', action='store_true',
                  help="Set debug mode for web application. INSECURE!")
     p.add_option('--verbose', '-v', action='store_true',
@@ -545,8 +545,6 @@ def setup_options():
     opt.auth_types = split_option(opt.auth_types)
 
     # Draft features...
-    if (opt.draft and '2.1' not in opt.api_versions):
-        opt.api_versions.append('2.1')
     if (opt.draft and 'gauth' not in opt.auth_types):
         opt.auth_types.append('gauth') 
     if (opt.draft and 'basic' not in opt.auth_types):

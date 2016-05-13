@@ -27,8 +27,8 @@ def main():
                  help="Destination directory for images [default '%default']")
     p.add_option('--tilesize', '-t', action='store', type='int', default=512,
                  help="Tilesize in pixels [default %default]")
-    p.add_option('--api-version', '--api','-a', action='store', default='2.0',
-                 help="API version, may be 1.1 or 2.0 [default %default]")
+    p.add_option('--api-version', '--api','-a', action='store', default='2.1',
+                 help="API version, may be 1.1, 2.0 or 2.1 [default %default]")
     p.add_option('--prefix', '-p', action='store', default=None,
                  help="URI prefix for where the images will be served from (default '%default'). "
                       "An empty prefix may be OK if the HTML page including the image shares the "

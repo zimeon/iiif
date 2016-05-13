@@ -144,9 +144,10 @@ class IIIFStatic(object):
         # config for locations of OpenSeadragon
         # - dir is relative to base, will be copied to dir under html_dir
         # - js and images are relative to dir
+        self.module_dir = os.path.dirname(__file__)
         self.osd_config = {
             '1.0.0': {
-                'base': 'third_party',
+                'base': os.path.join(self.module_dir, 'third_party'),
                 'dir': 'openseadragon100',
                 'js': 'openseadragon.min.js',
                 'images': 'images',
@@ -154,7 +155,7 @@ class IIIFStatic(object):
                 'notes' : 'Uses /w,h/ for size, algorithm not quite right, API v1.1'
                   },
             '1.2.1': {
-                'base': 'third_party',
+                'base': os.path.join(self.module_dir, 'third_party'),
                 'dir': 'openseadragon121',
                 'js': 'openseadragon.min.js',
                 'images': 'images',
@@ -162,7 +163,7 @@ class IIIFStatic(object):
                 'notes' : "Uses /w,/ canonical syntax, works with API v1.1,2.0"
                   },
             '2.0.0': {
-                'base': 'third_party',
+                'base': os.path.join(self.module_dir, 'third_party'),
                 'dir': 'openseadragon200',
                 'js': 'openseadragon.min.js',
                 'images': 'images',
@@ -173,7 +174,7 @@ class IIIFStatic(object):
         # used internally:
         self.identifier = None
         self.copied_osd = False
-        self.template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        self.template_dir = os.path.join(self.module_dir, 'templates')
 
     def get_osd_config(self,osd_version):
         """Select appropriate portion of config.
@@ -384,6 +385,3 @@ class IIIFStatic(object):
                     shutil.copytree(os.path.join(osd_base,osd_images), osd_images_path)
                     self.logger.info("%s / %s/*" % (html_dir,osd_images))
                 self.copied_osd = True # don't try again for next img
- 
-
-
