@@ -18,19 +18,20 @@ FIXME - improve messages for api_version>1.0. Do not include old namespace.
 
 import sys
 from xml.etree.ElementTree import ElementTree, Element
-try: #python2
+try:  # python2
     import BytesIO as io
     # Must check for python2 first as io exists but is wrong one
-except ImportError: #python3
+except ImportError:  # python3
     import io
 
 # Namespace used in XML error response
 I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
 
+
 class IIIFError(Exception):
     """Class to represent IIIF error conditions."""
 
-    def __init__(self,code=500,parameter='unknown',text='',headers=None):
+    def __init__(self, code=500, parameter='unknown', text='', headers=None):
         """Initialize IIIFError object.
 
         Keyword arguments:
@@ -39,12 +40,12 @@ class IIIFError(Exception):
         test -- human explanation to help with debugging
         headers -- additional HTTP headers
         """
-        self.code=code
-        self.parameter=parameter
-        self.text=text
-        self.headers=headers if (headers is not None) else ()
-        self.content_type='text/plain'
-        self.pretty_xml=True
+        self.code = code
+        self.parameter = parameter
+        self.text = text
+        self.headers = headers if (headers is not None) else ()
+        self.content_type = 'text/plain'
+        self.pretty_xml = True
 
     def image_server_response(self, api_version=None):
         """Response, code and headers for image server error response.
@@ -59,13 +60,13 @@ class IIIFError(Exception):
         to the correct media type for the response.
         """
         headers = dict(self.headers)
-        if (api_version<'1.1'):
-            headers['Content-Type']='text/xml'
+        if (api_version < '1.1'):
+            headers['Content-Type'] = 'text/xml'
             response = self.as_xml()
         else:
-            headers['Content-Type']='text/plain'
+            headers['Content-Type'] = 'text/plain'
             response = self.as_txt()
-        return( response, self.code, headers )
+        return(response, self.code, headers)
 
     def as_xml(self):
         """XML representation of the error to be used in HTTP response.
@@ -74,25 +75,26 @@ class IIIFError(Exception):
         see <http://iiif.io/api/image/1.0/#error>
         """
         # Build tree
-        spacing = ( "\n" if (self.pretty_xml) else "" )
-        root = Element('error', { 'xmlns': I3F_NS } )
-        root.text=spacing
-        e_parameter = Element( 'parameter', {} )
+        spacing = ("\n" if (self.pretty_xml) else "")
+        root = Element('error', {'xmlns': I3F_NS})
+        root.text = spacing
+        e_parameter = Element('parameter', {})
         e_parameter.text = self.parameter
         e_parameter.tail = spacing
         root.append(e_parameter)
         if (self.text):
-            e_text = Element( 'text', {} )
+            e_text = Element('text', {})
             e_text.text = self.text
             e_text.tail = spacing
             root.append(e_text)
         # Write out as XML document to return
-        tree = ElementTree(root);
-        xml_buf=io.BytesIO()
-        if (sys.version_info < (2,7)):
-            tree.write(xml_buf,encoding='UTF-8')
+        tree = ElementTree(root)
+        xml_buf = io.BytesIO()
+        if (sys.version_info < (2, 7)):
+            tree.write(xml_buf, encoding='UTF-8')
         else:
-            tree.write(xml_buf,encoding='UTF-8',xml_declaration=True,method='xml')
+            tree.write(xml_buf, encoding='UTF-8',
+                       xml_declaration=True, method='xml')
         return(xml_buf.getvalue().decode('utf-8'))
 
     def as_txt(self):
@@ -108,7 +110,7 @@ class IIIFError(Exception):
         if (self.code):
             s += "code=%d\n\n" % self.code
         for header in sorted(self.headers):
-            s += "header %s=%s\n" % (header,self.headers[header])
+            s += "header %s=%s\n" % (header, self.headers[header])
         return s
 
     def __str__(self):
@@ -124,6 +126,7 @@ class IIIFError(Exception):
         if (self.code):
             s += ", code=%d" % self.code
         return s
+
 
 class IIIFZeroSizeError(IIIFError):
     """Sub-class of IIIFError to indicate request for a zero-size image."""

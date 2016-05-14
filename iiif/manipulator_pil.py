@@ -16,6 +16,7 @@ from iiif.error import IIIFError
 from iiif.request import IIIFRequest
 from iiif.manipulator import IIIFManipulator
 
+
 class IIIFManipulatorPIL(IIIFManipulator):
     """Class to manipulate an image with PIL according to IIIF.
 
@@ -34,7 +35,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
         """
         super(IIIFManipulatorPIL, self).__init__(**kwargs)
         # Does not support jp2 output
-        self.compliance_level=2
+        self.compliance_level = 2
         self.outtmp = None
 
     def set_max_image_pixels(self, pixels):
@@ -44,14 +45,15 @@ class IIIFManipulatorPIL(IIIFManipulator):
         not local to this manipulator instance!
 
         Setting a value here will not only set the given limit but
-        also convert the PIL "DecompressionBombWarning" into an 
+        also convert the PIL "DecompressionBombWarning" into an
         error. Thus setting a moderate limit sets a hard limit on
         image size loaded, setting a very large limit will have the
         effect of disabling the warning
         """
         if (pixels):
             Image.MAX_IMAGE_PIXELS = pixels
-            Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
+            Image.warnings.simplefilter(
+                'error', Image.DecompressionBombWarning)
 
     def do_first(self):
         """Create PIL object from input image file.
@@ -63,57 +65,59 @@ class IIIFManipulatorPIL(IIIFManipulator):
         """
         self.logger.debug("do_first: src=%s" % (self.srcfile))
         try:
-            self.image=Image.open(self.srcfile)
+            self.image = Image.open(self.srcfile)
             self.image.load()
         except Image.DecompressionBombWarning as e:
             # This exception will be raised only if PIL has been
             # configured to raise an error in the case of images
             # that exceeed Image.MAX_IMAGE_PIXELS, with
             # Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
-            raise IIIFError(text=("Image size limit exceeded, failed to open %s: %s"%(self.srcfile,str(e))))
+            raise IIIFError(text=(
+                "Image size limit exceeded, failed to open %s: %s" % (self.srcfile, str(e))))
         except Exception as e:
-            raise IIIFError(text=("PIL Image.open(%s) barfed: %s"%(self.srcfile,str(e))))
-        (self.width,self.height)=self.image.size
+            raise IIIFError(text=("PIL Image.open(%s) barfed: %s" %
+                                  (self.srcfile, str(e))))
+        (self.width, self.height) = self.image.size
 
-    def do_region(self,x,y,w,h):
+    def do_region(self, x, y, w, h):
         """Apply region selection."""
         if (x is None):
             self.logger.debug("region: full (nop)")
         else:
-            self.logger.debug("region: (%d,%d,%d,%d)" % (x,y,w,h))
-            self.image = self.image.crop( (x,y,x+w,y+h) )
+            self.logger.debug("region: (%d,%d,%d,%d)" % (x, y, w, h))
+            self.image = self.image.crop((x, y, x + w, y + h))
             self.width = w
             self.height = h
 
-    def do_size(self,w,h):
+    def do_size(self, w, h):
         """Apply size scaling."""
         if (w is None):
             self.logger.debug("size: no scaling (nop)")
         else:
-            self.logger.debug("size: scaling to (%d,%d)" % (w,h))
-            self.image = self.image.resize( (w,h) )
+            self.logger.debug("size: scaling to (%d,%d)" % (w, h))
+            self.image = self.image.resize((w, h))
             self.width = w
             self.height = h
 
-    def do_rotation(self,mirror,rot):
+    def do_rotation(self, mirror, rot):
         """Apply rotation and/or mirroring."""
-        if (not mirror and rot==0.0):
+        if (not mirror and rot == 0.0):
             self.logger.debug("rotation: no rotation (nop)")
         else:
-            #FIXME - with PIL one can use the transpose() method to do 90deg
-            #FIXME - rotations as well as mirroring. This would be more efficient
-            #FIXME - for these cases than mirror _then_ rotate.
+            # FIXME - with PIL one can use the transpose() method to do 90deg
+            # FIXME - rotations as well as mirroring. This would be more efficient
+            # FIXME - for these cases than mirror _then_ rotate.
             if (mirror):
                 self.logger.debug("rotation: mirror (about vertical axis)")
-                self.image = self.image.transpose( Image.FLIP_LEFT_RIGHT )
-            if (rot!=0.0):
+                self.image = self.image.transpose(Image.FLIP_LEFT_RIGHT)
+            if (rot != 0.0):
                 self.logger.debug("rotation: by %f degrees clockwise" % (rot))
-                self.image = self.image.rotate( -rot, expand=True )
+                self.image = self.image.rotate(-rot, expand=True)
 
-    def do_quality(self,quality):
+    def do_quality(self, quality):
         """Apply value of quality parameter.
 
-        For PIL docs see 
+        For PIL docs see
         <http://pillow.readthedocs.org/en/latest/reference/Image.html#PIL.Image.Image.convert>
         """
         if (quality == 'grey' or quality == 'gray'):
@@ -130,40 +134,40 @@ class IIIFManipulatorPIL(IIIFManipulator):
         else:
             self.logger.debug("quality: quality (nop)")
 
-    def do_format(self,format):
+    def do_format(self, format):
         """Apply format selection.
 
         Assume that for tiling applications we want jpg so return
         that unless an explicit format is requested.
         """
-        fmt = ( 'jpg' if (format is None) else format)
+        fmt = ('jpg' if (format is None) else format)
         if (fmt == 'png'):
             self.logger.debug("format: png")
-            self.mime_type="image/png"
-            self.output_format=fmt
+            self.mime_type = "image/png"
+            self.output_format = fmt
             format = 'png'
         elif (fmt == 'jpg'):
             self.logger.debug("format: jpg")
-            self.mime_type="image/jpeg"
-            self.output_format=fmt
-            format = 'jpeg';
+            self.mime_type = "image/jpeg"
+            self.output_format = fmt
+            format = 'jpeg'
         elif (fmt == 'webp'):
             self.logger.debug("format: webp")
-            self.mime_type="image/webp"
-            self.output_format=fmt
-            format = 'webp';
+            self.mime_type = "image/webp"
+            self.output_format = fmt
+            format = 'webp'
         else:
             raise IIIFError(code=415, parameter='format',
-                            text="Unsupported output file format (%s), only png,jpg,webp are supported."%(fmt))
+                            text="Unsupported output file format (%s), only png,jpg,webp are supported." % (fmt))
         if (self.outfile is None):
             # Create temp
             f = tempfile.NamedTemporaryFile(delete=False)
-            self.outfile=f.name
-            self.outtmp=f.name
-            self.image.save(f,format=format)
+            self.outfile = f.name
+            self.outtmp = f.name
+            self.image.save(f, format=format)
         else:
             # Save to specified location
-            self.image.save(self.outfile,format=format)
+            self.image.save(self.outfile, format=format)
 
     def cleanup(self):
         """Cleanup temporary output file."""
@@ -171,5 +175,5 @@ class IIIFManipulatorPIL(IIIFManipulator):
             try:
                 os.unlink(self.outtmp)
             except OSError as e:
-                self.logger.warn("Failed to cleanup tmp output file %s" % (self.outtmp))
-
+                self.logger.warn(
+                    "Failed to cleanup tmp output file %s" % (self.outtmp))

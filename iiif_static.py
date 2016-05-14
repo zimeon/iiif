@@ -13,21 +13,22 @@ from iiif import __version__
 from iiif.error import IIIFError
 from iiif.static import IIIFStatic, IIIFStaticError
 
+
 def main():
     """Parse arguments, instantiate IIIFStatic, run."""
-    if (sys.version_info < (2,6)):
+    if (sys.version_info < (2, 6)):
         sys.exit("This program requires python version 2.6 or later")
 
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image API static file generator',
                               usage='usage: %prog [options] file [[file2..]] (-h for help)',
-                              version='%prog '+__version__ )
+                              version='%prog ' + __version__)
 
     p.add_option('--dst', '-d', action='store', default='/tmp',
                  help="Destination directory for images [default '%default']")
     p.add_option('--tilesize', '-t', action='store', type='int', default=512,
                  help="Tilesize in pixels [default %default]")
-    p.add_option('--api-version', '--api','-a', action='store', default='2.1',
+    p.add_option('--api-version', '--api', '-a', action='store', default='2.1',
                  help="API version, may be 1.1, 2.0 or 2.1 [default %default]")
     p.add_option('--prefix', '-p', action='store', default=None,
                  help="URI prefix for where the images will be served from (default '%default'). "
@@ -78,39 +79,43 @@ def main():
     (opt, sources) = p.parse_args()
 
     level = logging.DEBUG if (opt.verbose) else \
-            logging.WARNING if (opt.quiet) else logging.INFO
-    logging.basicConfig( format='%(name)s: %(message)s',
-                         level=level )
+        logging.WARNING if (opt.quiet) else logging.INFO
+    logging.basicConfig(format='%(name)s: %(message)s',
+                        level=level)
     logger = logging.getLogger(os.path.basename(__file__))
 
     if (not opt.write_html and opt.include_osd):
-        logger.warn("--include-osd has no effect without --write-html, ignoring")
-    if (len(sources)==0):
+        logger.warn(
+            "--include-osd has no effect without --write-html, ignoring")
+    if (len(sources) == 0):
         logger.warn("No sources specified, nothing to do, bye! (-h for help)")
-    elif (len(sources)>1 and opt.identifier):
-        logger.error("Cannot use --identifier/-i option with multiple sources, aborting.")
+    elif (len(sources) > 1 and opt.identifier):
+        logger.error(
+            "Cannot use --identifier/-i option with multiple sources, aborting.")
     else:
         try:
-            sg = IIIFStatic( dst=opt.dst, tilesize=opt.tilesize,
-                             api_version=opt.api_version, dryrun=opt.dryrun,
-                             prefix=opt.prefix, osd_version=opt.osd_version,
-                             generator=opt.generator,
-                             max_image_pixels=opt.max_image_pixels )
+            sg = IIIFStatic(dst=opt.dst, tilesize=opt.tilesize,
+                            api_version=opt.api_version, dryrun=opt.dryrun,
+                            prefix=opt.prefix, osd_version=opt.osd_version,
+                            generator=opt.generator,
+                            max_image_pixels=opt.max_image_pixels)
             for source in sources:
                 # File or directory (or neither)?
                 if (os.path.isfile(source) or opt.generator):
                     logger.info("source file: %s" % (source))
                     sg.generate(source, identifier=opt.identifier)
                     if (opt.write_html):
-                        sg.write_html(html_dir=opt.write_html,include_osd=opt.include_osd,
-                                      osd_width=opt.osd_width, osd_height=opt.osd_height  )
+                        sg.write_html(html_dir=opt.write_html, include_osd=opt.include_osd,
+                                      osd_width=opt.osd_width, osd_height=opt.osd_height)
                 elif (os.path.isdir(source)):
-                    logger.warn("Ignoring source '%s': directory coversion not supported" % (source))
+                    logger.warn(
+                        "Ignoring source '%s': directory coversion not supported" % (source))
                 else:
-                    logger.warn("Ignoring source '%s': neither file nor path" % (source))
+                    logger.warn(
+                        "Ignoring source '%s': neither file nor path" % (source))
         except (IIIFStaticError, IIIFError) as e:
             # catch known errors and report nicely...
-            logger.error("Error: "+str(e))
+            logger.error("Error: " + str(e))
 
 if __name__ == '__main__':
     main()
