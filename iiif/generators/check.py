@@ -8,7 +8,7 @@ more and more red
 
 def _num(x, y):
     """PRIVATE function to return cell number in 3x3 square, 1..9."""
-    return(x+3*y+1)
+    return(x + 3 * y + 1)
 
 
 class PixelGen(object):
@@ -43,12 +43,12 @@ class PixelGen(object):
                 return (red, 0, 0)
             else:
                 return None
-        divisor = size//3
-        n = _num(x//divisor, y//divisor)
+        divisor = size // 3
+        n = _num(x // divisor, y // divisor)
         if (n == 5):
             # Middle square further divided
             return self.pixel(x % divisor, y % divisor,
-                              divisor, min(red+25, 255))
+                              divisor, min(red + 25, 255))
         elif (n % 2):
             return (red, 0, 0)
         else:
