@@ -219,8 +219,8 @@ class IIIFStatic(object):
                       api_version=self.api_version)
         json_file = os.path.join(self.dst,self.identifier,'info.json')
         if (self.dryrun):
-            self.logger.warn("dryrun mode, would write the following files:")
-            self.logger.warn("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
+            self.logger.warning("dryrun mode, would write the following files:")
+            self.logger.warning("%s / %s/%s" % (self.dst, self.identifier, 'info.json'))
         else:
             with open(json_file,'w') as f:
                 f.write(info.as_json())
@@ -314,7 +314,7 @@ class IIIFStatic(object):
         outd = os.path.join(dst,self.identifier)
         if (os.path.isdir(outd)):
             # Nothing for now, perhaps should delete?
-            self.logger.warn("Output directory %s already exists, adding/updating files" % outd)
+            self.logger.warning("Output directory %s already exists, adding/updating files" % outd)
             pass
         elif (os.path.isfile(outd)):
             raise IIIFStaticError("Can't write to directory %s: a file of that name exists" % outd)
@@ -380,7 +380,7 @@ class IIIFStatic(object):
                 self.logger.info("%s / %s" % (html_dir,osd_js))
                 osd_images_path = os.path.join(html_dir,osd_images)
                 if (os.path.isdir(osd_images_path)):
-                    self.logger.warn("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
+                    self.logger.warning("OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
                 else:
                     shutil.copytree(os.path.join(osd_base,osd_images), osd_images_path)
                     self.logger.info("%s / %s/*" % (html_dir,osd_images))
