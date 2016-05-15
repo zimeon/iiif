@@ -7,9 +7,8 @@ default forms which should still be decoded correctly.
 
 Simeon Warner - 2015-05...
 """
-import unittest
-
 from iiif.request import IIIFRequest
+from .testlib.request import TestRequests
 
 # Data for test. Format is
 # name : [ {args}, 'canonical_url', 'alternate_form1', ... ]
@@ -60,34 +59,13 @@ data = {
 }
 
 
-class TestAll(unittest.TestCase):
-    """Tests."""
+class TestAll(TestRequests):
+    """Tests for requests from spec."""
 
-    def test1_encode(self):
-        """Encoding test."""
-        for tname in sorted(data.keys()):
-            tdata = data[tname]
-            iiif = IIIFRequest(api_version='2.1', **data[tname][0])
-            self.assertEqual(iiif.url(), data[tname][1])
+    def test01_encode(self):
+        """Encoding."""
+        self.check_encoding(data, '2.1')
 
-    def test2_decode(self):
-        """Decoding tests."""
-        for tname in sorted(data.keys()):
-            tdata = data[tname]
-            pstr = self.pstr(data[tname][0])
-            for turl in data[tname][1:]:
-                iiif = IIIFRequest(api_version='2.1').parse_url(turl)
-                tstr = self.pstr(iiif.__dict__)
-                self.assertEqual(tstr, pstr)
-
-    def pstr(self, p):
-        """String of request as in spec."""
-        s = ''
-        for k in ['identifier', 'region', 'size', 'rotation',
-                  'quality', 'info', 'format']:
-            if (k in p and p[k]):
-                if (k == 'info'):
-                    s += 'image information request, '
-                else:
-                    s += k + '=' + str(p[k]) + ' '
-        return(s)
+    def test02_decode(self):
+        """Decoding."""
+        self.check_decoding(data, '2.1')
