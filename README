@@ -12,16 +12,15 @@ iiif
 
 *iiif* - A Python library providing a reference implementation
 of the `International Image Interoperability Framework
-<http://iiif.io/>`_: Image API 
+<http://iiif.io/>`_: Image API
+`2.1
+<http://iiif.io/api/image/2.1/>`_ (and versions
 `2.0
-<http://iiif.io/api/image/2.0/>`_ (and versions 
-`1.0
-<http://iiif.io/api/image/1.0/>`_,
+<http://iiif.io/api/image/2.0/>`_,
 `1.1
 <http://iiif.io/api/image/1.1/>`_, 
-`draft 2.1
-<http://iiif.io/api/image/2.1/>`_ 
-).
+`1.0
+<http://iiif.io/api/image/1.0/>`_).
 Also includes a test server using the library to implement the Image
 API transformations dynamically, and a static file generator to
 pre-compute tiles necessary for OpenSeadragon which may then be
