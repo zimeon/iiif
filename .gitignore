@@ -3,6 +3,7 @@ htmlcov
 *.pyc
 *~
 .DS_store
+.cache
 # server files
 iiif_testserver.pid
 iiif_testserver_flask.pid
