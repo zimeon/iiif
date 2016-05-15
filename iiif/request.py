@@ -76,6 +76,7 @@ class IIIFRequest(object):
         self.region_pct = False
         self.region_xywh = None  # (x,y,w,h)
         self.size_full = False
+        self.size_max = False # new in 2.1
         self.size_pct = None
         self.size_bang = None
         self.size_wh = None     # (w,h)
@@ -151,6 +152,8 @@ class IIIFRequest(object):
                     size = "%d," % (self.size_wh[0])
                 else:
                     size = "%d,%d" % (self.size_wh[0], self.size_wh[1])
+            elif (self.size_max and self.api_version >= '2.1'):
+                size = 'max'
             else:
                 size = "full"
             # rotation and quality
@@ -329,6 +332,7 @@ class IIIFRequest(object):
         """Parse the size component of the path.
 
         /full/ -> self.size_full = True
+        /max/ -> self.size_mac = True  (2.1 and up)
         /w,/ -> self.size_wh = (w,None)
         /,h/ -> self.size_wh = (None,h)
         /w,h/ -> self.size_wh = (w,h)
@@ -351,6 +355,9 @@ class IIIFRequest(object):
         self.size_wh = (None, None)
         if (self.size is None or self.size == 'full'):
             self.size_full = True
+            return
+        elif (self.size =='max' and self.api_version >= '2.1'):
+            self.size_max = True
             return
         pct_match = re.match('pct:(.*)$', self.size)
         if (pct_match is not None):

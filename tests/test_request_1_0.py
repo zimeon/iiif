@@ -238,10 +238,18 @@ class TestAll(TestRequests):
 
     def test12_decode_except(self):
         """Decoding exceptions."""
-        self.assertRaises(IIIFRequestBaseURI, IIIFRequest().split_url, ("id"))
         self.assertRaises(IIIFRequestBaseURI,
-                          IIIFRequest().split_url, ("id%2Ffsdjkh"))
-        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/"))
-        self.assertRaises(IIIFError, IIIFRequest().split_url, ("id/bogus"))
-        self.assertRaises(IIIFError, IIIFRequest().split_url,
+                          IIIFRequest(api_version='1.0').split_url,
+                          ("id"))
+        self.assertRaises(IIIFRequestBaseURI,
+                          IIIFRequest(api_version='1.0').split_url,
+                          ("id%2Ffsdjkh"))
+        self.assertRaises(IIIFError,
+                          IIIFRequest(api_version='1.0').split_url,
+                          ("id/"))
+        self.assertRaises(IIIFError,
+                          IIIFRequest(api_version='1.0').split_url,
+                          ("id/bogus"))
+        self.assertRaises(IIIFError,
+                          IIIFRequest(api_version='1.0').split_url,
                           ("id1/all/270/!pct%3A75.23.jpg"))
