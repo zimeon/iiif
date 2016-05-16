@@ -1,9 +1,10 @@
 iiif changelog
 ==============
 
-2016-05-13 v1.0.0
+2016-05-xx v1.0.0
 - Change to 1.x.x version as consider codebase stable
 - Make IIIF Image API v2.1 the default
+- Extended info.profile to complex profiles for 2.x Image Information 
 
 2016-04-22 v0.6.1
 - Now works with python 2.6, 2.7, 3.3, 3.4 and 3.5

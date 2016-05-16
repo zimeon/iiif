@@ -2,30 +2,17 @@
   "@context" : "http://iiif.io/api/image/2/context.json",
   "@id" : "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
   "protocol" : "http://iiif.io/api/image",
-  "width" : 6000,
-  "height" : 4000,
-  "sizes" : [
-    {"width" : 150, "height" : 100},
-    {"width" : 600, "height" : 400},
-    {"width" : 3000, "height": 2000}
-  ],
-  "tiles": [
-    {"width" : 512, "scaleFactors" : [1,2,4,8,16]}
-  ],
+  "width" : 4000,
+  "height" : 3000,
   "profile" : [
     "http://iiif.io/api/image/2/level2.json",
     {
       "formats" : [ "gif", "pdf" ],
       "qualities" : [ "color", "gray" ],
+      "maxWidth" : 2000,
       "supports" : [
           "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
       ]
     }
-  ],
-  "service" : {
-    "@context": "http://iiif.io/api/annex/service/physdim/1/context.json",
-    "profile": "http://iiif.io/api/annex/service/physdim",
-    "physicalScale": 0.0025,
-    "physicalUnits": "in"
-  }
+  ]
 }

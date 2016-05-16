@@ -18,7 +18,7 @@ class TestRequests(unittest.TestCase):
         """
         for tname in sorted(data.keys()):
             tdata = data[tname]
-            iiif = IIIFRequest(api_version=api_version,**data[tname][0])
+            iiif = IIIFRequest(api_version=api_version, **data[tname][0])
             self.assertEqual(iiif.url(), data[tname][1])
 
     def check_decoding(self, data, api_version):
