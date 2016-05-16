@@ -48,7 +48,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
         also convert the PIL "DecompressionBombWarning" into an
         error. Thus setting a moderate limit sets a hard limit on
         image size loaded, setting a very large limit will have the
-        effect of disabling the warning
+        effect of disabling the warning.
         """
         if (pixels):
             Image.MAX_IMAGE_PIXELS = pixels

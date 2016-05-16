@@ -1,4 +1,4 @@
-"""Almost null implementation IIIF image manipulations to provide base class.
+"""Base/null IIIF image manipulator.
 
 Provides a number of utility methods to extract information necessary
 for doing the transformations once one has knowledge of the source
@@ -23,7 +23,7 @@ class IIIFManipulator(object):
     determine the HTTP response.
     """
 
-    def __init__(self, api_version='2.0'):
+    def __init__(self, api_version='2.1'):
         """Initialize Manipulator object.
 
         Accepts api_version as a parameter to tailor handling of
@@ -37,6 +37,9 @@ class IIIFManipulator(object):
         """
         self.api_version = api_version
         self.compliance_level = None
+        self.max_area = None
+        self.max_width = None
+        self.max_height = None
         self.srcfile = None
         self.request = None
         self.outfile = None
@@ -55,7 +58,8 @@ class IIIFManipulator(object):
             uri_pattern = r'http://library.stanford.edu/iiif/image-api/compliance.html#level%d'
         elif (self.api_version == '1.1'):
             uri_pattern = r'http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level%d'
-        elif (self.api_version == '2.0'):
+        elif (self.api_version == '2.0' or
+              self.api_version == '2.1'):
             uri_pattern = r'http://iiif.io/api/image/2/level%d.json'
         else:
             return
@@ -244,12 +248,37 @@ class IIIFManipulator(object):
         Assumes current image width and height are available in self.width and
         self.height, and self.request is IIIFRequest object.
 
-        Formats are: w, ,h w,h pct:p !w,h
+        Formats are: w, ,h w,h pct:p !w,h full max
 
         Returns (None,None) if no scaling is required.
+
+        If max is requested and neither max_area or max_width are
+        specified then this is the same as full. Otherwise the limits
+        are used to determine the size.
         """
         if (self.request.size_full or self.request.size_pct == 100.0):
+            # full size
             return(None, None)
+        elif (self.request.size_max):
+            # use size limits if present, else full
+            w = self.width
+            h = self.height
+            if (self.max_area and self.max_area < (w * h)):
+                scale = self.max_area / (w * h)
+                w = int(w * scale + 0.5)
+                h = int(h * scale + 0.5)
+            if (self.max_width):
+                max_height = self.max_height if self.max_height is not None else self.max_width
+                if (self.max_width < w):
+                    # calculate wrt original width, height rather than
+                    # w, h to avoid compounding rounding issues
+                    scale = self.max_width / self.width
+                    w = int(self.width * scale + 0.5)
+                    h = int(self.height * scale + 0.5)
+                if (self.max_height < h):
+                    scale = self.max_height / self.height
+                    w = int(self.width * scale + 0.5)
+                    h = int(self.height * scale + 0.5)
         elif (self.request.size_pct is not None):
             w = int(self.width * self.request.size_pct / 100.0 + 0.5)
             h = int(self.height * self.request.size_pct / 100.0 + 0.5)
