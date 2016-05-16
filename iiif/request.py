@@ -76,7 +76,7 @@ class IIIFRequest(object):
         self.region_pct = False
         self.region_xywh = None  # (x,y,w,h)
         self.size_full = False
-        self.size_max = False # new in 2.1
+        self.size_max = False  # new in 2.1
         self.size_pct = None
         self.size_bang = None
         self.size_wh = None     # (w,h)
@@ -104,7 +104,8 @@ class IIIFRequest(object):
 
         Will silently ignore any unknown parameters.
         """
-        for k in ('identifier', 'region', 'size', 'rotation', 'quality', 'format', 'info'):
+        for k in ('identifier', 'region', 'size',
+                  'rotation', 'quality', 'format', 'info'):
             if (k in params):
                 setattr(self, k, params[k])
 
@@ -202,15 +203,14 @@ class IIIFRequest(object):
         if (self.baseurl):
             (path, num) = re.subn('^' + self.baseurl, '', url, 1)
             if (num != 1):
-                raise(IIIFError("URL does not match baseurl (server/prefix)."))
+                raise IIIFError
             url = path
         # Break up by path segments, count to decide format
         segs = url.split('/', 5)
         if (identifier is not None):
             segs.insert(0, identifier)
         if (len(segs) > 5):
-            raise(IIIFError(code=404, text="Too many path segments in URL (got %d: %s) in URL." % (
-                len(segs), ' | '.join(segs))))
+            raise IIIFError
         elif (len(segs) == 5):
             self.identifier = urlunquote(segs[0])
             self.region = urlunquote(segs[1])
@@ -225,18 +225,15 @@ class IIIFRequest(object):
                 raise IIIFError
             if (self.api_version == '1.0'):
                 if (self.format not in ['json', 'xml']):
-                    raise(IIIFError(
-                        code=400, text="Bad information request format, must be json or xml"))
+                    raise IIIFError
             elif (self.format != 'json'):
-                raise(
-                    IIIFError(code=400, text="Bad information request format, must be json"))
+                raise IIIFError
             self.info = True
         elif (len(segs) == 1):
             self.identifier = urlunquote(segs[0])
-            raise(IIIFRequestBaseURI())
+            raise IIIFRequestBaseURI
         else:
-            raise(IIIFError(code=400, text="Bad number of path segments (%d: %s) in URL." % (
-                len(segs), ' | '.join(segs))))
+            raise IIIFError
         return(self)
 
     def strip_format(self, str_and_format):
@@ -356,7 +353,7 @@ class IIIFRequest(object):
         if (self.size is None or self.size == 'full'):
             self.size_full = True
             return
-        elif (self.size =='max' and self.api_version >= '2.1'):
+        elif (self.size == 'max' and self.api_version >= '2.1'):
             self.size_max = True
             return
         pct_match = re.match('pct:(.*)$', self.size)

@@ -268,7 +268,7 @@ class IIIFInfo(object):
         """Compliance profile URI.
 
         In IIIF Image API v2.x the profile information is an array
-        of values and objects, the first of which must be the 
+        of values and objects, the first of which must be the
         compliance level URI. In v1.x the profile information is
         just this URI.
         """
@@ -324,7 +324,8 @@ class IIIFInfo(object):
             if (len(self.tiles) == 1):
                 return self.tiles[0].get(param, None)
             else:
-                raise IIIFInfoError("No single %s in the case of multiple tile definitions." % (param))
+                raise IIIFInfoError(
+                    "No single %s in the case of multiple tile definitions." % (param))
         else:
             return None
 
@@ -546,7 +547,8 @@ class IIIFInfo(object):
                 if (param in self.complex_params):
                     # use function ref in complex_params to parse, optional
                     # dst to map to a different property name
-                    self._setattr(param, self.complex_params[param](self, j[param]))
+                    self._setattr(param, self.complex_params[
+                                  param](self, j[param]))
                 else:
                     self._setattr(param, j[param])
         return True
