@@ -16,6 +16,16 @@ except ImportError:  # python2
 from iiif.error import IIIFError, IIIFZeroSizeError
 
 
+class IIIFRequestError(IIIFError):
+    """Subclass of IIIFError for request parsing errors."""
+
+    def __init__(self, code=400, parameter='unknown',
+                 text='request parsing error'):
+        """Initialize."""
+        super(IIIFRequestError, self).__init__(
+            code=code, parameter=parameter, text=text)
+
+
 class IIIFRequestBaseURI(Exception):
     """Subclass of Exception to indicate request for base URI."""
 
@@ -119,7 +129,8 @@ class IIIFRequest(object):
 
         to-encode = "%" / "/" / "?" / "#" / "[" / "]" / "@"
         """
-        return(urlquote(path_segment, "-._~!$&'()*+,;=:"))  # FIXME - quotes too much
+        # FIXME - quotes too much
+        return(urlquote(path_segment, "-._~!$&'()*+,;=:"))
 
     def url(self, **params):
         """Build a URL path for image or info request.
@@ -175,7 +186,7 @@ class IIIFRequest(object):
 
         Will parse a URL or URL path that accords with either the
         parametrized or info request forms. Will raise an
-        IIIFError on failure. A wrapper for the split_url()
+        IIIFRequestError on failure. A wrapper for the split_url()
         and parse_parameters() methods.
 
         Note that behavior of split_url() depends on whether
@@ -187,10 +198,10 @@ class IIIFRequest(object):
         return(self)
 
     def split_url(self, url):
-        """Perform the initial parsing of an IIIF API URL path into components.
+        """Parse an IIIF API URL path into components.
 
         Will parse a URL or URL path that accords with either the
-        parametrized or info API forms. Will raise an IIIFError on
+        parametrized or info API forms. Will raise an IIIFRequestError on
         failure.
 
         If self.identifier is set then url is assumed not to include the
@@ -203,14 +214,14 @@ class IIIFRequest(object):
         if (self.baseurl):
             (path, num) = re.subn('^' + self.baseurl, '', url, 1)
             if (num != 1):
-                raise IIIFError
+                raise IIIFRequestError()
             url = path
         # Break up by path segments, count to decide format
         segs = url.split('/', 5)
         if (identifier is not None):
             segs.insert(0, identifier)
         if (len(segs) > 5):
-            raise IIIFError
+            raise IIIFRequestError()
         elif (len(segs) == 5):
             self.identifier = urlunquote(segs[0])
             self.region = urlunquote(segs[1])
@@ -222,18 +233,18 @@ class IIIFRequest(object):
             self.identifier = urlunquote(segs[0])
             info_name = self.strip_format(urlunquote(segs[1]))
             if (info_name != "info"):
-                raise IIIFError
+                raise IIIFRequestError()
             if (self.api_version == '1.0'):
                 if (self.format not in ['json', 'xml']):
-                    raise IIIFError
+                    raise IIIFRequestError()
             elif (self.format != 'json'):
-                raise IIIFError
+                raise IIIFRequestError()
             self.info = True
         elif (len(segs) == 1):
             self.identifier = urlunquote(segs[0])
-            raise IIIFRequestBaseURI
+            raise IIIFRequestBaseURI()
         else:
-            raise IIIFError
+            raise IIIFRequestError()
         return(self)
 
     def strip_format(self, str_and_format):
@@ -255,9 +266,10 @@ class IIIFRequest(object):
     def parse_parameters(self):
         """Parse the parameters of an Image Information request.
 
-        Will throw an IIIFError on failure, set attributes on success. Care
-        is taken not to change any of the artibutes which store path
-        components. All parsed values are stored in new attributes.
+        Will throw an IIIFRequestError on failure, set attributes on
+        success. Care is taken not to change any of the artibutes
+        which store path components. All parsed values are stored
+        in new attributes.
         """
         self.parse_region()
         self.parse_size()
@@ -294,8 +306,11 @@ class IIIFRequest(object):
         # Now whether this was pct: or now, we expect 4 values...
         str_values = xywh.split(',', 5)
         if (len(str_values) != 4):
-            raise IIIFError(code=400, parameter="region",
-                            text="Bad number of values in region specification, must be x,y,w,h but got %d value(s) from '%s'" % (len(str_values), xywh))
+            raise IIIFRequestError(
+                code=400, parameter="region",
+                text="Bad number of values in region specification, "
+                     "must be x,y,w,h but got %d value(s) from '%s'" %
+                     (len(str_values), xywh))
         values = []
         for str_value in str_values:
             # Must be either integer (not pct) or interger/float (pct)
@@ -304,25 +319,33 @@ class IIIFRequest(object):
                     # This is rather more permissive that the iiif spec
                     value = float(str_value)
                 except ValueError:
-                    raise IIIFError(code=400, parameter="region",
-                                    text="Bad floating point value for percentage in region (%s)." % str_value)
+                    raise IIIFRequestError(
+                        code=400, parameter="region",
+                        text="Bad floating point value for percentage in "
+                             "region (%s)." % str_value)
                 if (value > 100.0):
-                    raise IIIFError(code=400, parameter="region",
-                                    text="Percentage over value over 100.0 in region (%s)." % str_value)
+                    raise IIIFRequestError(
+                        code=400, parameter="region",
+                        text="Percentage over value over 100.0 in region "
+                             "(%s)." % str_value)
             else:
                 try:
                     value = int(str_value)
                 except ValueError:
-                    raise IIIFError(code=400, parameter="region",
-                                    text="Bad integer value in region (%s)." % str_value)
+                    raise IIIFRequestError(
+                        code=400, parameter="region",
+                        text="Bad integer value in region (%s)." % str_value)
             if (value < 0):
-                raise IIIFError(code=400, parameter="region",
-                                text="Negative values not allowed in region (%s)." % str_value)
+                raise IIIFRequestError(
+                    code=400, parameter="region",
+                    text="Negative values not allowed in region (%s)." %
+                    str_value)
             values.append(value)
         # Zero size region is w or h are zero (careful that they may be float)
         if (values[2] == 0.0 or values[3] == 0.0):
-            raise IIIFZeroSizeError(code=400, parameter="region",
-                                    text="Zero size region specified (%s))." % xywh)
+            raise IIIFZeroSizeError(
+                code=400, parameter="region",
+                text="Zero size region specified (%s))." % xywh)
         self.region_xywh = values
 
     def parse_size(self, size=None):
@@ -362,23 +385,29 @@ class IIIFRequest(object):
             try:
                 self.size_pct = float(pct_str)
             except ValueError:
-                raise IIIFError(code=400, parameter="size",
-                                text="Percentage size value must be a number, got '%s'." % (pct_str))
+                raise IIIFRequestError(
+                    code=400, parameter="size",
+                    text="Percentage size value must be a number, got "
+                         "'%s'." % (pct_str))
 # FIXME - current spec places no upper limit on size
 #            if (self.size_pct<0.0 or self.size_pct>100.0):
-#                raise IIIFError(code=400,parameter="size",
+#                raise IIIFRequestError(code=400,parameter="size",
 # text="Illegal percentage size, must be 0 <= pct <= 100.")
             if (self.size_pct < 0.0):
-                raise IIIFError(code=400, parameter="size",
-                                text="Base size percentage, must be > 0.0, got %f." % (self.size_pct))
+                raise IIIFRequestError(
+                    code=400, parameter="size",
+                    text="Base size percentage, must be > 0.0, got %f." %
+                    (self.size_pct))
         else:
             if (self.size[0] == '!'):
                 # Have "!w,h" form
                 size_no_bang = self.size[1:]
                 (mw, mh) = self._parse_w_comma_h(size_no_bang, 'size')
                 if (mw is None or mh is None):
-                    raise IIIFError(code=400, parameter="size",
-                                    text="Illegal size requested: both w,h must be specified in !w,h requests.")
+                    raise IIIFRequestError(
+                        code=400, parameter="size",
+                        text="Illegal size requested: both w,h must be "
+                             "specified in !w,h requests.")
                 self.size_wh = (mw, mh)
                 self.size_bang = True
             else:
@@ -388,8 +417,9 @@ class IIIFRequest(object):
             (w, h) = self.size_wh
             if ((w is not None and w <= 0) or
                     (h is not None and h <= 0)):
-                raise IIIFZeroSizeError(code=400, parameter='size',
-                                        text="Size parameters request zero size result image.")
+                raise IIIFZeroSizeError(
+                    code=400, parameter='size',
+                    text="Size parameters request zero size result image.")
 
     def _parse_w_comma_h(self, whstr, param):
         """Utility to parse "w,h" "w," or ",h" values.
@@ -402,18 +432,20 @@ class IIIFRequest(object):
             w = self._parse_non_negative_int(wstr, 'w')
             h = self._parse_non_negative_int(hstr, 'h')
         except ValueError as e:
-            raise IIIFError(code=400, parameter=param,
-                            text="Illegal %s value (%s)." % (param, str(e)))
+            raise IIIFRequestError(
+                code=400, parameter=param,
+                text="Illegal %s value (%s)." % (param, str(e)))
         if (w is None and h is None):
-            raise IIIFError(code=400, parameter=param,
-                            text="Must specify at least one of w,h for %s." % (param))
+            raise IIIFRequestError(
+                code=400, parameter=param,
+                text="Must specify at least one of w,h for %s." % (param))
         return(w, h)
 
     def _parse_non_negative_int(self, istr, name):
         """Parse integer from string (istr).
 
-        The (name) parameter is used just for IIIFError message generation
-        to indicate what the error is in.
+        The (name) parameter is used just for IIIFRequestError message
+        generation to indicate what the error is in.
         """
         if (istr == ''):
             return(None)
@@ -428,11 +460,11 @@ class IIIFRequest(object):
     def parse_rotation(self, rotation=None):
         """Check and interpret rotation.
 
-        Uses value of self.rotation as starting point unless rotation parameter
-        is specified in the call. Sets self.rotation_deg to a floating point
-        number 0 <= angle < 360. Includes translation of 360 to 0. If there is
-        a prefix bang (!) then self.rotation_mirror will be set True, otherwise
-        it will be False.
+        Uses value of self.rotation as starting point unless rotation
+        parameter is specified in the call. Sets self.rotation_deg to a
+        floating point number 0 <= angle < 360. Includes translation of
+        360 to 0. If there is a prefix bang (!) then self.rotation_mirror
+        will be set True, otherwise it will be False.
         """
         if (rotation is not None):
             self.rotation = rotation
@@ -448,11 +480,15 @@ class IIIFRequest(object):
         try:
             self.rotation_deg = float(self.rotation)
         except ValueError:
-            raise IIIFError(code=400, parameter="rotation",
-                            text="Bad rotation value, must be a number, got '%s'." % (self.rotation))
+            raise IIIFRequestError(
+                code=400, parameter="rotation",
+                text="Bad rotation value, must be a number, got '%s'." %
+                (self.rotation))
         if (self.rotation_deg < 0.0 or self.rotation_deg > 360.0):
-            raise IIIFError(code=400, parameter="rotation",
-                            text="Illegal rotation value, must be 0 <= rotation <= 360, got %f." % (self.rotation_deg))
+            raise IIIFRequestError(
+                code=400, parameter="rotation",
+                text="Illegal rotation value, must be 0 <= rotation "
+                     "<= 360, got %f." % (self.rotation_deg))
         elif (self.rotation_deg == 360.0):
             # The spec admits 360 as valid, but change to 0
             self.rotation_deg = 0.0
@@ -460,14 +496,17 @@ class IIIFRequest(object):
     def parse_quality(self):
         """Check quality paramater.
 
-        Sets self.quality_val based on simple substitution of 'native' for
-        default. Checks for the three valid values else throws and IIIFError.
+        Sets self.quality_val based on simple substitution of
+        'native' for default. Checks for the three valid values
+        else throws an IIIFRequestError.
         """
         if (self.quality is None):
             self.quality_val = self.default_quality
         elif (self.quality not in self.allowed_qualities):
-            raise IIIFError(code=400, parameter="quality",
-                            text="The quality parameter must be '%s', got '%s'." % ("', '".join(self.allowed_qualities), self.quality))
+            raise IIIFRequestError(
+                code=400, parameter="quality",
+                text="The quality parameter must be '%s', got '%s'." %
+                ("', '".join(self.allowed_qualities), self.quality))
         else:
             self.quality_val = self.quality
 

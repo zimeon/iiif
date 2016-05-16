@@ -336,12 +336,31 @@ class TestAll(TestRequests):
         # api_version=1.0, format=xyz -> bad
         r = IIIFRequest(api_version='1.0')
         r.baseurl = 'http://ex.org/a/'
-        self.assertRaises(IIIFError, r.split_url, 'http://ex.org/a/b/info.xyz')
+        self.assertRaises(IIIFError, r.split_url,
+                          'http://ex.org/a/b/info.xyz')
         # api_version=2.1, format=xml -> bad
         r = IIIFRequest(api_version='2.1')
         r.baseurl = 'http://ex.org/a/'
-        self.assertRaises(IIIFError, r.split_url, 'http://ex.org/a/b/info.xml')
+        self.assertRaises(IIIFError, r.split_url,
+                          'http://ex.org/a/b/info.xml')
         # api_version=2.1, format=xyz -> bad
         r = IIIFRequest(api_version='2.1')
         r.baseurl = 'http://ex.org/a/'
-        self.assertRaises(IIIFError, r.split_url, 'http://ex.org/a/b/info.xyz')
+        self.assertRaises(IIIFError, r.split_url,
+                          'http://ex.org/a/b/info.xyz')
+
+    def test20_bad_response_codes(self):
+        """Response codes."""
+        for (path, code) in [("id/b", 400),
+                             ("id/info.xml", 400),
+                             ("id/b/c", 400),
+                             ("id/b/c/d", 400),
+                             ("id/full/full/0/default.jpg/extra", 400)]:
+            got_code = None
+            try:
+                IIIFRequest(api_version='2.1').split_url(path)
+            except IIIFError as e:
+                got_code = e.code
+            self.assertEqual(got_code, code,
+                             "Bad code %s, expected %d, for path %s" %
+                             (str(got_code), code, path))

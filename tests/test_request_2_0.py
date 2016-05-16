@@ -89,7 +89,7 @@ class TestAll(TestRequests):
 
     def test01_parse_region(self):
         """Region."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.region = None
         r.parse_region()
         self.assertTrue(r.region_full)
@@ -119,7 +119,7 @@ class TestAll(TestRequests):
 
     def test02_parse_region_bad(self):
         """Bad regions."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.region = 'pct:0,0,50,1000'
         self.assertRaises(IIIFError, r.parse_region)
         r.region = 'pct:-10,0,50,100'
@@ -129,7 +129,7 @@ class TestAll(TestRequests):
 
     def test03_parse_size(self):
         """Size."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.parse_size('pct:100')
         self.assertEqual(r.size_pct, 100.0)
         self.assertFalse(r.size_bang)
@@ -152,7 +152,7 @@ class TestAll(TestRequests):
 
     def test04_parse_size_bad(self):
         """Bad sizes."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         self.assertRaises(IIIFError, r.parse_size, ',0.0')
         self.assertRaises(IIIFError, r.parse_size, '0.0,')
         self.assertRaises(IIIFError, r.parse_size, '1.0,1.0')
@@ -162,7 +162,7 @@ class TestAll(TestRequests):
 
     def test05_parse_rotation(self):
         """Rotation."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.parse_rotation('0')
         self.assertEqual(r.rotation_mirror, False)
         self.assertEqual(r.rotation_deg, 0.0)
@@ -190,7 +190,7 @@ class TestAll(TestRequests):
 
     def test06_parse_rotation_bad(self):
         """Bad rotation."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.rotation = '-1'
         self.assertRaises(IIIFError, r.parse_rotation)
         r.rotation = '-0.0000001'
@@ -206,7 +206,7 @@ class TestAll(TestRequests):
 
     def test07_parse_quality(self):
         """Quality."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.quality = None
         r.parse_quality()
         self.assertEqual(r.quality_val, 'default')
@@ -222,7 +222,7 @@ class TestAll(TestRequests):
 
     def test08_parse_quality_bad(self):
         """Bad quality."""
-        r = IIIFRequest()
+        r = IIIFRequest(api_version='2.0')
         r.quality = 'does_not_exist'
         self.assertRaises(IIIFError, r.parse_quality)
         # bad ones
@@ -255,15 +255,17 @@ class TestAll(TestRequests):
                           IIIFRequest(api_version='2.0').split_url,
                           ("id1/all/270/!pct%3A75.23.jpg"))
 
-    def test22_parse_response_codes(self):
+    def test20_bad_response_codes(self):
         """Response codes."""
-        r = IIIFRequest()
-        for (path, code) in [("a/b/c", 400),
-                             ("a/b/full/full/0/default.jpg", 404)]:
+        for (path, code) in [("id/b", 400),
+                             ("id/b/c", 400),
+                             ("id/b/c/d", 400),
+                             ("id/full/full/0/default.jpg/extra", 400)]:
             got_code = None
             try:
-                IIIFRequest().split_url(path)
+                IIIFRequest(api_version='2.0').split_url(path)
             except IIIFError as e:
                 got_code = e.code
-            self.assertEqual(got_code, code, "Bad code %d, expected %d, for path %s" % (
-                got_code, code, path))
+            self.assertEqual(got_code, code,
+                             "Bad code %s, expected %d, for path %s" %
+                             (str(got_code), code, path))
