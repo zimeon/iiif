@@ -315,8 +315,8 @@ class IIIFInfo(object):
         self.compliance = self.compliance_prefix + \
             ("%d" % value) + self.compliance_suffix
 
-    def _single_tile_def(self, param):
-        # Extract param from a single tile defintion
+    def _single_tile_getter(self, param):
+        # Extract param from a single tileset defintion
         if (self.api_version <= '1.1'):
             return self.tile_v1[param]
         # else look at tiles definitions
@@ -329,6 +329,19 @@ class IIIFInfo(object):
         else:
             return None
 
+    def _single_tile_setter(self, param, value):
+        # Set param for a single tileset defintion
+        if (self.api_version <= '1.1'):
+            self.tile_v1[param] = value
+            return
+        # else look at tiles definitions
+        elif (self.tiles is None or len(self.tiles) == 0):
+            self.tiles = [{}]
+        elif (len(self.tiles) > 1):
+            raise IIIFInfoError(
+                "No single %s in the case of multiple tile definitions." % (param))
+        self.tiles[0][param] = value
+
     @property
     def scale_factors(self):
         """Access to scale_factors in 1.x.
@@ -336,14 +349,17 @@ class IIIFInfo(object):
         Also provides the scale factors in 2.0 and greater
         provided there is exactly one tiles definition.
         """
-        return self._single_tile_def('scaleFactors')
+        return self._single_tile_getter('scaleFactors')
 
     @scale_factors.setter
     def scale_factors(self, value):
-        """Set scale_factors at version 1.1 and below."""
-        if (self.api_version > '1.1'):
-            raise("Use tiles not scale_factors at >1.1")
-        self.tile_v1['scaleFactors'] = value
+        """Set scale_factors at version 1.1 and below.
+
+        If used at 2.0+ this will create/edit the first entry
+        in self.tiles. Will throw and error if it is used with more
+        than on entry for self.tiles.
+        """
+        self._single_tile_setter('scaleFactors', value)
 
     @property
     def tile_width(self):
@@ -352,14 +368,12 @@ class IIIFInfo(object):
         Also provides the tile_width in 2.0 and greater
         provided there is exactly one tiles definition.
         """
-        return self._single_tile_def('width')
+        return self._single_tile_getter('width')
 
     @tile_width.setter
     def tile_width(self, value):
         """Set tile_width at version 1.1 and below."""
-        if (self.api_version > '1.1'):
-            raise("Use tiles not tile_width at >1.1")
-        self.tile_v1['width'] = value
+        self._single_tile_setter('width', value)
 
     @property
     def tile_height(self):
@@ -369,17 +383,15 @@ class IIIFInfo(object):
         provided there is exactly one tiles definition. If
         width is set but not height then return that instead.
         """
-        h = self._single_tile_def('height')
+        h = self._single_tile_getter('height')
         if (h is None):
-            return self._single_tile_def('width')
+            return self._single_tile_getter('width')
         return h
 
     @tile_height.setter
     def tile_height(self, value):
         """Set tile_height at version 1.1 and below."""
-        if (self.api_version > '1.1'):
-            raise("Use tiles not tile_height at >1.1")
-        self.tile_v1['height'] = value
+        self._single_tile_setter('height', value)
 
     def add_service(self, service):
         """Add a service description.
