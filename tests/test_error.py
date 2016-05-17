@@ -28,7 +28,7 @@ class TestAll(unittest.TestCase):
 
     def test03_txt(self):
         e = IIIFError()
-        msg = 'IIIF Image Server Error\n\nself.text\n\nparameter=unknown\ncode=500\n\n'
+        msg = 'IIIF Image Server Error\n\nUNKNOWN_ERROR\n\nparameter=unknown\ncode=500\n\n'
         self.assertEqual( e.as_txt(), msg )
         e = IIIFError(headers={'cc':'dd','a':'b'})
         self.assertEqual( e.as_txt(), msg + 'header a=b\nheader cc=dd\n')

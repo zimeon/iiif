@@ -104,7 +104,9 @@ class IIIFError(Exception):
         error response is suggested to be text or html but not otherwise
         specified. Intended to provide useful information for debugging.
         """
-        s = "IIIF Image Server Error\n\nself.text\n\n"
+        s = "IIIF Image Server Error\n\n"
+        s += self.text if (self.text) else 'UNKNOWN_ERROR'
+        s += "\n\n"
         if (self.parameter):
             s += "parameter=%s\n" % self.parameter
         if (self.code):
