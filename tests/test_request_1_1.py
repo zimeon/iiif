@@ -234,7 +234,22 @@ class TestAll(TestRequests):
         """Decoding."""
         self.check_decoding(data, '1.1')
 
-    def test12_decode_except(self):
+    def test12_decode_good(self):
+        """Decoding examples that should work."""
+        r = IIIFRequest(api_version='1.1', baseurl='1.1_netpbm/a/')
+        r.split_url('1.1_netpbm/a/b/full/full/0/native')
+        self.assertEqual(r.identifier, 'b')
+        # id with slashes in it
+        r = IIIFRequest(api_version='1.1', allow_slashes_in_identifier=True)
+        r.split_url('a/b/c/full/full/0/native')
+        self.assertFalse(r.info)
+        self.assertEqual(r.identifier, 'a/b/c')
+        r = IIIFRequest(api_version='1.1', allow_slashes_in_identifier=True)
+        r.split_url('a/b/info.json')
+        self.assertTrue(r.info)
+        self.assertEqual(r.identifier, 'a/b')
+
+    def test13_decode_except(self):
         """Decoding exceptions."""
         self.assertRaises(IIIFRequestBaseURI,
                           IIIFRequest(api_version='1.1').split_url,

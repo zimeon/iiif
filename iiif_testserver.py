@@ -26,7 +26,7 @@ except ImportError:  # python2
     from urllib2 import parse_keqv_list, parse_http_list
 
 from iiif.error import IIIFError
-from iiif.request import IIIFRequest, IIIFRequestBaseURI
+from iiif.request import IIIFRequest, IIIFRequestPathError, IIIFRequestBaseURI
 from iiif.info import IIIFInfo
 
 
@@ -165,17 +165,15 @@ def host_port_prefix(host, port, prefix):
         uri += '/' + prefix
     return uri
 
-#########################################################################
-
 
 class IIIFHandler(object):
     """IIIFHandler class."""
 
     def __init__(self, prefix, identifier, config, klass, auth):
-        """Initialize IIIHandler setting key configuration.
+        """Initialize IIIFHandler setting key configurations.
 
         Positional parameters:
-        prefix -- URI prefix
+        prefix -- URI prefix (without leading or trailing slashes)
         identifier -- identifier of image
         config -- instance of Config class
         klass -- IIIFManipulator sub-class to do manipulations
@@ -189,15 +187,18 @@ class IIIFHandler(object):
         self.auth = auth
         self.degraded = False
         self.logger = logging.getLogger('IIIFHandler')
+        #
         # Create objects to process request
-        self.iiif = IIIFRequest(baseurl='/' + self.prefix + '/',
-                                identifier=self.identifier, api_version=self.api_version)
+        self.iiif = IIIFRequest(api_version=self.api_version,
+                                identifier=self.identifier)
         self.manipulator = klass(api_version=self.api_version)
+        #
         # Set up auth object with locations if not already done
         if (self.auth and not self.auth.login_uri):
             self.auth.login_uri = self.server_and_prefix + '/login'
             self.auth.logout_uri = self.server_and_prefix + '/logout'
             self.auth.access_token_uri = self.server_and_prefix + '/token'
+        #
         # Response headers
         # -- All responses should have CORS header
         self.headers = {'Access-control-allow-origin': '*'}
@@ -238,7 +239,7 @@ class IIIFHandler(object):
                                     self.identifier + ext)
                 if (os.path.isfile(file)):
                     return file
-        # failed, show list of idemtifiers as error
+        # failed, show list of available identifiers as error
         available = "\n ".join(identifiers(self.config))
         raise IIIFError(code=404, parameter="identifier",
                         text="Image resource '" + self.identifier + "' not found. Local resources available:" + available + "\n")
@@ -305,6 +306,11 @@ class IIIFHandler(object):
         try:
             self.iiif.identifier = self.identifier
             self.iiif.parse_url(path)
+        except IIIFRequestPathError as e:
+            # Reraise as IIIFError with code=404 because we can't tell
+            # whether there was an encoded slash in the identifier or
+            # whether there was a bad number of path segments.
+            raise IIIFError(code=404, text=e.text)
         except IIIFRequestBaseURI as e:
             info_uri = self.server_and_prefix + '/' + \
                 urlquote(self.iiif.identifier) + '/info.json'

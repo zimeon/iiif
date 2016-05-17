@@ -13,17 +13,29 @@ except ImportError:  # python2
     from urllib import quote as urlquote
     from urllib import unquote as urlunquote
 
-from iiif.error import IIIFError, IIIFZeroSizeError
+from .error import IIIFError, IIIFZeroSizeError
 
 
 class IIIFRequestError(IIIFError):
     """Subclass of IIIFError for request parsing errors."""
 
     def __init__(self, code=400, parameter='unknown',
-                 text='request parsing error'):
+                 text='Request parsing error'):
         """Initialize."""
         super(IIIFRequestError, self).__init__(
             code=code, parameter=parameter, text=text)
+
+
+class IIIFRequestPathError(IIIFRequestError):
+    """Subclass of IIIFRequestError for path size errors.
+
+    WSGI and other applications where we can't tell whether
+    there was an encoded slash or an unencoded slash in an
+    identifier or (elsewhere) may wish to trap this particular
+    error and return a 404 Not Found instead of 400.
+    """
+
+    pass
 
 
 class IIIFRequestBaseURI(Exception):
@@ -49,22 +61,24 @@ class IIIFRequest(object):
     then a relative URL will be created or parsed.
     """
 
-    def __init__(self, api_version='2.0', **params):
+    def __init__(self, api_version='2.1', baseurl='',
+                 allow_slashes_in_identifier=False, **params):
         """Initialize Request object and optionally set attributes.
 
         Any of the attributes of the Request object may be set via
         named parameters.
 
-        Current API version assumed ('2.0') if not specified. If another API
+        Current API version assumed if not specified. If another API
         version is to be used then this should be set on creation via the
         api_version parameter.
 
         Unless specified the baseurl will be set to nothing ("").
         """
-        self.baseurl = ''
-        self.api_version = api_version
         self.clear()
-        self.set(**params)
+        self.baseurl = baseurl
+        self.api_version = api_version
+        self.allow_slashes_in_identifier = allow_slashes_in_identifier
+        self._setattrs(**params)
 
     def clear(self):
         """Clear all data that might pertain to an individual IIIF URL.
@@ -109,11 +123,10 @@ class IIIFRequest(object):
             self.default_quality = 'native'
             self.allowed_qualities = ['native', 'color', 'bitonal', 'grey']
 
-    def set(self, **params):
-        """Set one of the allowed request parameters.
-
-        Will silently ignore any unknown parameters.
-        """
+    def _setattrs(self, **params):
+        # Set one of the allowed request parameters.
+        #
+        # Will silently ignore any unknown parameters.
         for k in ('identifier', 'region', 'size',
                   'rotation', 'quality', 'format', 'info'):
             if (k in params):
@@ -139,9 +152,8 @@ class IIIFRequest(object):
         the info parameter is specified, in which case an Image Information
         request URI is constructred.
         """
-        self.set(**params)
-        path = self.baseurl +\
-            self.quote(self.identifier) + "/"
+        self._setattrs(**params)
+        path = self.baseurl + self.quote(self.identifier) + "/"
         if (self.info):
             # info request
             path += "info"
@@ -197,6 +209,23 @@ class IIIFRequest(object):
             self.parse_parameters()
         return(self)
 
+    def _allow_slashes_in_identifier_munger(self, segs):
+        # Big fudge to account for the fact that WSGI doesn't
+        # preserve escaping when sending paths to application.
+        # Thus we do very simply pattern matching to assume extra
+        # slashes are part of the identifier.
+        if (len(segs) > 2 and 
+            re.match(r'''info\.\w+$''', segs[-1])):
+            # Looks like an information request, combine all
+            # but last segment into first/identifier
+            segs = ['/'.join(segs[0:-1]), segs[-1]]
+        elif (len(segs) > 5):
+            # Assume image request, combine front segments
+            # into first/identifier leaving 5 total
+            segs = ['/'.join(segs[0:-4]),
+                    segs[-4], segs[-3], segs[-2], segs[-1]]
+        return segs
+
     def split_url(self, url):
         """Parse an IIIF API URL path into components.
 
@@ -210,18 +239,23 @@ class IIIFRequest(object):
         # clear data first
         identifier = self.identifier
         self.clear()
-        # url must start with baseurl if set
-        if (self.baseurl):
+        # url must start with baseurl if set (including slash)
+        if (self.baseurl is not None):
             (path, num) = re.subn('^' + self.baseurl, '', url, 1)
             if (num != 1):
-                raise IIIFRequestError()
+                raise IIIFRequestError(
+                    text="Request URL does not start with base URL")
             url = path
         # Break up by path segments, count to decide format
-        segs = url.split('/', 5)
+        segs = url.split('/')
         if (identifier is not None):
             segs.insert(0, identifier)
+        elif (self.allow_slashes_in_identifier):
+            segs = self._allow_slashes_in_identifier_munger(segs)
+        # Now have segments with identifier as first
         if (len(segs) > 5):
-            raise IIIFRequestError()
+            raise IIIFRequestPathError(
+                text="Request URL (%s) has too many path segments" % url)
         elif (len(segs) == 5):
             self.identifier = urlunquote(segs[0])
             self.region = urlunquote(segs[1])
@@ -233,18 +267,22 @@ class IIIFRequest(object):
             self.identifier = urlunquote(segs[0])
             info_name = self.strip_format(urlunquote(segs[1]))
             if (info_name != "info"):
-                raise IIIFRequestError()
+                raise IIIFRequestError(
+                    text="Bad name for Image Information")
             if (self.api_version == '1.0'):
                 if (self.format not in ['json', 'xml']):
-                    raise IIIFRequestError()
+                    raise IIIFRequestError(
+                        text="Invalid format for Image Information (json and xml allowed)")
             elif (self.format != 'json'):
-                raise IIIFRequestError()
+                raise IIIFRequestError(
+                    text="Invalid format for Image Information (only json allowed)")
             self.info = True
         elif (len(segs) == 1):
             self.identifier = urlunquote(segs[0])
             raise IIIFRequestBaseURI()
         else:
-            raise IIIFRequestError()
+            raise IIIFRequestPathError(
+                text="Bad number of path segments in request")
         return(self)
 
     def strip_format(self, str_and_format):
@@ -320,12 +358,12 @@ class IIIFRequest(object):
                     value = float(str_value)
                 except ValueError:
                     raise IIIFRequestError(
-                        code=400, parameter="region",
+                        parameter="region",
                         text="Bad floating point value for percentage in "
                              "region (%s)." % str_value)
                 if (value > 100.0):
                     raise IIIFRequestError(
-                        code=400, parameter="region",
+                        parameter="region",
                         text="Percentage over value over 100.0 in region "
                              "(%s)." % str_value)
             else:
@@ -333,11 +371,11 @@ class IIIFRequest(object):
                     value = int(str_value)
                 except ValueError:
                     raise IIIFRequestError(
-                        code=400, parameter="region",
+                        parameter="region",
                         text="Bad integer value in region (%s)." % str_value)
             if (value < 0):
                 raise IIIFRequestError(
-                    code=400, parameter="region",
+                    parameter="region",
                     text="Negative values not allowed in region (%s)." %
                     str_value)
             values.append(value)
