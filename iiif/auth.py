@@ -70,27 +70,23 @@ class IIIFAuth(object):
         """Login service description."""
         return({"@id": self.login_uri,
                 "profile": self.profile_base + 'login',
-                "label": 'Login to ' + self.name
-                })
+                "label": 'Login to ' + self.name})
 
     def logout_service_description(self):
         """Logout service description."""
         return({"@id": self.logout_uri,
                 "profile": self.profile_base + 'logout',
-                "label": 'Logout from ' + self.name
-                })
+                "label": 'Logout from ' + self.name})
 
     def client_id_service_description(self):
         """Client Id service description."""
         return({"@id": self.client_id_uri,
-                "profile": self.profile_base + 'clientId'
-                })
+                "profile": self.profile_base + 'clientId'})
 
     def access_token_service_description(self):
         """Access Token service description."""
         return({"@id": self.access_token_uri,
-                "profile": self.profile_base + 'token'
-                })
+                "profile": self.profile_base + 'token'})
 
     # Override with method to implement
     access_token_handler = None

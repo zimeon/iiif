@@ -86,7 +86,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue(re.search(r'format=jpg', str(r)))
 
     def test04_allow_slashes_in_identifier_munger(self):
-        """Tests for munger, list in, list out."""
+        """Test request munger, list in, list out."""
         r = IIIFRequest()
         # Image requests
         self.assertEqual(r._allow_slashes_in_identifier_munger(
@@ -120,4 +120,3 @@ class TestAll(unittest.TestCase):
         self.assertEqual(r._allow_slashes_in_identifier_munger(
             ['info.ext']),
             ['info.ext'])
-

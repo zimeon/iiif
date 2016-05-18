@@ -1,4 +1,4 @@
-"""Test code for iiif.auth"""
+"""Test code for iiif.auth."""
 import json
 import re
 import unittest
@@ -6,42 +6,47 @@ import unittest
 from iiif.auth import IIIFAuth
 from iiif.info import IIIFInfo
 
+
 class TestAll(unittest.TestCase):
+    """Tests."""
 
     def test01_init(self):
+        """Test initialization with params and cookie prefix."""
         auth = IIIFAuth()
-        self.assertEqual( auth.profile_base, 'http://iiif.io/api/auth/0/' )
-        self.assertEqual( auth.name, "image server" )
+        self.assertEqual(auth.profile_base, 'http://iiif.io/api/auth/0/')
+        self.assertEqual(auth.name, "image server")
         auth = IIIFAuth(cookie_prefix='abc_')
-        self.assertEqual( auth.cookie_prefix, 'abc_' )
-        self.assertEqual( auth.auth_cookie_name, 'abc_loggedin' )
-        self.assertEqual( auth.token_cookie_name, 'abc_token' )
+        self.assertEqual(auth.cookie_prefix, 'abc_')
+        self.assertEqual(auth.auth_cookie_name, 'abc_loggedin')
+        self.assertEqual(auth.token_cookie_name, 'abc_token')
 
     def test02_set_cookie_prefix(self):
+        """Test set_cookie_prefix."""
         auth = IIIFAuth()
-        self.assertTrue( re.match(r'\d{6}_$',auth.cookie_prefix) )
+        self.assertTrue(re.match(r'\d{6}_$', auth.cookie_prefix))
         auth.set_cookie_prefix()
-        self.assertTrue( re.match(r'\d{6}_$',auth.cookie_prefix) )
+        self.assertTrue(re.match(r'\d{6}_$', auth.cookie_prefix))
         auth.set_cookie_prefix('ghi')
-        self.assertEqual( auth.cookie_prefix, 'ghi' )
+        self.assertEqual(auth.cookie_prefix, 'ghi')
 
     def test03_add_services(self):
+        """Test add_services."""
         info = IIIFInfo()
         auth = IIIFAuth()
-        self.assertEqual( info.service, None )
+        self.assertEqual(info.service, None)
         # first just login
         auth.add_services(info)
-        self.assertEqual( info.service, None )
+        self.assertEqual(info.service, None)
         auth.login_uri = 'Xlogin'
         auth.add_services(info)
-        self.assertEqual( info.service['@id'], 'Xlogin' )
+        self.assertEqual(info.service['@id'], 'Xlogin')
         # then login and logout
         info = IIIFInfo()
         auth = IIIFAuth()
         auth.login_uri = 'Xlogin'
         auth.logout_uri = 'Ylogout'
         auth.add_services(info)
-        self.assertEqual( info.service['service']['@id'], 'Ylogout' )
+        self.assertEqual(info.service['service']['@id'], 'Ylogout')
         # now add all, check we have all @ids in service description
         info = IIIFInfo()
         auth = IIIFAuth()
@@ -50,76 +55,87 @@ class TestAll(unittest.TestCase):
         auth.client_id_uri = 'Zclient'
         auth.access_token_uri = 'Ztoken'
         auth.add_services(info)
-        self.assertEqual( info.service['@id'], 'Zlogin' )
-        self.assertEqual( len(info.service['service']), 3 )
-        ids = set([ e['@id'] for e in info.service['service'] ])
-        self.assertEqual( ids, set([auth.logout_uri,auth.client_id_uri,auth.access_token_uri]) )
+        self.assertEqual(info.service['@id'], 'Zlogin')
+        self.assertEqual(len(info.service['service']), 3)
+        ids = set([e['@id'] for e in info.service['service']])
+        self.assertEqual(
+            ids, set([auth.logout_uri, auth.client_id_uri, auth.access_token_uri]))
 
     def test04_login_service_description(self):
+        """Test login_service_description."""
         auth = IIIFAuth()
         lsd = auth.login_service_description()
-        self.assertEqual( lsd['profile'], 'http://iiif.io/api/auth/0/login' )
+        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/login')
         auth.login_uri = 'id1'
         auth.profile_base = 'http://pb1/'
         lsd = auth.login_service_description()
-        self.assertEqual( lsd['@id'], 'id1' )
-        self.assertEqual( lsd['profile'], 'http://pb1/login' )
+        self.assertEqual(lsd['@id'], 'id1')
+        self.assertEqual(lsd['profile'], 'http://pb1/login')
 
     def test05_logout_service_description(self):
+        """Test logout_service_description."""
         auth = IIIFAuth()
         auth.logout_uri = 'id2'
         auth.profile_base = 'http://pb2/'
         lsd = auth.logout_service_description()
-        self.assertEqual( lsd['@id'], 'id2' )
-        self.assertEqual( lsd['profile'], 'http://pb2/logout' )
+        self.assertEqual(lsd['@id'], 'id2')
+        self.assertEqual(lsd['profile'], 'http://pb2/logout')
 
     def test06_client_id_service_description(self):
+        """Test client_id_service_description."""
         auth = IIIFAuth()
         auth.client_id_uri = 'id3'
         auth.profile_base = 'http://pb3/'
         lsd = auth.client_id_service_description()
-        self.assertEqual( lsd['@id'], 'id3' )
-        self.assertEqual( lsd['profile'], 'http://pb3/clientId' )
+        self.assertEqual(lsd['@id'], 'id3')
+        self.assertEqual(lsd['profile'], 'http://pb3/clientId')
 
     def test07_access_token_service_description(self):
+        """Test access_token_service_description."""
         auth = IIIFAuth()
         auth.access_token_uri = 'id4'
         auth.profile_base = 'http://pb4/'
         lsd = auth.access_token_service_description()
-        self.assertEqual( lsd['@id'], 'id4' )
-        self.assertEqual( lsd['profile'], 'http://pb4/token' )
+        self.assertEqual(lsd['@id'], 'id4')
+        self.assertEqual(lsd['profile'], 'http://pb4/token')
 
-    def test08_access_token_response(self):
-        #, query, cookies):
-        pass
-
-    def test09_host_port_prefix(self):
+    def test08_scheme_host_port_prefix(self):
+        """Test URI building with scheme_host_port_prefix."""
         auth = IIIFAuth()
-        self.assertEqual( auth.scheme_host_port_prefix('sc','x', '9', 'z'), 'sc://x:9/z' )
-        self.assertEqual( auth.scheme_host_port_prefix(host='x', prefix='z'), 'http://x/z' )
-        self.assertEqual( auth.scheme_host_port_prefix(host='yy'), 'http://yy' )
-        self.assertEqual( auth.scheme_host_port_prefix(host='yy',port=80), 'http://yy' )
-        self.assertEqual( auth.scheme_host_port_prefix(host='yy',port=81,prefix='x'), 'http://yy:81/x' )
-        self.assertEqual( auth.scheme_host_port_prefix(scheme='https',host='z1',port=443), 'https://z1' )
-        self.assertEqual( auth.scheme_host_port_prefix(scheme='https',host='z2',port=444), 'https://z2:444' )
+        self.assertEqual(
+            auth.scheme_host_port_prefix('sc', 'x', '9', 'z'),
+            'sc://x:9/z')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(host='x', prefix='z'),
+            'http://x/z')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(host='yy'),
+            'http://yy')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(host='yy', port=80),
+            'http://yy')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(host='yy', port=81, prefix='x'),
+            'http://yy:81/x')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(scheme='https', host='z1', port=443),
+            'https://z1')
+        self.assertEqual(
+            auth.scheme_host_port_prefix(scheme='https', host='z2', port=444),
+            'https://z2:444')
 
-    def test10_access_token_handler(self):
-        self.assertEqual( IIIFAuth().access_token_handler, None )
+    def test10_null_handlers(self):
+        """Test null handlers."""
+        self.assertEqual(IIIFAuth().access_token_handler, None)
+        self.assertEqual(IIIFAuth().client_id_handler, None)
+        self.assertEqual(IIIFAuth().home_handler, None)
 
-    def test11_client_id_handler(self):
-        self.assertEqual( IIIFAuth().client_id_handler, None )
+    def test11_null_authn_authz(self):
+        """Test null authn and auth.
 
-    def test12_home_handler(self):
-        self.assertEqual( IIIFAuth().home_handler, None )
-
-    def test13_info_authn(self): 
-        self.assertEqual( IIIFAuth().info_authn(), False )
-
-    def test14_info_authz(self): 
-        self.assertEqual( IIIFAuth().info_authz(), False )
-
-    def test15_image_authn(self): 
-        self.assertEqual( IIIFAuth().image_authn(), False )
-
-    def test16_image_authz(self): 
-        self.assertEqual( IIIFAuth().image_authz(), False )
+        No auth so they return False always.
+        """
+        self.assertEqual(IIIFAuth().info_authn(), False)
+        self.assertEqual(IIIFAuth().info_authz(), False)
+        self.assertEqual(IIIFAuth().image_authn(), False)
+        self.assertEqual(IIIFAuth().image_authz(), False)

@@ -1,4 +1,4 @@
-"""Test code for null iiif.manipulator"""
+"""Test code for null iiif.manipulator."""
 import os
 import shutil
 import tempfile
@@ -10,8 +10,10 @@ from iiif.error import IIIFError
 
 
 class TestAll(unittest.TestCase):
+    """Tests."""
 
     def test01_init(self):
+        """Test init."""
         m = IIIFManipulator()
         self.assertEqual(m.api_version, '2.1')
         m = IIIFManipulator(api_version='2.0')
@@ -27,6 +29,7 @@ class TestAll(unittest.TestCase):
         m.cleanup()
 
     def test02_derive(self):
+        """Test derive method by running complete conversions."""
         m = IIIFManipulator()
         r = IIIFRequest()
         r.parse_url('id1/full/full/0/default')
@@ -50,24 +53,28 @@ class TestAll(unittest.TestCase):
             shutil.rmtree(tmp)
 
     def test03_do_first(self):
+        """Test do_first."""
         m = IIIFManipulator()
         m.do_first()
         self.assertEqual(m.width, -1)
         self.assertEqual(m.height, -1)
 
     def test04_do_region(self):
+        """Test do_region, error if anything but full."""
         m = IIIFManipulator()
         m.do_region(None, None, None, None)
         # and now without region_full
         self.assertRaises(IIIFError, m.do_region, 1, 1, 1, 1)
 
     def test05_do_size(self):
+        """Test do_size, error is anything but full."""
         m = IIIFManipulator()
         m.do_size(None, None)
         # and raise for not 100 or full
         self.assertRaises(IIIFError, m.do_size, 10, 10)
 
     def test06_do_rotation(self):
+        """Test do_rotation, error if any rotation."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
         m.do_rotation(False, 0.0)
@@ -77,6 +84,7 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFError, m.do_rotation, False, 10.0)
 
     def test07_do_quality(self):
+        """Test do_quality, error if not default/native."""
         m = IIIFManipulator()
         m.api_version = '1.1'
         m.do_quality('native')
@@ -91,6 +99,7 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFError, m.do_quality, 'other')
 
     def test08_do_format(self):
+        """Test do_format, error if any change."""
         m = IIIFManipulator()
         m.srcfile = 'abc'
         m.do_format(None)
@@ -102,10 +111,12 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFError, m.do_format, 'something')
 
     def test09_do_last(self):
+        """Test do_lastm does nothing."""
         m = IIIFManipulator()
         m.do_last()  # nothing
 
     def test10_region_to_apply(self):
+        """Test region_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
         # 4 None's for full
@@ -186,6 +197,7 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFZeroSizeError, m.region_to_apply)
 
     def test11_size_to_apply(self):
+        """Test size_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
         # full
@@ -229,6 +241,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.size_to_apply(), (None, None))
 
     def test12_rotation_to_apply(self):
+        """Test rotation_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
         # 0
@@ -254,6 +267,7 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFError, m.rotation_to_apply, False, True)
 
     def test13_quality_to_apply(self):
+        """Test quality_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
         # v1.0,v1.1 none
@@ -269,10 +283,12 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.quality_to_apply(), 'something')
 
     def test14_cleanup(self):
+        """Test cleanum, which does nothing."""
         m = IIIFManipulator()
         self.assertEqual(m.cleanup(), None)
 
     def test15_compliance_uri(self):
+        """Test compliance_uri for different versions."""
         # 1.0
         m = IIIFManipulator(api_version='1.0')
         self.assertEqual(m.compliance_uri, None)

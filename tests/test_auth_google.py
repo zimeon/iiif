@@ -1,6 +1,6 @@
-"""Test code for iiif.auth_google
+"""Test code for iiif.auth_google.
 
-See http://flask.pocoo.org/docs/0.10/testing/ for Flask notes
+See http://flask.pocoo.org/docs/0.10/testing/ for Flask notes.
 """
 from flask import Flask, request, make_response, redirect
 from werkzeug.datastructures import Headers
@@ -19,141 +19,190 @@ csf = 'tests/testdata/test_client_secret.json'
 
 
 class Struct(object):
-    """Class with properties created from **kwargs"""
+    """Class with properties created from **kwargs."""
+
     def __init__(self, **kwargs):
+        """Initialize attributes with kwargs."""
         self.__dict__.update(kwargs)
 
 
 class Readable(object):
-    """Class supporting read() method to mock urlopen"""
-    def __init__(self,value):
+    """Class supporting read() method to mock urlopen."""
+
+    def __init__(self, value):
+        """Initialize with supplied value."""
         self.value = value
+
     def read(self):
+        """Return stored value."""
         return self.value
 
 
 class TestAll(unittest.TestCase):
+    """Tests."""
 
     def urlopen_name(self):
-        # Name of urlopen for python2 or python3 as imported
-        # into iiif.auth_google, see:
-        # http://stackoverflow.com/questions/11351382/mock-patching-from-import-statement-in-python
+        """Name of urlopen for python2 or python3.
+
+        As imported into iiif.auth_google, see:
+        http://stackoverflow.com/questions/11351382/mock-patching-from-import-statement-in-python
+        """
         return('iiif.auth_google.urlopen')
 
     def setUp(self):
+        """Set up dummy app."""
         self.app = dummy_app.test_client()
 
     def tearDown(self):
+        """Nop."""
         pass
 
     def test01_init(self):
+        """Test initialize."""
         auth = IIIFAuthGoogle(client_secret_file=csf)
-        self.assertTrue( re.match(r'\d+_',auth.cookie_prefix) )
+        self.assertTrue(re.match(r'\d+_', auth.cookie_prefix))
         auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='abc')
-        self.assertEqual( auth.cookie_prefix, 'abc' )
-        self.assertEqual( auth.google_api_client_id, 'SECRET_CODE_537' )
-        auth = IIIFAuthGoogle(client_secret_file='/does_not_exist', cookie_prefix='abcd')
-        self.assertEqual( auth.cookie_prefix, 'abcd' )
-        self.assertEqual( auth.google_api_client_id, 'oops_missing_client_id' )
+        self.assertEqual(auth.cookie_prefix, 'abc')
+        self.assertEqual(auth.google_api_client_id, 'SECRET_CODE_537')
+        auth = IIIFAuthGoogle(
+            client_secret_file='/does_not_exist',
+            cookie_prefix='abcd')
+        self.assertEqual(auth.cookie_prefix, 'abcd')
+        self.assertEqual(auth.google_api_client_id, 'oops_missing_client_id')
 
     def test02_logout_service_description(self):
+        """Test logout_service_description method."""
         auth = IIIFAuthGoogle(client_secret_file=csf)
         auth.logout_uri = 'xyz'
         lsd = auth.logout_service_description()
-        self.assertEqual( lsd['profile'], 'http://iiif.io/api/auth/0/logout' )
-        self.assertEqual( lsd['@id'], 'xyz' )
-        self.assertEqual( lsd['label'], 'Logout from image server' )
+        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/logout')
+        self.assertEqual(lsd['@id'], 'xyz')
+        self.assertEqual(lsd['label'], 'Logout from image server')
 
     def test03_info_authn(self):
+        """Test info_authn method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             ia = auth.info_authn()
-            self.assertEqual( ia, False )
+            self.assertEqual(ia, False)
 
     def test04_image_authn(self):
+        """Test image_authn method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             ia = auth.image_authn()
-            self.assertEqual( ia, '' )
+            self.assertEqual(ia, '')
 
     def test05_login_handler(self):
+        """Test login_handler method."""
         with dummy_app.test_request_context('/a_request'):
-            config = Struct(host='a_host',port=None)
+            config = Struct(host='a_host', port=None)
             auth = IIIFAuthGoogle(client_secret_file=csf)
-            response = auth.login_handler(config=config,prefix='wxy')
-            self.assertEqual( response.status_code, 302 )
-            self.assertEqual( response.headers['Content-type'], 'text/html; charset=utf-8' )
-            self.assertTrue( re.match(r'https://accounts.google.com/o/oauth2/auth', response.headers['Location']) )
+            response = auth.login_handler(config=config, prefix='wxy')
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'text/html; charset=utf-8')
+            self.assertTrue(
+                re.match(
+                    r'https://accounts.google.com/o/oauth2/auth',
+                    response.headers['Location']))
             html = response.get_data().decode('utf-8')
-            self.assertTrue( re.search('<h1>Redirecting...</h1>',html) )
- 
+            self.assertTrue(re.search('<h1>Redirecting...</h1>', html))
+
     def test06_logout_handler(self):
+        """Test logout_handler method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             response = auth.logout_handler()
-            self.assertEqual( response.status_code, 200 )
-            self.assertEqual( response.headers['Content-type'], 'text/html' )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers['Content-type'], 'text/html')
             html = response.get_data().decode('utf-8')
-            self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
+            self.assertTrue(
+                re.search(
+                    r'<script>window.close\(\);</script>',
+                    html))
 
     def test07_access_token_handler(self):
+        """Test access_token_handler method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             response = auth.access_token_handler()
-            self.assertEqual( response.status_code, 200 )
-            self.assertEqual( response.headers['Content-type'], 'application/json' )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual( j['error_description'], "No login details received" )
-            self.assertEqual( j['error'], "client_unauthorized" )
+            self.assertEqual(
+                j['error_description'],
+                "No login details received")
+            self.assertEqual(j['error'], "client_unauthorized")
         # add callback but no account cookie
         with dummy_app.test_request_context('/a_request?callback=CB'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             response = auth.access_token_handler()
-            self.assertEqual( response.status_code, 200 )
-            self.assertEqual( response.headers['Content-type'], 'application/javascript' )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'application/javascript')
             # strip JavaScript wrapper and then check JSON
             js = response.get_data().decode('utf-8')
-            self.assertTrue( re.match('CB\(.*\);',js) )
+            self.assertTrue(re.match('CB\(.*\);', js))
             j = json.loads(js.lstrip('CB(').rstrip(');'))
-            self.assertEqual( j['error_description'], "No login details received" )
-            self.assertEqual( j['error'], "client_unauthorized" )
+            self.assertEqual(
+                j['error_description'],
+                "No login details received")
+            self.assertEqual(j['error'], "client_unauthorized")
         # add an account cookie
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
         with dummy_app.test_request_context('/a_request', headers=h):
             auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
             response = auth.access_token_handler()
-            self.assertEqual( response.status_code, 200 )
-            self.assertEqual( response.headers['Content-type'], 'application/json' )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual( j['access_token'], "ACCOUNT_TOKEN" )
-            self.assertEqual( j['token_type'], "Bearer" )
- 
+            self.assertEqual(j['access_token'], "ACCOUNT_TOKEN")
+            self.assertEqual(j['token_type'], "Bearer")
 
     def test07_home_handler(self):
+        """Test home_handler method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
-            # Avoid actual calls to Google by mocking methods used by home_handler()
+            # Avoid actual calls to Google by mocking methods used by
+            # home_handler()
             auth.google_get_token = mock.Mock(return_value='ignored')
-            auth.google_get_data = mock.Mock(return_value={'email':'e@mail','name':'a name'})
+            auth.google_get_data = mock.Mock(
+                return_value={
+                    'email': 'e@mail',
+                    'name': 'a name'})
             response = auth.home_handler()
-            self.assertEqual( response.status_code, 200 )
-            self.assertEqual( response.headers['Content-type'], 'text/html' )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers['Content-type'], 'text/html')
             html = response.get_data().decode('utf-8')
-            self.assertTrue( re.search(r'<script>window.close\(\);</script>',html) )
+            self.assertTrue(
+                re.search(
+                    r'<script>window.close\(\);</script>',
+                    html))
 
     def test08_google_get_token(self):
+        """Test google_get_token method."""
         with dummy_app.test_request_context('/a_request'):
-            with mock.patch(self.urlopen_name(), return_value=Readable('{"a":"b"}')):
+            with mock.patch(self.urlopen_name(),
+                            return_value=Readable('{"a":"b"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
-                config = Struct(host='a_host',port=None)
-                j = auth.google_get_token(config,'prefix')
-                self.assertEqual( j, {'a':'b'} )
+                config = Struct(host='a_host', port=None)
+                j = auth.google_get_token(config, 'prefix')
+                self.assertEqual(j, {'a': 'b'})
 
     def test09_google_get_data(self):
+        """Test google_get_data method."""
         with dummy_app.test_request_context('/a_request'):
-            with mock.patch(self.urlopen_name(), return_value=Readable('{"c":"d"}')):
+            with mock.patch(self.urlopen_name(),
+                            return_value=Readable('{"c":"d"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
-                config = Struct(host='a_host',port=None)
-                j = auth.google_get_data(config,{'access_token':'TOKEN'})
-                self.assertEqual( j, {'c':'d'} )
+                config = Struct(host='a_host', port=None)
+                j = auth.google_get_data(config, {'access_token': 'TOKEN'})
+                self.assertEqual(j, {'c': 'd'})

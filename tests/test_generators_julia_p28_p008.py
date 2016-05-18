@@ -4,10 +4,13 @@ import cmath
 
 from iiif.generators.julia_p28_p008 import PixelGen
 
+
 class TestAll(unittest.TestCase):
+    """Tests."""
 
     def test01_set_c(self):
+        """Test set_c."""
         gen = PixelGen()
-        gen.set_c( complex(0,1) )
-        self.assertAlmostEqual( gen.c.real, 0.28 )
-        self.assertAlmostEqual( gen.c.imag, 0.008 )
+        gen.set_c(complex(0, 1))
+        self.assertAlmostEqual(gen.c.real, 0.28)
+        self.assertAlmostEqual(gen.c.imag, 0.008)

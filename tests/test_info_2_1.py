@@ -47,7 +47,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         # Set new via compliance
         i = IIIFInfo(api_version='2.1')
         i.compliance = "http://iiif.io/api/image/2/level1.json"
-        self.assertEqual(i.level, 1)        
+        self.assertEqual(i.level, 1)
 
     def test06_validate(self):
         """Test validate method."""
