@@ -1,7 +1,11 @@
-"""IIIF error class.
+"""IIIF Image API error class.
 
-In IIIF Image API version 1.0 the specification mandates an XML response
-following the format:
+In IIIF Image API version 1.1 and above the specification do not
+mandate a particular format but suggest a human readable message.
+Suitable output is provided in plain text by error.as_txt().
+
+In IIIF Image API version 1.0 the specification mandates an XML
+response following the format:
 
   <?xml version="1.0" encoding="UTF-8"?>
   <error xmlns="http://library.stanford.edu/iiif/image-api/ns/">
@@ -9,11 +13,7 @@ following the format:
     <text>Invalid size specified</text>
   </error>
 
-Later versions of the specification do not specify the response format but
-suggest a human readable message. For now we use the 1.0 format for all
-API versions.
-
-FIXME - improve messages for api_version>1.0. Do not include old namespace.
+This format is provided by error.as_xml().
 """
 
 import sys
@@ -24,7 +24,7 @@ try:  # python2
 except ImportError:  # python3
     import io
 
-# Namespace used in XML error response
+# Namespace used in v1.0 XML error response
 I3F_NS = "http://library.stanford.edu/iiif/image-api/ns/"
 
 
@@ -120,7 +120,7 @@ class IIIFError(Exception):
 
         Intention is that image server implementations will use
         image_server_response(api_version) instead. Does not include
-        header values in output
+        header values in output.
         """
         s = self.text if (self.text) else 'UNKNOWN_ERROR'
         if (self.parameter):
