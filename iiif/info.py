@@ -201,9 +201,12 @@ class IIIFInfo(object):
         self.sizes = sizes
         self.service = service
         # legacy params for 1.0 and 1.1
-        self.tile_v1 = {'scaleFactors': scale_factors,
-                        'width': tile_width,
-                        'height': tile_height}
+        if (scale_factors is not None):
+            self.scale_factors = scale_factors
+        if (tile_width is not None):
+            self.tile_width = tile_width
+        if (tile_height is not None):
+            self.tile_height = tile_height
         # 1.1+
         self.formats = formats
         self.qualities = qualities
@@ -317,25 +320,17 @@ class IIIFInfo(object):
 
     def _single_tile_getter(self, param):
         # Extract param from a single tileset defintion
-        if (self.api_version <= '1.1'):
-            return self.tile_v1[param]
-        # else look at tiles definitions
-        elif (self.tiles):
-            if (len(self.tiles) == 1):
-                return self.tiles[0].get(param, None)
-            else:
-                raise IIIFInfoError(
-                    "No single %s in the case of multiple tile definitions." % (param))
-        else:
+        if (self.tiles is None or len(self.tiles) == 0):
             return None
+        elif (len(self.tiles) == 1):
+            return self.tiles[0].get(param, None)
+        else:
+            raise IIIFInfoError(
+                "No single %s in the case of multiple tile definitions." % (param))
 
     def _single_tile_setter(self, param, value):
         # Set param for a single tileset defintion
-        if (self.api_version <= '1.1'):
-            self.tile_v1[param] = value
-            return
-        # else look at tiles definitions
-        elif (self.tiles is None or len(self.tiles) == 0):
+        if (self.tiles is None or len(self.tiles) == 0):
             self.tiles = [{}]
         elif (len(self.tiles) > 1):
             raise IIIFInfoError(
