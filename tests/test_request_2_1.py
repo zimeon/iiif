@@ -11,7 +11,7 @@ Simeon Warner, 2015-05...
 import re
 
 from iiif.error import IIIFError
-from iiif.request import IIIFRequest, IIIFRequestBaseURI
+from iiif.request import IIIFRequest, IIIFRequestError, IIIFRequestBaseURI
 from .testlib.request import TestRequests
 
 # Data for test. Format is
@@ -275,6 +275,21 @@ class TestAll(TestRequests):
         # bad ones
         r.quality = ''
         self.assertRaises(IIIFError, r.parse_quality)
+
+    def test09_parse_format(self):
+        """Test parse_format."""
+        r = IIIFRequest(api_version='2.1')
+        r.format = 'jpg'
+        r.parse_format()
+        r.format = 'something_else_Z134'
+        r.parse_format()
+        # Bad things
+        r.format = 'no spaces allowed'
+        self.assertRaises(IIIFRequestError, r.parse_format)
+        r.format = '~'
+        self.assertRaises(IIIFRequestError, r.parse_format)
+        r.format = ''
+        self.assertRaises(IIIFRequestError, r.parse_format)
 
     def test10_encode(self):
         """Encoding."""

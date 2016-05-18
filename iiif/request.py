@@ -426,10 +426,8 @@ class IIIFRequest(object):
                     code=400, parameter="size",
                     text="Percentage size value must be a number, got "
                          "'%s'." % (pct_str))
-# FIXME - current spec places no upper limit on size
-#            if (self.size_pct<0.0 or self.size_pct>100.0):
-#                raise IIIFRequestError(code=400,parameter="size",
-# text="Illegal percentage size, must be 0 <= pct <= 100.")
+            # Note that Image API specificaton places no upper limit on
+            # size so none is implemented here.
             if (self.size_pct < 0.0):
                 raise IIIFRequestError(
                     code=400, parameter="size",
@@ -550,9 +548,16 @@ class IIIFRequest(object):
     def parse_format(self):
         """Check format parameter.
 
-        FIXME - do something...
+        All formats values listed in the specification are lowercase
+        alphanumeric value commonly used as file extensions. To leave
+        opportunity for extension here just do a limited sanity check
+        on characters and length.
         """
-        pass
+        if (self.format is not None and
+            not re.match(r'''\w{1,20}$''', self.format)):
+            raise IIIFRequestError(
+                parameter='format',
+                text='Bad format parameter')
 
     def __str__(self):
         """Return string of this object in human readable form.
