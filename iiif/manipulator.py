@@ -259,12 +259,13 @@ class IIIFManipulator(object):
         if (self.request.size_full or self.request.size_pct == 100.0):
             # full size
             return(None, None)
-        elif (self.request.size_max):
+        # Not trivially full size, look at possibilities in turn
+        w = self.width
+        h = self.height
+        if (self.request.size_max):
             # use size limits if present, else full
-            w = self.width
-            h = self.height
             if (self.max_area and self.max_area < (w * h)):
-                scale = ( self.max_area / (w * h) ) ** 0.5
+                scale = (float(self.max_area) / float(w * h)) ** 0.5
                 w = int(w * scale + 0.5)
                 h = int(h * scale + 0.5)
             if (self.max_width):
@@ -272,11 +273,11 @@ class IIIFManipulator(object):
                 if (self.max_width < w):
                     # calculate wrt original width, height rather than
                     # w, h to avoid compounding rounding issues
-                    scale = self.max_width / self.width
+                    scale = float(self.max_width) / float(self.width)
                     w = int(self.width * scale + 0.5)
                     h = int(self.height * scale + 0.5)
                 if (max_height < h):
-                    scale = max_height / self.height
+                    scale = float(max_height) / float(self.height)
                     w = int(self.width * scale + 0.5)
                     h = int(self.height * scale + 0.5)
         elif (self.request.size_pct is not None):
@@ -288,10 +289,6 @@ class IIIFManipulator(object):
             # Pick smaller fraction and then work from that...
             frac = min((float(mw) / float(self.width)),
                        (float(mh) / float(self.height)))
-            # print "size=!w,h: mw=%d mh=%d -> frac=%f" % (mw,mh,frac)
-            # FIXME - could put in some other function here like factors of two, but
-            # FIXME - for now just pick largest image within requested
-            # dimensions
             w = int(self.width * frac + 0.5)
             h = int(self.height * frac + 0.5)
         else:
@@ -304,8 +301,9 @@ class IIIFManipulator(object):
                 h = int(self.height * w / self.width + 0.5)
         # Now have w,h, sanity check and return
         if (w == 0 or h == 0):
-            raise IIIFZeroSizeError(code=400, parameter='size',
-                                    text="Size parameter would result in zero size result image (%d,%d)." % (w, h))
+            raise IIIFZeroSizeError(
+                code=400, parameter='size',
+                text="Size parameter would result in zero size result image (%d,%d)." % (w, h))
         # Below would be test for scaling up image size, this is allowed by spec
         # if ( w>self.width or h>self.height ):
         #      raise IIIFError(code=400,parameter='size',
