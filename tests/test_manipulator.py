@@ -240,7 +240,82 @@ class TestAll(unittest.TestCase):
         m.request.size_wh = (1000, None)
         self.assertEqual(m.size_to_apply(), (None, None))
 
-    def test12_rotation_to_apply(self):
+    def test12_size_to_apply_max(self):
+        """Test handling of max in size_to_apply."""
+        m = IIIFManipulator()
+        m.request = IIIFRequest()
+        m.request.size_max = True
+        m.width = 1000
+        m.height = 4000
+        # not limited
+        self.assertEqual(m.size_to_apply(), (None, None))
+        # limited by max_area
+        m.max_area = 10000000  # not limited
+        self.assertEqual(m.size_to_apply(), (None, None))
+        m.max_area = 1000000
+        self.assertEqual(m.size_to_apply(), (500, 2000))
+        m.max_area = 10000
+        self.assertEqual(m.size_to_apply(), (50, 200))
+        m.max_area = 5000
+        self.assertEqual(m.size_to_apply(), (35, 141))
+        m.max_area = 10
+        self.assertEqual(m.size_to_apply(), (2, 6))  # Larger?
+        # limited by max_width, for image wider than heigh
+        m.width = 3000
+        m.height = 1000
+        m.max_area = None
+        m.max_height = None
+        m.max_width = 5000  # not limited
+        self.assertEqual(m.size_to_apply(), (None, None))
+        m.max_width = 300
+        self.assertEqual(m.size_to_apply(), (300, 100))
+        m.max_width = 100
+        self.assertEqual(m.size_to_apply(), (100, 33))
+        m.max_width = 3
+        self.assertEqual(m.size_to_apply(), (3, 1))
+        # limited by max_width, for image heigher than wide
+        m.width = 1000
+        m.height = 2000
+        m.max_area = None
+        m.max_height = None
+        m.max_width = 5000  # not limited
+        self.assertEqual(m.size_to_apply(), (None, None))
+        m.max_width = 200
+        self.assertEqual(m.size_to_apply(), (100, 200))
+        m.max_width = 27
+        self.assertEqual(m.size_to_apply(), (14, 27))
+        m.max_width = 2
+        self.assertEqual(m.size_to_apply(), (1, 2))
+        # limited by max_height
+        m.width = 1000
+        m.height = 1000
+        m.max_area = None
+        m.max_width = 5000  # not limited
+        m.max_height = 5000  # not limited
+        self.assertEqual(m.size_to_apply(), (None, None))
+        m.max_height = 123
+        self.assertEqual(m.size_to_apply(), (123, 123))
+        m.max_height = 1
+        self.assertEqual(m.size_to_apply(), (1, 1))
+        # interplay between max_area and max_width
+        m.width = 100
+        m.height = 100
+        m.max_area = 10000
+        m.max_width = 100
+        m.max_height = 100
+        self.assertEqual(m.size_to_apply(), (None, None))
+        m.max_area = 2500
+        self.assertEqual(m.size_to_apply(), (50, 50))
+        m.max_width = 49
+        self.assertEqual(m.size_to_apply(), (49, 49))
+        m.max_area = 2304
+        self.assertEqual(m.size_to_apply(), (48, 48))
+        m.max_width = 47
+        self.assertEqual(m.size_to_apply(), (47, 47))
+        m.max_area = 2120
+        self.assertEqual(m.size_to_apply(), (46, 46))
+
+    def test13_rotation_to_apply(self):
         """Test rotation_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
@@ -266,7 +341,7 @@ class TestAll(unittest.TestCase):
         m.request.rotation_mirror = True
         self.assertRaises(IIIFError, m.rotation_to_apply, False, True)
 
-    def test13_quality_to_apply(self):
+    def test14_quality_to_apply(self):
         """Test quality_to_apply."""
         m = IIIFManipulator()
         m.request = IIIFRequest()
@@ -282,12 +357,12 @@ class TestAll(unittest.TestCase):
         m.request.quality = 'something'
         self.assertEqual(m.quality_to_apply(), 'something')
 
-    def test14_cleanup(self):
+    def test15_cleanup(self):
         """Test cleanum, which does nothing."""
         m = IIIFManipulator()
         self.assertEqual(m.cleanup(), None)
 
-    def test15_compliance_uri(self):
+    def test16_compliance_uri(self):
         """Test compliance_uri for different versions."""
         # 1.0
         m = IIIFManipulator(api_version='1.0')

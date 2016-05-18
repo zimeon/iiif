@@ -264,7 +264,7 @@ class IIIFManipulator(object):
             w = self.width
             h = self.height
             if (self.max_area and self.max_area < (w * h)):
-                scale = self.max_area / (w * h)
+                scale = ( self.max_area / (w * h) ) ** 0.5
                 w = int(w * scale + 0.5)
                 h = int(h * scale + 0.5)
             if (self.max_width):
@@ -275,8 +275,8 @@ class IIIFManipulator(object):
                     scale = self.max_width / self.width
                     w = int(self.width * scale + 0.5)
                     h = int(self.height * scale + 0.5)
-                if (self.max_height < h):
-                    scale = self.max_height / self.height
+                if (max_height < h):
+                    scale = max_height / self.height
                     w = int(self.width * scale + 0.5)
                     h = int(self.height * scale + 0.5)
         elif (self.request.size_pct is not None):
