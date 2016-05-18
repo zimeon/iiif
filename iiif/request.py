@@ -553,8 +553,7 @@ class IIIFRequest(object):
         opportunity for extension here just do a limited sanity check
         on characters and length.
         """
-        if (self.format is not None and
-            not re.match(r'''\w{1,20}$''', self.format)):
+        if (self.format is not None and not re.match(r'''\w{1,20}$''', self.format)):
             raise IIIFRequestError(
                 parameter='format',
                 text='Bad format parameter')
