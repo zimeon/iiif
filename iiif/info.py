@@ -433,11 +433,6 @@ class IIIFInfo(object):
         Will raise IIIFInfoError if insufficient parameters are present to
         have a valid info.json response (unless validate is False).
         """
-        if (self.api_version >= '2.0' and not self.tiles and
-                self.tile_width and self.scale_factors):
-            # make 2.0 tiles data from 1.1 like data
-            self.tiles = [{'width': int(self.tile_width),  # FIXME - int() is fudge, data should be int
-                           'scaleFactors': self.scale_factors}]
         if (validate):
             self.validate()
         json_dict = {}
@@ -470,17 +465,7 @@ class IIIFInfo(object):
                 params_to_write.discard('qualities')
                 params_to_write.discard('supports')
         for param in params_to_write:
-            # FIXME - Need better way to handle params
-            if (param == 'scale_factors'):
-                if (self.scale_factors is not None):
-                    json_dict[param] = self.scale_factors
-            elif (param == 'tile_width'):
-                if (self.tile_width is not None):
-                    json_dict[param] = self.tile_width
-            elif (param == 'tile_height'):
-                if (self.tile_height is not None):
-                    json_dict[param] = self.tile_height
-            elif (hasattr(self, param) and
+            if (hasattr(self, param) and
                     getattr(self, param) is not None):
                 json_dict[param] = getattr(self, param)
         return(json.dumps(json_dict, sort_keys=True, indent=2))
