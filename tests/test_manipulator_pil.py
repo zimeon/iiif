@@ -121,6 +121,12 @@ class TestAll(unittest.TestCase):
         m.do_first()
         self.assertEqual(m.do_quality('bitonal'), None)
         self.assertEqual(m.image.mode, '1')
+        # test with image with palette (mode P in PIL)
+        m = IIIFManipulatorPIL()
+        m.srcfile = 'testimages/robot_palette_320x200.gif'
+        m.do_first()
+        self.assertEqual(m.do_quality('color'), None)
+        self.assertEqual(m.image.mode, 'RGB')
 
     def test_do_format(self):
         """Format."""
