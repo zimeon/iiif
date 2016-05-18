@@ -214,8 +214,7 @@ class IIIFRequest(object):
         # preserve escaping when sending paths to application.
         # Thus we do very simply pattern matching to assume extra
         # slashes are part of the identifier.
-        if (len(segs) > 2 and 
-            re.match(r'''info\.\w+$''', segs[-1])):
+        if (len(segs) > 2 and re.match(r'''info\.\w+$''', segs[-1])):
             # Looks like an information request, combine all
             # but last segment into first/identifier
             segs = ['/'.join(segs[0:-1]), segs[-1]]
