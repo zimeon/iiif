@@ -18,7 +18,7 @@ except ImportError:
     from urllib import urlencode
 from flask import request, make_response, redirect
 
-from iiif.auth import IIIFAuth
+from .auth import IIIFAuth
 
 
 class IIIFAuthGoogle(IIIFAuth):

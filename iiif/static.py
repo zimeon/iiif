@@ -11,11 +11,11 @@ import os.path
 import shutil
 from string import Template
 
-from iiif.manipulator_pil import IIIFManipulatorPIL
-from iiif.manipulator_gen import IIIFManipulatorGen
-from iiif.info import IIIFInfo
-from iiif.request import IIIFRequest
-from iiif.error import IIIFZeroSizeError
+from .manipulator_pil import IIIFManipulatorPIL
+from .manipulator_gen import IIIFManipulatorGen
+from .info import IIIFInfo
+from .request import IIIFRequest
+from .error import IIIFZeroSizeError
 
 
 def static_partial_tile_sizes(width, height, tilesize, scale_factors):

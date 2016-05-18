@@ -12,9 +12,9 @@ import tempfile
 
 from PIL import Image
 
-from iiif.error import IIIFError
-from iiif.request import IIIFRequest
-from iiif.manipulator import IIIFManipulator
+from .error import IIIFError
+from .request import IIIFRequest
+from .manipulator import IIIFManipulator
 
 
 class IIIFManipulatorPIL(IIIFManipulator):

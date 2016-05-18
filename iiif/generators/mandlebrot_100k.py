@@ -7,7 +7,7 @@ import cmath
 
 
 class PixelGen(object):
-    """Pixel generation class."""
+    """Pixel generation classfor Mandlebrot set."""
 
     def __init__(self):
         """Set size."""

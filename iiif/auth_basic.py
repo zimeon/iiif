@@ -8,7 +8,7 @@ import re
 import os.path
 from flask import request, make_response, redirect
 
-from iiif.auth import IIIFAuth
+from .auth import IIIFAuth
 
 
 class IIIFAuthBasic(IIIFAuth):

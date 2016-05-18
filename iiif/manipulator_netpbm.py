@@ -12,9 +12,9 @@ import glob
 import magic
 import subprocess
 
-from iiif.error import IIIFError
-from iiif.request import IIIFRequest
-from iiif.manipulator import IIIFManipulator
+from .error import IIIFError
+from .request import IIIFRequest
+from .manipulator import IIIFManipulator
 
 
 class IIIFManipulatorNetpbm(IIIFManipulator):

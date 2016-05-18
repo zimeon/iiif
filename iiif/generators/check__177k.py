@@ -3,11 +3,11 @@
 See <check.py> for details. This version overrides size
 """
 
-from iiif.generators.check import PixelGen as PixelGenBase
+from .check import PixelGen as PixelGenBase
 
 
 class PixelGen(PixelGenBase):
-    """Pixel generation class."""
+    """Pixel generation class for 3**11 check pattern."""
 
     def __init__(self):
         """Set size."""

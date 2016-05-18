@@ -4,11 +4,11 @@ Ref: <http://www.karlsims.com/julia.html>
 """
 
 import cmath
-from iiif.generators.mandlebrot_100k import PixelGen as PixelGenBase
+from .mandlebrot_100k import PixelGen as PixelGenBase
 
 
 class PixelGen(PixelGenBase):
-    """Pixel generation class."""
+    """Pixel generation class for Julia set."""
 
     def set_c(self, z):
         """Set iteration constant for Julia set."""

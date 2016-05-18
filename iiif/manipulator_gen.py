@@ -5,8 +5,8 @@ import sys
 
 from PIL import Image
 
-from iiif.error import IIIFError
-from iiif.manipulator_pil import IIIFManipulatorPIL
+from .error import IIIFError
+from .manipulator_pil import IIIFManipulatorPIL
 
 
 class IIIFManipulatorGen(IIIFManipulatorPIL):
