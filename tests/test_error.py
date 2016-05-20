@@ -11,9 +11,9 @@ class TestAll(unittest.TestCase):
     def test01_str(self):
         """Test str method."""
         e = IIIFError()
-        self.assertEqual(str(e), 'UNKNOWN_ERROR, parameter=unknown, code=500')
+        self.assertEqual(str(e), 'UNKNOWN_ERROR')
         e = IIIFError(text='aa', parameter='bb', code=404)
-        self.assertEqual(str(e), 'aa, parameter=bb, code=404')
+        self.assertEqual(str(e), 'aa, parameter=bb')
 
     def test02_xml(self):
         """Test xml output used in Image API 1.0."""

@@ -116,17 +116,15 @@ class IIIFError(Exception):
         return s
 
     def __str__(self):
-        """Default human readable version of IIIF error.
+        """Short human readable version of IIIF error.
 
-        Intention is that image server implementations will use
-        image_server_response(api_version) instead. Does not include
-        header values in output.
+        This rendering does not include the HTTP status code or header
+        values in output. The intention is that image server implementations
+        will use image_server_response(api_version) instead.
         """
         s = self.text if (self.text) else 'UNKNOWN_ERROR'
-        if (self.parameter):
+        if (self.parameter and self.parameter != 'unknown'):
             s += ", parameter=%s" % self.parameter
-        if (self.code):
-            s += ", code=%d" % self.code
         return s
 
 

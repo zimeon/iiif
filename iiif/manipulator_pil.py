@@ -72,11 +72,9 @@ class IIIFManipulatorPIL(IIIFManipulator):
             # configured to raise an error in the case of images
             # that exceeed Image.MAX_IMAGE_PIXELS, with
             # Image.warnings.simplefilter('error', Image.DecompressionBombWarning)
-            raise IIIFError(text=(
-                "Image size limit exceeded, failed to open %s: %s" % (self.srcfile, str(e))))
+            raise IIIFError(text=("Image size limit exceeded (PIL: %s)" % (str(e))))
         except Exception as e:
-            raise IIIFError(text=("PIL Image.open(%s) barfed: %s" %
-                                  (self.srcfile, str(e))))
+            raise IIIFError(text=("Failed to read image (PIL: %s)" % (str(e))))
         (self.width, self.height) = self.image.size
 
     def do_region(self, x, y, w, h):

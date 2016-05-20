@@ -3,6 +3,7 @@ import unittest
 import tempfile
 import os
 import os.path
+import re
 
 from PIL import Image
 
@@ -45,6 +46,14 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.do_first(), None)
         self.assertEqual(m.width, 175)
         self.assertEqual(m.height, 131)
+        # Errors
+        # cannot do PDF
+        m.srcfile = 'testimages/bad/pdf_example.pdf'
+        try:  # could use assertRaisesRegexp in 2.7
+            m.do_first()
+        except IIIFError as e:
+            self.assertTrue(re.match(r'''Failed to read image''', str(e)))
+            self.assertTrue(re.search(r'''PIL: cannot identify image file''', str(e)))
 
     def test_do_region(self):
         """Region."""
