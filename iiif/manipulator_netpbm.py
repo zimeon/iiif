@@ -246,7 +246,10 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
 
         Returns 'png' or 'jpg' on success, nothing on failure.
         """
-        magic_text = magic.from_file(file)
+        try:
+            magic_text = magic.from_file(file).decode('utf-8')
+        except (TypeError, IOError):
+            return
         if (re.search('PNG image data', magic_text)):
             return('png')
         elif (re.search('JPEG image data', magic_text)):
