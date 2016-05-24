@@ -2,8 +2,9 @@ iiif changelog
 ==============
 
 2016-05-xx v1.0.0
-- Change to 1.x.x version as consider codebase stable
-- Make IIIF Image API v2.1 the default
+- Change to 1.x.x version as core codebase stable
+- Make IIIF Image API v2.1 the default (although not all features implemented)
+- Improvements for PIL manipulator (thanks @jgreidy)
 - Extended info.profile to complex profiles for 2.x Image Information 
 
 2016-04-22 v0.6.1
