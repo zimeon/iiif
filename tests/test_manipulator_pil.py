@@ -4,6 +4,7 @@ import tempfile
 import os
 import os.path
 import re
+import sys
 from testfixtures import LogCapture
 
 from PIL import Image
@@ -49,6 +50,10 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.height, 131)
         # Errors
         # cannot do PDF
+        # FIXME - for some reason this test causes coverage to segfault on py3.3 so 
+        # FIXME - skip it there. See https://github.com/zimeon/iiif/issues/22
+        if (sys.version_info[0:2] == (3, 3)):
+            return
         m.srcfile = 'testimages/bad/pdf_example.pdf'
         try:  # could use assertRaisesRegexp in 2.7
             m.do_first()
