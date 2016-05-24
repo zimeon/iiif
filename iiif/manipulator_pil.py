@@ -125,7 +125,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
         elif (quality == 'bitonal'):
             self.logger.debug("quality: converting to bitonal")
             self.image = self.image.convert('1')
-        elif (self.image.mode not in ('1','L','RGB','RGBA')):
+        elif (self.image.mode not in ('1', 'L', 'RGB', 'RGBA')):
             # Need to convert from palette etc. in order to write out
             self.logger.debug("quality: converting from mode %s to RGB"
                               % (self.image.mode))
