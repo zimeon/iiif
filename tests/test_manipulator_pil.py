@@ -4,6 +4,7 @@ import tempfile
 import os
 import os.path
 import re
+from testfixtures import LogCapture
 
 from PIL import Image
 
@@ -36,8 +37,8 @@ class TestAll(unittest.TestCase):
         # back to normal
         m.set_max_image_pixels(orig)
 
-    def test_do_first(self):
-        """First step."""
+    def test03_do_first(self):
+        """Test first step."""
         m = IIIFManipulatorPIL()
         # no image
         self.assertRaises(IIIFError, m.do_first)
@@ -55,8 +56,8 @@ class TestAll(unittest.TestCase):
             self.assertTrue(re.match(r'''Failed to read image''', str(e)))
             self.assertTrue(re.search(r'''PIL: cannot identify image file''', str(e)))
 
-    def test_do_region(self):
-        """Region."""
+    def test04_do_region(self):
+        """Test region selection."""
         m = IIIFManipulatorPIL()
         # m.request = IIIFRequest()
         # m.request.region_full=True
@@ -74,8 +75,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.width, 100)
         self.assertEqual(m.height, 50)
 
-    def test_do_size(self):
-        """Size."""
+    def test05_do_size(self):
+        """Test size selection."""
         m = IIIFManipulatorPIL()
         m.srcfile = 'testimages/test1.png'
         m.do_first()
@@ -90,8 +91,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.width, 88)
         self.assertEqual(m.height, 66)
 
-    def test_do_rotation(self):
-        """Rotation."""
+    def test06_do_rotation(self):
+        """Test rotation."""
         m = IIIFManipulatorPIL()
         m.srcfile = 'testimages/test1.png'
         # noop, no rotation
@@ -107,8 +108,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.do_rotation(False, 30.0), None)
         self.assertEqual(m.image.size, (218, 202))
 
-    def test_do_quality(self):
-        """Quality."""
+    def test07_do_quality(self):
+        """Test quality selection."""
         m = IIIFManipulatorPIL()
         m.srcfile = 'testimages/test1.png'
         # noop, no change
@@ -137,8 +138,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.do_quality('color'), None)
         self.assertEqual(m.image.mode, 'RGB')
 
-    def test_do_format(self):
-        """Format."""
+    def test08_do_format(self):
+        """Test format selection."""
         m = IIIFManipulatorPIL()
         m.srcfile = 'testimages/test1.png'
         # default is jpeg
@@ -175,11 +176,13 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.do_format(None), None)
         self.assertTrue(os.path.exists(m.outfile))
 
-    def test_cleanup(self):
-        """Cleanup."""
-        m = IIIFManipulatorPIL()
-        m.outtmp = None
-        self.assertEqual(m.cleanup(), None)
-        m.outtmp = '/this_will_not_exits_really_I_hope'
-        self.assertEqual(m.cleanup(), None)
-        # FIXME - check log here
+    def test09_cleanup(self):
+        """Test cleanup."""
+        with LogCapture('iiif.manipulator') as lc:
+            m = IIIFManipulatorPIL()
+            m.outtmp = None
+            self.assertEqual(m.cleanup(), None)
+            m.outtmp = '/this_will_not_exist_really_I_hope'
+            self.assertEqual(m.cleanup(), None)
+            self.assertEqual(lc.records[-1].msg,
+                             'Failed to cleanup tmp output file /this_will_not_exist_really_I_hope')

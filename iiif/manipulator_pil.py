@@ -66,7 +66,6 @@ class IIIFManipulatorPIL(IIIFManipulator):
         self.logger.debug("do_first: src=%s" % (self.srcfile))
         try:
             self.image = Image.open(self.srcfile)
-            self.image.load()
         except Image.DecompressionBombWarning as e:
             # This exception will be raised only if PIL has been
             # configured to raise an error in the case of images
@@ -174,5 +173,5 @@ class IIIFManipulatorPIL(IIIFManipulator):
             try:
                 os.unlink(self.outtmp)
             except OSError as e:
-                self.logger.warn(
-                    "Failed to cleanup tmp output file %s" % (self.outtmp))
+                self.logger.warning("Failed to cleanup tmp output file %s"
+                                    % (self.outtmp))
