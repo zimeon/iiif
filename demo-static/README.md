@@ -20,7 +20,7 @@ regenerating them are below and allow testing with different tile sizes,
 with different images, or with different Image API and OpenSeadragon
 versions.
 
-A copy of OpenSeadragon v2.0 is included in the the `third_party/openseadragon200`
+A copy of OpenSeadragon v2.0 is included in the the `iiif/third_party/openseadragon200`
 directory for convenience. The current version may be downloaded from 
 <http://openseadragon.github.io/#download>.
 

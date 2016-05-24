@@ -1,2 +1,2 @@
-"""Version number for this IIIF library."""
-__version__ = '1.0.0'
+"""Version number for this IIIF Image API library."""
+__version__ = '1.0.1'
