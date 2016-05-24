@@ -50,7 +50,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(m.height, 131)
         # Errors
         # cannot do PDF
-        # FIXME - for some reason this test causes coverage to segfault on py3.3 so 
+        # FIXME - for some reason this test causes coverage to segfault on py3.3 so
         # FIXME - skip it there. See https://github.com/zimeon/iiif/issues/22
         if (sys.version_info[0:2] == (3, 3)):
             return
