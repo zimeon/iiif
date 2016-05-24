@@ -271,6 +271,16 @@ class TestAll(unittest.TestCase):
         self.assertTrue('[2, 2]' in sizes)
         self.assertTrue('[1, 1]' in sizes)
         self.assertEqual(len(sizes), 7)
+        # but then if tile size is 512 we want 100 included
+        sizes = set()
+        for (size) in static_full_sizes(100, 100, 512):
+            # should never have zero size w or h
+            self.assertNotEqual(size[0], 0)
+            self.assertNotEqual(size[1], 0)
+            sizes.add(str(size))
+        self.assertTrue('[100, 100]' in sizes)
+        self.assertTrue('[50, 50]' in sizes)
+        self.assertEqual(len(sizes), 8)
 
     def test07_setup_destination(self):
         """Test setip_destination."""

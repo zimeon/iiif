@@ -62,7 +62,9 @@ def static_full_sizes(width, height, tilesize):
     height -- height of full size image
     tilesize -- width and height of tiles
 
-    Yields [sw,sh], the size for each full-region tile
+    Yields [sw,sh], the size for each full-region tile that is less than
+    the tilesize. This includes tiles up to the full image size if that
+    is smaller than the tilesize.
     """
     # FIXME - Not sure what correct algorithm is for this, from
     # observation of Openseadragon it seems that one keeps halving
@@ -77,7 +79,7 @@ def static_full_sizes(width, height, tilesize):
     # the complete image to request. It seems that there is a bug in
     # OpenSeadragon here because in some cases it requests images
     # of size 1,1 multiple times, which is anyway a useless image.
-    for level in range(1, 20):
+    for level in range(0, 20):
         factor = 2.0**level
         sw = int(width / factor + 0.5)
         sh = int(height / factor + 0.5)
@@ -394,9 +396,10 @@ class IIIFStatic(object):
                 osd_images_path = os.path.join(html_dir, osd_images)
                 if (os.path.isdir(osd_images_path)):
                     self.logger.warning(
-                        "OpenSeadragon images directory (%s) already exists, skipping" % osd_images_path)
+                        "OpenSeadragon images directory (%s) already exists, skipping"
+                        % osd_images_path)
                 else:
-                    shutil.copytree(os.path.join(
-                        osd_base, osd_images), osd_images_path)
+                    shutil.copytree(os.path.join(osd_base, osd_images),
+                                    osd_images_path)
                     self.logger.info("%s / %s/*" % (html_dir, osd_images))
                 self.copied_osd = True  # don't try again for next img
