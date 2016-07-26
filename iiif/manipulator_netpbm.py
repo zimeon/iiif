@@ -247,7 +247,10 @@ class IIIFManipulatorNetpbm(IIIFManipulator):
         Returns 'png' or 'jpg' on success, nothing on failure.
         """
         try:
-            magic_text = magic.from_file(file).decode('utf-8')
+            magic_text = magic.from_file(file)
+            if (isinstance(magic_text, bytes)):
+                # In python2 and travis python3 (?!) decode to get unicode string
+                magic_text = magic_text.decode('utf-8')
         except (TypeError, IOError):
             return
         if (re.search('PNG image data', magic_text)):
