@@ -28,8 +28,15 @@ Run demo
 --------
 
 Run a test web server on local machine from `iiif` directory:
+
 ```
-iiif> python -m SimpleHTTPServer
+(python2) iiif> python -m SimpleHTTPServer
+```
+
+or
+
+```
+(python3) iiif> python -m http.server
 ```
 
 And then access <http://localhost:8000/demo-static/index.html>.

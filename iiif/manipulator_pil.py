@@ -124,13 +124,23 @@ class IIIFManipulatorPIL(IIIFManipulator):
         elif (quality == 'bitonal'):
             self.logger.debug("quality: converting to bitonal")
             self.image = self.image.convert('1')
-        elif (self.image.mode not in ('1', 'L', 'RGB', 'RGBA')):
-            # Need to convert from palette etc. in order to write out
-            self.logger.debug("quality: converting from mode %s to RGB"
-                              % (self.image.mode))
-            self.image = self.image.convert('RGB')
-        else:
-            self.logger.debug("quality: quality (nop)")
+        else:  # color or default/native (which we take as color)
+            # Deal first with conversions from I;16* formats which Pillow
+            # appears not to handle properly, resulting in mostly white images
+            # if we convert directly. See:
+            # <http://stackoverflow.com/questions/7247371/python-and-16-bit-tiff>
+            if (self.image.mode.startswith('I;16')):
+                self.logger.debug("quality: fudged conversion from mode %s to I"
+                                  % (self.image.mode))
+                self.image = self.image.convert('I')
+                self.image = self.image.point(lambda i: i * (1.0 / 256.0))
+            if (self.image.mode not in ('1', 'L', 'RGB', 'RGBA')):
+                # Need to convert from palette etc. in order to write out
+                self.logger.debug("quality: converting from mode %s to RGB"
+                                  % (self.image.mode))
+                self.image = self.image.convert('RGB')
+            else:
+                self.logger.debug("quality: quality (nop)")
 
     def do_format(self, format):
         """Apply format selection.

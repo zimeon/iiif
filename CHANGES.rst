@@ -1,6 +1,9 @@
 iiif changelog
 ==============
 
+2016-xx-yy v1.0.2
+- Handle 16bit TIFF with PIL manipulators
+
 2016-05-24 v1.0.1
 - Tweak pypi install
 
