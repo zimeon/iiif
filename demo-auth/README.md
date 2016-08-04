@@ -1,9 +1,6 @@
 # IIIF OpenSeadragon Authentication Test
 
-A copy of OpenSeadragon must be added to this directory
-Plus build the collections branch of openseadragon and copy the openseadragon build directory to this directory.
-
-## Running demo
+## Running the demo
 
 The demo page `index.html` assumes that an IIIF server is running at `http://localhost:8001` with the image `http://localhost:8001/tetons` (see /server in this repository). Running a simply python webserver from this (`demo-auth`) directory with `python -m SimpleHTTPServer` will generate the following on access to <http://localhost:8000/>:
 
@@ -25,6 +22,8 @@ Serving HTTP on 0.0.0.0 port 8000 ...
 The initial image will be degraded (no zoom) but a login button will be displayed in the lower left. Once auth'zed, a zoomable image will be displayed.
 
 ## OpenSeadragon versions
+
+This demo relies upon having a copy of OpenSeadragon in this directory. The github repository has a symlink `openseadragon121` to make this work.
 
 At present this demonstration works only with OpenSeadragon < 2.0, latest is 1.2.1. With OpenSeadragon 2.0.0 the error message `Unable to open [object Object]: Unable to load TileSource` is displayed.
 

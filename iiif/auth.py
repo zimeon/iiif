@@ -67,10 +67,20 @@ class IIIFAuth(object):
             info.add_service(svc)
 
     def login_service_description(self):
-        """Login service description."""
+        """Login service description.
+
+        The login service description _MUST_ include the token service
+        description.
+        """
+        services = [self.access_token_service_description()]
+        if (self.client_id_uri is not None):
+            services.append(self.client_id_service_description())
+        if (self.logout_uri is not None):
+            services.append(self.logout_service_description())
         return({"@id": self.login_uri,
                 "profile": self.profile_base + 'login',
-                "label": 'Login to ' + self.name})
+                "label": 'Login to ' + self.name,
+                "service": services})
 
     def logout_service_description(self):
         """Logout service description."""
@@ -90,6 +100,20 @@ class IIIFAuth(object):
 
     # Override with method to implement
     access_token_handler = None
+
+    def access_token_response(self, token):
+        """Access token response structure.
+
+        Success if token is set, otherwise error response.
+        """
+        if (token):
+            data = {"access_token": token,
+                    "token_type": "Bearer",
+                    "expires_in": 3600}
+        else:
+            data = {"error": "client_unauthorized",
+                    "error_description": "No login details received"}
+        return data
 
     # Override with method to implement
     client_id_handler = None

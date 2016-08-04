@@ -87,18 +87,14 @@ class IIIFAuthBasic(IIIFAuth):
 
         The client requests a token to send in re-request for info.json.
         Support JSONP request to get the token to send to info.json in
-        Auth'z header.
+        Authorization header.
         """
         callback_function = request.args.get('callback', default='')
         authdone = request.headers.get('Authorization', '')
+        token = None
         if (authdone):
             token = 'secret_token_here'  # FIXME - need something real
-            data = {"access_token": token,
-                    "token_type": "Bearer", "expires_in": 3600}
-        else:
-            data = {"error": "client_unauthorized",
-                    "error_description": "No login details received"}
-        data_str = json.dumps(data)
+        data_str = json.dumps(self.access_token_response(token))
 
         ct = "application/json"
         if (callback_function):

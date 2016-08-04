@@ -102,18 +102,12 @@ class IIIFAuthGoogle(IIIFAuth):
 
         The client requests a token to send in re-request for info.json.
         Support JSONP request to get the token to send to info.json in
-        Auth'z header.
+        Authorization header.
         """
         callback_function = request.args.get('callback', default='')
         authcode = request.args.get('code', default='')
         account = request.cookies.get(self.account_cookie_name, default='')
-        if (account):
-            data = {"access_token": account,
-                    "token_type": "Bearer", "expires_in": 3600}
-        else:
-            data = {"error": "client_unauthorized",
-                    "error_description": "No login details received"}
-        data_str = json.dumps(data)
+        data_str = json.dumps(self.access_token_response(account))
 
         ct = "application/json"
         if (callback_function):
