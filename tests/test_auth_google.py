@@ -134,7 +134,7 @@ class TestAll(unittest.TestCase):
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(
-                j['error_description'],
+                j['description'],
                 "No login details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add callback but no account cookie
@@ -150,7 +150,7 @@ class TestAll(unittest.TestCase):
             self.assertTrue(re.match('CB\(.*\);', js))
             j = json.loads(js.lstrip('CB(').rstrip(');'))
             self.assertEqual(
-                j['error_description'],
+                j['description'],
                 "No login details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add an account cookie
@@ -164,10 +164,10 @@ class TestAll(unittest.TestCase):
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['access_token'], "ACCOUNT_TOKEN")
-            self.assertEqual(j['token_type'], "Bearer")
+            self.assertEqual(j['accessToken'], "ACCOUNT_TOKEN")
+            self.assertEqual(j['tokenType'], "Bearer")
 
-    def test07_home_handler(self):
+    def test08_home_handler(self):
         """Test home_handler method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
@@ -187,7 +187,7 @@ class TestAll(unittest.TestCase):
                     r'<script>window.close\(\);</script>',
                     html))
 
-    def test08_google_get_token(self):
+    def test09_google_get_token(self):
         """Test google_get_token method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),
@@ -197,7 +197,7 @@ class TestAll(unittest.TestCase):
                 j = auth.google_get_token(config, 'prefix')
                 self.assertEqual(j, {'a': 'b'})
 
-    def test09_google_get_data(self):
+    def test10_google_get_data(self):
         """Test google_get_data method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),

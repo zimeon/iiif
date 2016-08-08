@@ -115,7 +115,7 @@ class TestAll(unittest.TestCase):
             # get_data is bytes in python3
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(
-                j['error_description'],
+                j['description'],
                 "No login details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add Authorization header, check we get token
@@ -130,9 +130,9 @@ class TestAll(unittest.TestCase):
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['access_token'], "secret_token_here")  # FIXME
-            self.assertEqual(j['token_type'], "Bearer")
-            self.assertEqual(j['expires_in'], 3600)
+            self.assertEqual(j['accessToken'], "secret_token_here")  # FIXME
+            self.assertEqual(j['tokenType'], "Bearer")
+            self.assertEqual(j['expiresIn'], 3600)
         # add callback but no Authorization header
         with dummy_app.test_request_context('/a_request?callback=CB'):
             auth = IIIFAuthBasic()
@@ -146,6 +146,6 @@ class TestAll(unittest.TestCase):
             self.assertTrue(re.match('CB\(.*\);', js))
             j = json.loads(js.lstrip('CB(').rstrip(');'))
             self.assertEqual(
-                j['error_description'],
+                j['description'],
                 "No login details received")
             self.assertEqual(j['error'], "client_unauthorized")

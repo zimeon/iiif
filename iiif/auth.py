@@ -104,15 +104,16 @@ class IIIFAuth(object):
     def access_token_response(self, token):
         """Access token response structure.
 
-        Success if token is set, otherwise error response.
+        Success if token is set, otherwise (None, empty string) give error
+        response.
         """
         if (token):
-            data = {"access_token": token,
-                    "token_type": "Bearer",
-                    "expires_in": 3600}
+            data = {"accessToken": token,
+                    "tokenType": "Bearer",
+                    "expiresIn": 3600}
         else:
             data = {"error": "client_unauthorized",
-                    "error_description": "No login details received"}
+                    "description": "No login details received"}
         return data
 
     # Override with method to implement

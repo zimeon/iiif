@@ -145,6 +145,19 @@ class TestAll(unittest.TestCase):
         self.assertEqual(IIIFAuth().client_id_handler, None)
         self.assertEqual(IIIFAuth().home_handler, None)
 
+    def test11_access_token_response(self):
+        """Test structure of access token response."""
+        # no token
+        err_response = IIIFAuth().access_token_response(None)
+        self.assertEqual(err_response['error'], 'client_unauthorized')
+        self.assertFalse('access_token' in err_response)
+        # token
+        good_response = IIIFAuth().access_token_response('TOKEN_HERE')
+        self.assertEqual(good_response['accessToken'], 'TOKEN_HERE')
+        self.assertEqual(good_response['tokenType'], 'Bearer')
+        self.assertTrue(int(good_response['expiresIn']) > 1000)
+        self.assertFalse('error' in good_response)
+
     def test11_null_authn_authz(self):
         """Test null authn and auth.
 
