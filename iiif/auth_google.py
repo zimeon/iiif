@@ -5,6 +5,7 @@ FIXME - this code assumes Flask webapp framework, should be abstracted
 
 import json
 import re
+import sys
 import os.path
 try:
     # python3
@@ -50,6 +51,7 @@ class IIIFAuthGoogle(IIIFAuth):
         # Auth data
         self.tokens = {}
         #
+        self.auth_type = 'Google auth'
         self.account_cookie_name = self.cookie_prefix + 'account'
 
     def info_authn(self):
@@ -155,7 +157,10 @@ class IIIFAuthGoogle(IIIFAuth):
         payload = urlencode(params).encode('utf-8')
         url = self.google_oauth2_url + 'token'
         req = Request(url, payload)
-        return json.loads(urlopen(req).read())
+        json_str = urlopen(req).read()
+        if sys.version_info < (3, 0):
+            json_str = json_str.decode('utf-8')
+        return json.loads(json_str)
 
     def google_get_data(self, config, response):
         """Make request to Google API to get profile data for the user."""
@@ -165,4 +170,7 @@ class IIIFAuthGoogle(IIIFAuth):
         payload = urlencode(params)
         url = self.google_api_url + 'userinfo?' + payload
         req = Request(url)
-        return json.loads(urlopen(req).read())
+        json_str = urlopen(req).read()
+        if sys.version_info < (3, 0):
+            json_str = json_str.decode('utf-8')
+        return json.loads(json_str)

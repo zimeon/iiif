@@ -1,7 +1,7 @@
 /* IIIF Demo Authentication Library
  * For v0.9.2: http://auth_notes.iiif.io/api/auth/0.9/
  * 
- * Required OpenSeadragon 121 or higher.
+ * Requires OpenSeadragon 121 or higher.
  * Requires jQuery 1.11 or higher.
  *
  * Based on IIIF Auth 0.9 implementation by Robert Sanderson
@@ -13,14 +13,16 @@
 
 var iiif_auth = (function () {
 
-var log_id = "#log"
+var log_id = "#log";
 var token_service_uri = "http://localhost:8001/2.1_pil_gauth/token";
 var image_uri = "";
 
-// Logging window function to show useful debugging output
-//
-// Requires an HTML element (such as a <div>) with id="log"
-// to which new lines of text are appended on every call.
+/**
+ * Logging window function to show useful debugging output
+ * 
+ * Requires an HTML element (such as a <div>) with id="log"
+ * to which new lines of text are appended on every call.
+ */
 var linenum = 0;
 function log(text) {
     linenum = linenum + 1;
@@ -66,8 +68,7 @@ function on_tokened(data) {
 }
 
 function on_got_info(data) {
-
-    log("Got full info.json")
+    log("Got full info.json");
 
     process_auth_services(data, 'logout');
 
@@ -94,39 +95,102 @@ function do_auth(evt) {
     }, 500);
 }
 
-function process_auth_services(info, which) {
-    log("Looking for "+which+" service")
+/** 
+ * Find auth service URIs and labels from info.json object
+ * 
+ * @param {object} info - the info.json object
+ * @return {object} - with properties as below:
+ *   login - URI of login service (not set if none found)
+ *   login_label - a string with default or label given
+ *   token - URI of login service (not set if none found)
+ * 
+ */
+function find_auth_services(info) {
+    // Result object with default labels
+    var svc = {login_label: "Login",
+               logout_label: "Logout"};
+    log("Looking for auth service descriptions")
     if (info.hasOwnProperty('service')) {
         if (info.service.hasOwnProperty('@id')) {
-            services = [info.service]
+            // make array from single service entry
+            services = [info.service];
         } else {
-            // array of service
-            services = info.service
+            // array of service entries
+            services = info.service;
         }
-        for (var service,i=0;service=services[i];i++) {
-            if (service['profile'] == 'http://iiif.io/api/auth/0/'+which) {
-                log("Found "+which+" auth service");
-                login = service['@id'];
-                $('#authbox').append("<button id='authbutton' data-login='"+login+"'>"+service.label+"</button>");
-                $('#authbutton').bind('click', do_auth);
-            } else if (which == 'login' &&
-                       service['profile'] == 'http://iiif.io/api/auth/0/token') {
-                // save token service here...
+        for (var service,i=0; service=services[i]; i++) {
+            if (service['profile'] == 'http://iiif.io/api/auth/0/login') {
+                svc.login = service['@id'];
+                log("Found login service (" + svc.login + ")");
+                if (service.hasOwnProperty('label')) {
+                    svc.login_label = service['label'];
+                }
+                login = service;
+                break;
             }
         }
-    } 
+        // All bets off if we haven't found the login service, can't
+        // look for more
+        if (!svc.hasOwnProperty('login')) {
+            return svc;
+        }
+        // Now look for token (required) and logout (optional) as sub-services
+        if (login.hasOwnProperty('service')) {
+            if (login.service.hasOwnProperty('@id')) {
+                // make array from single service entry
+                services = [login.service];
+            } else {
+                // array of service entries
+                services = login.service;
+            }
+            for (var service,i=0; service=services[i]; i++) {
+                if (service['profile'] == 'http://iiif.io/api/auth/0/token') {
+                    svc.token = service['@id'];
+                    log("Found token service (" + svc.token + ")");
+                } else if (service['profile'] == 'http://iiif.io/api/auth/0/logout') {
+                    svc.logout = service['@id'];
+                    log("Found logout service (" + svc.logout + ")");
+                    if (service.hasOwnProperty('label')) {
+                        svc.logout_label = service['label'];
+                    }
+                }
+            }
+        }
+        // Login won't work without a token service so delete the
+        // login entry if that is the case
+        if (!svc.hasOwnProperty('token')) {
+            delete svc.login;
+        }
+    }
+    return svc;
 }
-
+ 
+/**
+ * Handler for OpenSeadragon event used as hook to get login information
+ *
+ * @param event
+ */
 function handle_open(event) {
     var info = event.eventSource.source;
     // This only gets called when we're NOT authed, so no need to put in logout
-    process_auth_services(info, 'login');
+    var svc = find_auth_services(info);
+    if (svc.hasOwnProperty('login')) {
+        log("Adding login button")
+        $('#authbox').append("<button id='authbutton' data-login='"+svc.login+"'>"+svc.login_label+"</button>");
+        $('#authbutton').bind('click', do_auth);
+    } else {
+        log("No login service");
+    }
 }
 
-// Make an OpenSeadragon viewer
+/**
+ * Make an OpenSeadragon viewer
+ *
+ * @param {string} image_uri_in - the IIIF Image URI (no /info.json or /params/) 
+ */
 function make_viewer(image_uri_in) {
     image_uri = image_uri_in;
-    log("Making unauthed viewer");
+    log("Making unauthenticated viewer");
 
     $('#openseadragon').remove();
     $('#authbox').empty();
@@ -139,9 +203,8 @@ function make_viewer(image_uri_in) {
         showNavigator: true,
         prefixUrl: "openseadragon121/images/"
     });
-
-    viewer.addHandler('open', iiif_auth.handle_open)
-    viewer.addHandler('failed-open', iiif_auth.handle_open)
+    viewer.addHandler('open', handle_open)
+    viewer.addHandler('failed-open', handle_open)
 }
 
 // Return pointers making certain variables and functions public
@@ -150,8 +213,7 @@ return {
     log_id: log_id,
     // Functions
     log: log,
-    process_auth_services: process_auth_services,
-    handle_open: handle_open
+    make_viewer: make_viewer
 };
 
 })();

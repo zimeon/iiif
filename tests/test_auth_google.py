@@ -77,7 +77,7 @@ class TestAll(unittest.TestCase):
         lsd = auth.logout_service_description()
         self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/logout')
         self.assertEqual(lsd['@id'], 'xyz')
-        self.assertEqual(lsd['label'], 'Logout from image server')
+        self.assertEqual(lsd['label'], 'Logout from image server (Google auth)')
 
     def test03_info_authn(self):
         """Test info_authn method."""

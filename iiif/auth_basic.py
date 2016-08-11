@@ -17,6 +17,7 @@ class IIIFAuthBasic(IIIFAuth):
     def __init__(self, cookie_prefix=None):
         """Initialize IIIFAuthBasic object."""
         super(IIIFAuthBasic, self).__init__(cookie_prefix=cookie_prefix)
+        self.auth_type = 'basic auth'
 
     def logout_service_description(self):
         """Logout service description with has modified URI to supply 'bad' credentials.

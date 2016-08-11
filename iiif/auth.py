@@ -17,7 +17,8 @@ class IIIFAuth(object):
     def __init__(self, cookie_prefix=None):
         """Initialize IIIFAuth object."""
         self.profile_base = 'http://iiif.io/api/auth/0/'
-        self.name = "image server"
+        self.name = 'image server'
+        self.auth_type = None
         self.login_uri = None
         self.logout_uri = None
         self.client_id_uri = None
@@ -77,16 +78,22 @@ class IIIFAuth(object):
             services.append(self.client_id_service_description())
         if (self.logout_uri is not None):
             services.append(self.logout_service_description())
+        label = 'Login to ' + self.name
+        if (self.auth_type):
+            label = label + ' (' + self.auth_type + ')'
         return({"@id": self.login_uri,
                 "profile": self.profile_base + 'login',
-                "label": 'Login to ' + self.name,
+                "label": label,
                 "service": services})
 
     def logout_service_description(self):
         """Logout service description."""
+        label = 'Logout from ' + self.name
+        if (self.auth_type):
+            label = label + ' (' + self.auth_type + ')'
         return({"@id": self.logout_uri,
                 "profile": self.profile_base + 'logout',
-                "label": 'Logout from ' + self.name})
+                "label": label})
 
     def client_id_service_description(self):
         """Client Id service description."""
