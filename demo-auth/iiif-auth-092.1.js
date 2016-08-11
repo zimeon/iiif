@@ -1,19 +1,30 @@
-<script src="openseadragon121/openseadragon.min.js"></script>
-<script src="jquery-1.11.1.min.js"></script>
-<script src="iiif-auth-092.1.js"></script>
+/* IIIF Demo Authentication Library
+ * For v0.9.2: http://auth_notes.iiif.io/api/auth/0.9/
+ * 
+ * Required OpenSeadragon 121 or higher.
+ * Requires jQuery 1.11 or higher.
+ *
+ * Based on IIIF Auth 0.9 implementation by Robert Sanderson
+ * Simeon Warner - 2016-08-10...
+ */
 
-<h2>IIIF OpenSeadragon Authentication Test</h2>
+// Use Revealing Module pattern:
+// https://addyosmani.com/resources/essentialjsdesignpatterns/book/#revealingmodulepatternjavascript
 
-<div id="container" style="width: 605px; height: 405px;"></div>
-<div id="authbox" style="margin-top: 10px; height: 3ex; border: 2px solid green; width: 605px;"></div>
-<div id="log" style="margin-top: 10px; height: 20ex; border: 2px solid green; width: 605px; overflow: auto;"></div>
+var iiif_auth = (function () {
 
-<script type="text/javascript">
-var base_uri="http://localhost:8001/2.1_pil_basic";
-var linenum=0;
+var log_id = "#log"
+var token_service_uri = "http://localhost:8001/2.1_pil_gauth/token";
+var image_uri = "";
+
+// Logging window function to show useful debugging output
+//
+// Requires an HTML element (such as a <div>) with id="log"
+// to which new lines of text are appended on every call.
+var linenum = 0;
 function log(text) {
-    linenum=linenum+1
-    $('#log').prepend("[" + linenum + "] " + text + "<br>");
+    linenum = linenum + 1;
+    $(log_id).prepend("[" + linenum + "] " + text + "<br/>");
 }
 
 // check for an auth service ... once tileSource has loaded
@@ -22,12 +33,11 @@ function on_authed() {
     // via JSONP :(
     // XXX TODO: get the URL from the info.json
     log("Fetching Token");        
-    $.getJSON(base_uri+"/token?callback=?", on_tokened);
+    $.getJSON(token_service_uri + "?callback=?", on_tokened);
 }
 
 
 function on_tokened(data) {
-
     var token, error;
     if (data.hasOwnProperty('access_token')) {
         token = data.access_token;
@@ -48,7 +58,10 @@ function on_tokened(data) {
         $('#openseadragon').remove();
         $('#authbox').empty();
         $('#container').append('<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>');
-        $.ajax({ url:base_uri+"/starfish/info.json", headers: {"Authorization":token}, cache: false, success: on_got_info });
+        $.ajax({ url: image_uri+"/info.json",
+                 headers: {"Authorization": token},
+                 cache: false,
+                 success: on_got_info });
     }
 }
 
@@ -96,13 +109,13 @@ function process_auth_services(info, which) {
                 login = service['@id'];
                 $('#authbox').append("<button id='authbutton' data-login='"+login+"'>"+service.label+"</button>");
                 $('#authbutton').bind('click', do_auth);
-            } else if (which == 'login' && service['profile'] == 'http://iiif.io/api/auth/0/token') {
+            } else if (which == 'login' &&
+                       service['profile'] == 'http://iiif.io/api/auth/0/token') {
                 // save token service here...
             }
         }
     } 
 }
-
 
 function handle_open(event) {
     var info = event.eventSource.source;
@@ -110,8 +123,9 @@ function handle_open(event) {
     process_auth_services(info, 'login');
 }
 
-function make_viewer() {
-
+// Make an OpenSeadragon viewer
+function make_viewer(image_uri_in) {
+    image_uri = image_uri_in;
     log("Making unauthed viewer");
 
     $('#openseadragon').remove();
@@ -121,18 +135,23 @@ function make_viewer() {
 
     var viewer = OpenSeadragon({
         id: "openseadragon",
-        tileSources: base_uri+"/starfish/info.json?t=" + new Date().getTime(),
+        tileSources: image_uri + "/info.json?t=" + new Date().getTime(),
         showNavigator: true,
         prefixUrl: "openseadragon121/images/"
     });
 
-    viewer.addHandler('open', handle_open)
-    viewer.addHandler('failed-open', handle_open)
+    viewer.addHandler('open', iiif_auth.handle_open)
+    viewer.addHandler('failed-open', iiif_auth.handle_open)
 }
 
-// Start with an unauthed viewer
-make_viewer()
-</script>
+// Return pointers making certain variables and functions public
+return {
+    // Variables
+    log_id: log_id,
+    // Functions
+    log: log,
+    process_auth_services: process_auth_services,
+    handle_open: handle_open
+};
 
-</body>
-</html>
+})();
