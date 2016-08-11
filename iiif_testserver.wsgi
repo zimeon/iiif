@@ -9,6 +9,10 @@ WSGIDaemonProcess iiiftestserver threads=20 maximum-requests=10000 user=apache
 WSGIProcessGroup iiiftestserver
 WSGIPassAuthorization On
 WSGIScriptAlias /iiif_auth_test /FULL_PATH_TO_THIS_FILE/iiif_testserver.wsgi
+
+It is important that these directives are included only once in the Apache
+configuration, it is not allowed to import the same WSGI configuration into
+two virtual hosts (e.g. SSL and non-SSL) in the Apache configuration.
 """
 
 # use dev copy of IIIF modules if present in same dir as this script
