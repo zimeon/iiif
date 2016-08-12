@@ -9,18 +9,16 @@
 
 <div id="openseadragon1" style="width: 500px; height: 400px;"></div>  
 <script>
-//<![CDATA[
-        function initOpenSeadragon() {
-          OpenSeadragon({
-  id: "openseadragon1",
-  minZoomImageRatio: 1,
-  prefixUrl: "openseadragon200/images/",
-  tileSources: "http://localhost:8001/1.1_pil/tetons/info.json",
-  crossOriginPolicy: false});
-        }
-        window.onload = initOpenSeadragon;
-        document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
-//]]>
+function initOpenSeadragon() {
+    OpenSeadragon({
+        id: "openseadragon1",
+        minZoomImageRatio: 1,
+        prefixUrl: "openseadragon200/images/",
+        tileSources: "http://localhost:8001/1.1_pil/tetons/info.json",
+        crossOriginPolicy: false});
+    }
+    window.onload = initOpenSeadragon;
+    document.addEventListener("page:load", initOpenSeadragon); // Initialize when using turbolinks
 </script>
 
 </body>
