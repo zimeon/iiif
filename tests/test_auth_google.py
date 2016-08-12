@@ -91,7 +91,7 @@ class TestAll(unittest.TestCase):
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             ia = auth.image_authn()
-            self.assertEqual(ia, '')
+            self.assertEqual(ia, False)
 
     def test05_login_handler(self):
         """Test login_handler method."""
@@ -138,21 +138,21 @@ class TestAll(unittest.TestCase):
                 "No login details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add callback but no account cookie
-        with dummy_app.test_request_context('/a_request?callback=CB'):
+        with dummy_app.test_request_context('/a_request?messageId=1234'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             response = auth.access_token_handler()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(
                 response.headers['Content-type'],
-                'application/javascript')
-            # strip JavaScript wrapper and then check JSON
-            js = response.get_data().decode('utf-8')
-            self.assertTrue(re.match('CB\(.*\);', js))
-            j = json.loads(js.lstrip('CB(').rstrip(');'))
-            self.assertEqual(
-                j['description'],
-                "No login details received")
-            self.assertEqual(j['error'], "client_unauthorized")
+                'text/html')
+            # Check HTML is postMessage, includes an error
+            html = response.get_data().decode('utf-8')
+            self.assertTrue(re.search(
+                    r'postMessage\(',
+                    html))
+            self.assertTrue(re.search(
+                    r'"error"',
+                    html))
         # add an account cookie
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
@@ -164,8 +164,30 @@ class TestAll(unittest.TestCase):
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['accessToken'], "ACCOUNT_TOKEN")
+            self.assertEqual(j['accessToken'], 'bbe1966ed41dd92aee52489c606253e8016532b3')
             self.assertEqual(j['tokenType'], "Bearer")
+        # add an account cookie and a messageId
+        h = Headers()
+        h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
+        with dummy_app.test_request_context('/a_request?messageId=2345', headers=h):
+            auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
+            response = auth.access_token_handler()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'text/html')
+            # Check HTML is postMessage, includes messageId,
+            # does not include an error
+            html = response.get_data().decode('utf-8')
+            self.assertTrue(re.search(
+                    r'postMessage\(',
+                    html))
+            self.assertTrue(re.search(
+                    r'"messageId":\s*"2345"',
+                    html))
+            self.assertFalse(re.search(
+                    r'"error"',
+                    html))
 
     def test08_home_handler(self):
         """Test home_handler method."""

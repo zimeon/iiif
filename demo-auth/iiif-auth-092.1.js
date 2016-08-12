@@ -13,8 +13,10 @@
 
 var iiif_auth = (function () {
 
+var osd_prefix_url = "openseadragon121/images/";
+var osd_div = '<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>'
 var log_id = "#log";
-var token_service_uri = "http://localhost:8001/2.1_pil_gauth/token";
+var token_service_uri = "";
 var image_uri = "";
 
 /**
@@ -22,6 +24,8 @@ var image_uri = "";
  * 
  * Requires an HTML element (such as a <div>) with id="log"
  * to which new lines of text are appended on every call.
+ *
+ * @param {string} text - a line of log text to display
  */
 var linenum = 0;
 function log(text) {
@@ -29,70 +33,52 @@ function log(text) {
     $(log_id).prepend("[" + linenum + "] " + text + "<br/>");
 }
 
-// check for an auth service ... once tileSource has loaded
-function on_authed() {
-    // first try to get an authorization token from the token service ...
-    // via JSONP :(
-    // XXX TODO: get the URL from the info.json
-    log("Fetching Token");        
-    $.getJSON(token_service_uri + "?callback=?", on_tokened);
-}
-
-
-function on_tokened(data) {
-    var token, error;
-    if (data.hasOwnProperty('access_token')) {
-        token = data.access_token;
-        error = false;
-        log("Got token: " + token);
-    } else {
-        // error condition
-        token = '';
-        error = true;
-        log("Got error: " + data.error)
+/**
+ * Make an OpenSeadragon viewer
+ *
+ * @param {string} image_uri_in - optionally the IIIF Image URI (no /info.json or /params/) 
+ */
+function make_viewer(image_uri_in) {
+    if (image_uri_in !== undefined) {
+        image_uri = image_uri_in;
     }
+    log("Making unauthenticated viewer");
 
-    if (error) {
-        // Error make unauthed viewer
-        make_viewer();
-    } else {
-        // Okay, make authed viewer
-        $('#openseadragon').remove();
-        $('#authbox').empty();
-        $('#container').append('<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>');
-        $.ajax({ url: image_uri+"/info.json",
-                 headers: {"Authorization": token},
-                 cache: false,
-                 success: on_got_info });
-    }
-}
+    $('#openseadragon').remove();
+    $('#authbox').empty();
+    $('#container').append(osd_div);
+    var where = $("#openseadragon");
 
-function on_got_info(data) {
-    log("Got full info.json");
-
-    process_auth_services(data, 'logout');
-
-    viewer = OpenSeadragon({
+    var viewer = OpenSeadragon({
         id: "openseadragon",
-        tileSources: data,
+        tileSources: image_uri + "/info.json?t=" + new Date().getTime(),
         showNavigator: true,
-        prefixUrl: "openseadragon121/images/"
+        prefixUrl: osd_prefix_url
     });
+    viewer.addHandler('open', handle_open)
+    viewer.addHandler('failed-open', handle_open)
 }
 
-function do_auth(evt) {
-    login = $(this).attr('data-login');
-
-    // The redirected to window will self-close
-    // open/closed state is the only thing we can see across domains :(
-    log("Opening Auth service");
-    var win = window.open(login, 'loginwindow');
-    var pollTimer   =   window.setInterval(function() { 
-        if (win.closed) {
-            window.clearInterval(pollTimer);
-            on_authed();
-        }
-    }, 500);
+/**
+ * Handler for OpenSeadragon event used as hook to get login information
+ *
+ * The action of the clicking the login button is tied to the
+ * do_auth(..) method.
+ *
+ * @param event
+ */
+function handle_open(event) {
+    var info = event.eventSource.source;
+    // This only gets called when we're NOT authed, so no need to put in logout
+    var svc = find_auth_services(info);
+    if (svc.hasOwnProperty('login')) {
+        log("Adding login button")
+        $('#authbox').append("<button id='authbutton' data-login='"+svc.login+"'>"+svc.login_label+"</button>");
+        $('#authbutton').bind('click', do_auth);
+        token_service_uri = svc.token // FIXME - stash token URI for later
+    } else {
+        log("No login service");
+    }
 }
 
 /** 
@@ -166,52 +152,133 @@ function find_auth_services(info) {
 }
  
 /**
- * Handler for OpenSeadragon event used as hook to get login information
+ * Handler for login action
  *
- * @param event
+ * When the login button has been pressed we mus then open a new window
+ * where the user will interact with the login service. All we can 
+ * tell is when that window is closed, at which point we try to get 
+ * an access token (which is expected to work only if auth was successful).
  */
-function handle_open(event) {
-    var info = event.eventSource.source;
-    // This only gets called when we're NOT authed, so no need to put in logout
-    var svc = find_auth_services(info);
-    if (svc.hasOwnProperty('login')) {
-        log("Adding login button")
-        $('#authbox').append("<button id='authbutton' data-login='"+svc.login+"'>"+svc.login_label+"</button>");
-        $('#authbutton').bind('click', do_auth);
+function do_auth(event) {
+    login = $(this).attr('data-login');
+
+    // The redirected to window will self-close
+    // open/closed state is the only thing we can see across domains :(
+    log("Opening window for login");
+    var win = window.open(login, 'loginwindow');
+    var pollTimer = window.setInterval(function() { 
+        if (win.closed) {
+            window.clearInterval(pollTimer);
+            log("Detected login window close (success or not unknown)")
+            request_access_token();
+        }
+    }, 500);
+}
+
+/**
+ * Attempt to get access token via postMessage to iFrame
+ *
+ * FIXME - Should spec say something specific about the need to create an iFrame
+ * in any particular way?
+ */
+function request_access_token() {
+    // register an event listener to receive a cross domain message:
+    window.addEventListener("message", receive_message);
+    // now attempt to get token by accessing token service from iFrame
+    log("Requesting access token via iFrame");        
+    document.getElementById('messageFrame').src = token_service_uri + '?messageId=1234';
+}
+
+/**
+ * Receive postMessage from iFrame to get access token
+ *
+ * This code copied from 
+ * <http://iiif.io/api/auth/0.9/#example-token-requests-and-responses>
+ */
+function receive_message(event) {
+    data = event.data;
+    log("Received postMessage")
+    if (data.hasOwnProperty('accessToken')) {
+        var token = data.accessToken;
+        log("Extracted access token (" + token + ")");
+        make_authorized_viewer(token);
     } else {
-        log("No login service");
+        var explanation = "no description in response"
+        if (data.hasOwnProperty("description")) {
+            explanation = data.description;
+        }
+        log("Failed to extract access token: " + explanation);
+        // restart unauthorized viewer
+        log("");
+        make_viewer();
     }
 }
 
 /**
- * Make an OpenSeadragon viewer
- *
- * @param {string} image_uri_in - the IIIF Image URI (no /info.json or /params/) 
+ * Use token to make authorized viewer
+ * 
+ * @param {string} token - the access token
  */
-function make_viewer(image_uri_in) {
-    image_uri = image_uri_in;
-    log("Making unauthenticated viewer");
-
+function make_authorized_viewer(token) {
     $('#openseadragon').remove();
     $('#authbox').empty();
-    $('#container').append('<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>');
-    var where = $("#openseadragon");
-
-    var viewer = OpenSeadragon({
-        id: "openseadragon",
-        tileSources: image_uri + "/info.json?t=" + new Date().getTime(),
-        showNavigator: true,
-        prefixUrl: "openseadragon121/images/"
-    });
-    viewer.addHandler('open', handle_open)
-    viewer.addHandler('failed-open', handle_open)
+    $('#container').append(osd_div);
+    $.ajax({ url: image_uri+"/info.json",
+             headers: {"Authorization": token},
+             cache: false,
+             success: make_authorized_viewer_got_info,
+             error: authorization_failure });
 }
 
-// Return pointers making certain variables and functions public
+/**
+ * Second part of making authorized viewer, after getting info.json
+ * 
+ * Called after sucessful load of the authorized info.json. Looks
+ * for logout description and displays button if present, then
+ * starts OpenSeadragon again with the new info.json object.
+ *
+ * @param {object} info - the info.json object of the authorized image
+ */
+function make_authorized_viewer_got_info(info) {
+    log("Got full info.json");
+    // Do we have a logout definition?
+    var svc = find_auth_services(info);
+    if (svc.hasOwnProperty('logout')) {
+        log("Adding logout button")
+        $('#authbox').append("<button id='authbutton' data-login='"+svc.logout+"'>"+svc.logout_label+"</button>");
+        $('#authbutton').bind('click', function() {
+            log("");
+            make_viewer();
+        });
+    } else {
+        log("No logout service");
+    }
+    // Start OpenSeadragon again with new tile source
+    viewer = OpenSeadragon({
+        id: "openseadragon",
+        tileSources: info,
+        showNavigator: true,
+        prefixUrl: osd_prefix_url
+    });
+}
+
+/**
+ * Called when the attempt to load full info.json fails.
+ *
+ * Report failure and then attempt to load the original
+ * unauthorized OpenSeadragon again.
+ */
+function authorization_failure(xhr, error, except) {
+    log("Authorization failed: " + error);
+    // Set 3s delay before making viewer again
+    setTimeout(function() {
+        log("");
+        make_viewer();
+    }, 3000);
+}
+
 return {
-    // Variables
-    log_id: log_id,
-    // Functions
+    // Public functions
     log: log,
     make_viewer: make_viewer
 };

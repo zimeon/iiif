@@ -3,9 +3,11 @@
 FIXME - this code assumes Flask webapp framework, should be abstracted
 """
 
+import hashlib
 import json
 import re
 import sys
+import time
 import os.path
 try:
     # python3
@@ -57,22 +59,37 @@ class IIIFAuthGoogle(IIIFAuth):
     def info_authn(self):
         """Check to see if user if authenticated for info.json.
 
-        Must have Authorization header with value that is the appropriate
+        Must have Authorization header with value that is an appropriate
         token.
         """
-        self.logger.info("info_authn: Authorization header = " +
-                         request.headers.get('Authorization', '[none]'))
-        return(request.headers.get('Authorization', '') != '')
+        authz_header = request.headers.get('Authorization', '[none]')
+        return self.token_valid(authz_header, "info_authn: Authorization header")
 
     def image_authn(self):
         """Check to see if user if authenticated for image requests.
 
-        Must have auth cookie with known token value.
+        Must have auth cookie with an appropriate token value.
         """
-        self.logger.info("image_authn: auth cookie = " +
-                         request.cookies.get(self.auth_cookie_name, default='[none]'))
-        return request.cookies.get(self.auth_cookie_name, default='')
+        authn_cookie = request.cookies.get(self.auth_cookie_name, default='[none]')
+        return self.token_valid(authn_cookie, "image_authn: auth cookie")
 
+    def token_valid(self, token, log_msg):
+        """Check token validity.
+
+        Returns true if the token is valid. The set of allowed tokens is
+        stored in self.tokens.
+
+        Uses log_msg as prefix to info level log message of accetance or
+        rejection.
+        """
+        if (token in self.tokens):
+            age = int(time.time()) - self.tokens[token]
+            self.logger.info(log_msg + " " + token + " ACCEPTED (%ds old)" % age)
+            return True
+        else:
+            self.logger.info(log_msg + " " + token + " REJECTED")
+            return False  
+      
     def login_handler(self, config=None, prefix=None, **args):
         """OAuth starts here. This will redirect User to Google."""
         params = {
@@ -102,30 +119,44 @@ class IIIFAuthGoogle(IIIFAuth):
     def access_token_handler(self, **args):
         """Get access token based on cookie sent with this request.
 
-        The client requests a token to send in re-request for info.json.
-        Support JSONP request to get the token to send to info.json in
-        Authorization header.
+        This handler deals with two cases:
+
+        1) Non-browser client (indicated by no messageId set in request)
+        where the response is a simple JSON response.
+
+        2) Browser client (indicate by messageId setin request) where
+        the request must be made from a an iFrame and the response is 
+        sent as JSON wrapped in HTML containing a postMessage() script
+        that conveys the access token to the viewer.
         """
-        callback_function = request.args.get('callback', default='')
-        authcode = request.args.get('code', default='')
+        message_id = request.args.get('messageId', default='')
         account = request.cookies.get(self.account_cookie_name, default='')
-        data_str = json.dumps(self.access_token_response(account))
+        token = self.access_token(account)
+        data_str = json.dumps(self.access_token_response(token, message_id))
 
         ct = "application/json"
-        if (callback_function):
-            data_str = "%s(%s);" % (callback_function, data_str)
-            ct = "application/javascript"
+        if (message_id):
+            data_str = """<html>
+<body>
+<p>postMessage ACCESS TOKEN %s</p>
+<script>
+(window.opener || window.parent).postMessage(%s, '*');    
+</script>
+</body>
+</html>
+""" % (token, data_str)
+            ct = "text/html" # FIXME - does spec need to be explicit about content type?
         # Build response
         response = make_response(data_str, 200, {'Content-Type': ct})
-        if (account):
-            # Set the cookie for the image content -- FIXME - need something
-            # real
-            response.set_cookie(self.auth_cookie_name, account)
+        if (token):
+            # Set the cookie for the image content
+            self.logger.info("access_token_handler: sending token via cookie = " + token)
+            response.set_cookie(self.auth_cookie_name, token)
         response.headers['Access-control-allow-origin'] = '*'
         return response
 
     def home_handler(self, config=None, prefix=None, **args):
-        """Handler for /home redirect path after Goole auth.
+        """Handler for /home redirect path after Google auth.
 
         OAuth ends up back here from Google. Set the account cookie
         and close window to trigger next step.
@@ -137,9 +168,37 @@ class IIIFAuthGoogle(IIIFAuth):
         name = gdata.get('name', 'NO_NAME')
         response = make_response(
             "<html><script>window.close();</script></html>", 200, {'Content-Type': "text/html"})
+        # FIXME - Identity probably should not be in the clear...
         response.set_cookie(self.account_cookie_name,
-                            'Token for ' + name + ' ' + email)
+                            'Authenticated identity: ' + name + ' ' + email)
         return response
+
+    def account_allowed(self, account):
+        """True if the account credentials should be accepted.
+
+        Default implementation is that any account is allowed,
+        so response is True if account is True.
+        """
+        return True if (account) else False
+
+    def access_token(self, account):
+        """Make and store access token from account data.
+
+        If account is set then make a token and add it to the dict
+        of accepted tokens with current timestamp as the value. Return
+        the token.
+
+        Otherwise return None.
+
+        FIXME - This should be secure! For now just make a trivial 
+        hash.
+        """
+        if (self.account_allowed(account)):
+            token = hashlib.sha1(("SeCrEt StUFF 'ERe" + account).encode('utf-8')).hexdigest()
+            self.tokens[token] = int(time.time())
+            return token
+        else:
+            return None
 
     ######################################################################
     # Code to get data from Google API
@@ -158,7 +217,7 @@ class IIIFAuthGoogle(IIIFAuth):
         url = self.google_oauth2_url + 'token'
         req = Request(url, payload)
         json_str = urlopen(req).read()
-        if sys.version_info < (3, 0):
+        if sys.version_info < (3, 0): #FIXME - is there a cleaner way to handle py2/3?
             json_str = json_str.decode('utf-8')
         return json.loads(json_str)
 
@@ -171,6 +230,6 @@ class IIIFAuthGoogle(IIIFAuth):
         url = self.google_api_url + 'userinfo?' + payload
         req = Request(url)
         json_str = urlopen(req).read()
-        if sys.version_info < (3, 0):
+        if sys.version_info < (3, 0): #FIXME - is there a cleaner way to handle py2/3?
             json_str = json_str.decode('utf-8')
         return json.loads(json_str)

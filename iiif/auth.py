@@ -48,8 +48,12 @@ class IIIFAuth(object):
 
         Login service description is the wrapper for all other
         auth service descriptions so we have nothing unless
-        self.login_uri is specified. I we do then add any other
+        self.login_uri is specified. If we do then add any other
         auth services at children.
+
+        Exactly the same structure is used in the authorized
+        and unauthorized cases (although in the data could be
+        different).
         """
         if (self.login_uri):
             svc = self.login_service_description()
@@ -108,16 +112,19 @@ class IIIFAuth(object):
     # Override with method to implement
     access_token_handler = None
 
-    def access_token_response(self, token):
+    def access_token_response(self, token, message_id=None):
         """Access token response structure.
 
         Success if token is set, otherwise (None, empty string) give error
-        response.
+        response. If message_id is set then an extra messageId attribute is
+        set in the response to handle postMessage() responses.
         """
         if (token):
             data = {"accessToken": token,
                     "tokenType": "Bearer",
                     "expiresIn": 3600}
+            if (message_id):
+                data['messageId'] = message_id
         else:
             data = {"error": "client_unauthorized",
                     "description": "No login details received"}
