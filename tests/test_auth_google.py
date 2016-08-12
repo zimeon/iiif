@@ -77,7 +77,9 @@ class TestAll(unittest.TestCase):
         lsd = auth.logout_service_description()
         self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/logout')
         self.assertEqual(lsd['@id'], 'xyz')
-        self.assertEqual(lsd['label'], 'Logout from image server (Google auth)')
+        self.assertEqual(
+            lsd['label'],
+            'Logout from image server (Google auth)')
 
     def test03_info_authn(self):
         """Test info_authn method."""
@@ -148,11 +150,11 @@ class TestAll(unittest.TestCase):
             # Check HTML is postMessage, includes an error
             html = response.get_data().decode('utf-8')
             self.assertTrue(re.search(
-                    r'postMessage\(',
-                    html))
+                r'postMessage\(',
+                html))
             self.assertTrue(re.search(
-                    r'"error"',
-                    html))
+                r'"error"',
+                html))
         # add an account cookie
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
@@ -164,7 +166,8 @@ class TestAll(unittest.TestCase):
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['accessToken'], 'bbe1966ed41dd92aee52489c606253e8016532b3')
+            self.assertEqual(j['accessToken'],
+                             'bbe1966ed41dd92aee52489c606253e8016532b3')
             self.assertEqual(j['tokenType'], "Bearer")
         # add an account cookie and a messageId
         h = Headers()
@@ -180,14 +183,14 @@ class TestAll(unittest.TestCase):
             # does not include an error
             html = response.get_data().decode('utf-8')
             self.assertTrue(re.search(
-                    r'postMessage\(',
-                    html))
+                r'postMessage\(',
+                html))
             self.assertTrue(re.search(
-                    r'"messageId":\s*"2345"',
-                    html))
+                r'"messageId":\s*"2345"',
+                html))
             self.assertFalse(re.search(
-                    r'"error"',
-                    html))
+                r'"error"',
+                html))
 
     def test08_home_handler(self):
         """Test home_handler method."""
