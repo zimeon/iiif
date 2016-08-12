@@ -1,11 +1,11 @@
 /* IIIF Demo Authentication Library
  * For v0.9.2: http://auth_notes.iiif.io/api/auth/0.9/
  * 
- * Requires OpenSeadragon 121 or higher.
+ * Requires OpenSeadragon 121, 200 or higher.
  * Requires jQuery 1.11 or higher.
  *
- * Based on IIIF Auth 0.9 implementation by Robert Sanderson
- * Simeon Warner - 2016-08-10...
+ * Based on IIIF Auth v0.9 implementation by Robert Sanderson @azaroth42.
+ * Simeon Warner @zimeon - 2016-08-10...
  */
 
 /*jslint white: true*/
@@ -18,9 +18,18 @@
 var iiif_auth = (function () {
 "use strict";
 
-var osd_prefix_url = "openseadragon121/images/",
+var osd_prefix_url = "openseadragon200/images/",
     osd_div = '<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>',
+    osd_id = "#openseadragon",
+    demo_html =
+        '<div id="container" style="width: 605px; height: 405px;"></div>' +
+        '<div id="authbox" style="margin-top: 10px; height: 3ex; border: 2px solid red; width: 605px;"></div>' +
+        '<div id="log" style="margin-top: 10px; height: 20ex; border: 2px solid green; width: 605px; overflow: auto;"></div>' +
+        '<iframe id="messageFrame" style="margin-top: 10px; height: 3ex; border: 2px solid blue; width: 605px;"></iframe>',
+    container_id = "#container",
+    authbox_id="#authbox",
     log_id = "#log",
+    message_frame_id = "#messageFrame",
     token_service_uri = "",
     image_uri = "",
     viewer, // our instance of OpenSeadragon
@@ -168,9 +177,9 @@ function make_authorized_viewer_got_info(info) {
  * @param {string} token - the access token
  */
 function make_authorized_viewer(token) {
-    $('#openseadragon').remove();
-    $('#authbox').empty();
-    $('#container').append(osd_div);
+    $(osd_id).remove();
+    $(authbox_id).empty();
+    $(container_id).append(osd_div);
     $.ajax({ url: image_uri+"/info.json",
              headers: {"Authorization": token},
              cache: false,
@@ -209,13 +218,17 @@ function receive_message(event) {
  *
  * FIXME - Should spec say something specific about the need to create an iFrame
  * in any particular way?
+ *
+ * FIXME - Should add some useful timeout here that gets canceled if
+ * a message is recieved. Otherwise we just get a hang if no postMessage
+ * comes back.
  */
 function request_access_token() {
     // register an event listener to receive a cross domain message:
     window.addEventListener("message", receive_message);
     // now attempt to get token by accessing token service from iFrame
     log("Requesting access token via iFrame");        
-    document.getElementById('messageFrame').src = token_service_uri + '?messageId=1234';
+    document.getElementById(message_frame_id).src = token_service_uri + '?messageId=1234';
 }
 
 /**
@@ -289,10 +302,29 @@ make_viewer = function (image_uri_in) {
     viewer.addHandler('failed-open', handle_open);
 };
 
+/**
+ * Build body of demo page with OpenSeadragon, log, etc.
+ *
+ * Add all elements of demo page to the <div> with id="demo",
+ * and then call make_viewer(image_uri_in).
+ *
+ * @param {string} image_uri_in - IIIF Image URI (no /info.json or /params/) 
+ * @param {string} demo_id - optional override for default <div> id
+ */
+function make_demo_page(image_uri_in, demo_id) {
+    demo_id = demo_id !== undefined ? demo_id : '#demo';
+    $(demo_id).empty();
+    $(demo_id).append(demo_html);
+    $(demo_id).append('<p>Relies upon image at <code><a href="' +
+                      image_uri_in + '">' + image_uri_in + '</a></code>.</p>');
+    make_viewer(image_uri_in);
+}
+
 return {
     // Public functions
     log: log,
-    make_viewer: make_viewer
+    make_viewer: make_viewer,
+    make_demo_page: make_demo_page
 };
 
 }());

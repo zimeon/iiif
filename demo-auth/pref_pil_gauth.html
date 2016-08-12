@@ -1,24 +1,18 @@
 <html>
 <head>
-<title>IIIF Auth Tests</title>
-<script src="openseadragon121/openseadragon.min.js"></script>
+<title>IIIF Auth Test</title>
+<script src="openseadragon200/openseadragon.min.js"></script>
 <script src="jquery-1.11.1.min.js"></script>
-<script src="iiif-auth-092.1.js"></script>
+<script src="iiif-auth-092.js"></script>
 <head>
 <body>
-<h2>IIIF OpenSeadragon Authentication Test</h2>
+<h2>IIIF OpenSeadragon Google Authentication Test</h2>
 
-<div id="container" style="width: 605px; height: 405px;"></div>
-<div id="authbox" style="margin-top: 10px; height: 3ex; border: 2px solid red; width: 605px;"></div>
-<div id="log" style="margin-top: 10px; height: 20ex; border: 2px solid green; width: 605px; overflow: auto;"></div>
-<iframe id="messageFrame" style="margin-top: 10px; height: 3ex; border: 2px solid blue; width: 605px;"></iframe>
-
+<div id="demo">Loading demo...</div>
 <script type="text/javascript">
-// Start with a viewer which be unauthed initially
-iiif_auth.make_viewer("http://localhost:8001/2.1_pil_gauth/tetons");
+// Start with a viewer which will be unauthenticated initially
+iiif_auth.make_demo_page("http://localhost:8001/2.1_pil_gauth/tetons");
 </script>
-
-<p>Relies upon image server with Google auth at <code><a href="http://localhost:8001/2.1_pil_gauth/tetons">http://localhost:8001/2.1_pil_gauth/tetons</a></code>.</p>
 
 </body>
 </html>
