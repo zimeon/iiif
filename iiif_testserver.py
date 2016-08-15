@@ -159,7 +159,7 @@ def osd_page_handler(config=None, identifier=None, prefix=None, **args):
 def host_port_prefix(host, port, prefix):
     """Return URI composed of scheme, server, port, and prefix."""
     uri = "http://" + host
-    if (host != 80):
+    if (port != 80):
         uri += ':' + str(port)
     if (prefix):
         uri += '/' + prefix
@@ -353,7 +353,7 @@ class IIIFHandler(object):
         (outfile, mime_type) = self.manipulator.derive(file, self.iiif)
         # FIXME - find efficient way to serve file with headers
         self.add_compliance_header()
-        return send_file(open(outfile, 'rb'), mimetype=mime_type)
+        return send_file(outfile, mimetype=mime_type)
 
     def error_response(self, e):
         """Make response for an IIIFError e.
@@ -364,7 +364,8 @@ class IIIFHandler(object):
         return self.make_response(*e.image_server_response(self.api_version))
 
 
-def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, auth=None, **args):
+def iiif_info_handler(prefix=None, identifier=None,
+                      config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Information requests."""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
@@ -387,7 +388,8 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, aut
 iiif_info_handler.provide_automatic_options = False
 
 
-def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, auth=None, **args):
+def iiif_image_handler(prefix=None, identifier=None,
+                       path=None, config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Requests.
 
     Behaviour for case of a non-authn or non-authz case is to
@@ -542,9 +544,17 @@ def setup_options():
     """Parse options and arguments."""
     p = optparse.OptionParser(description='IIIF Image Testserver')
     p.add_option('--host', default='localhost',
-                 help="Server host (default %default)")
+                 help="Service host (default %default)")
     p.add_option('--port', '-p', type='int', default=8000,
-                 help="Server port (default %default)")
+                 help="Service port (default %default)")
+    p.add_option('--container-prefix', default=None,
+                 help="Container prefix (default %default)")
+    p.add_option('--app-host', default=None,
+                 help="Local application host for reverse proxy deployment, "
+                      "as opposed to service --host (default %default)")
+    p.add_option('--app-port', type='int', default=None,
+                 help="Local application port for reverse proxy deployment. "
+                      "as opposed to service --port (default %default)")
     p.add_option('--image-dir', '-d', default='testimages',
                  help="Image directory (default %default)")
     p.add_option('--generator-dir', default='iiif/generators',
@@ -560,7 +570,7 @@ def setup_options():
                  help="Set of API versions to support (default %default)")
     p.add_option('--manipulators', default='pil',
                  help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
-                      "or gen for generated image. (default %default")
+                      "or gen for generated image. (default %default)")
     p.add_option('--auth-types', default='none',
                  help="Set of authentication types to support (default %default)")
     p.add_option('--gauth-client-secret', default='client_secret.json',
@@ -716,6 +726,24 @@ def create_app(opt):
     return(app)
 
 
+class ReverseProxied(object):
+    """Wrap the application call to deal with a reverse proxy setup.
+
+    Overrides HTTP_HOST environment setting.
+
+    See: <http://flask.pocoo.org/snippets/35/>
+
+    :param app: the WSGI application
+    """
+
+    def __init__(self, app, host):
+        self.app = app
+        self.host = host
+
+    def __call__(self, environ, start_response):
+        environ['HTTP_HOST'] = self.host
+        return self.app(environ, start_response)
+
 if __name__ == '__main__':
     # Command line, run own server
     pidfile = os.path.basename(__file__)[:-3] + '.pid'  # strip .py, add .pid
@@ -723,10 +751,20 @@ if __name__ == '__main__':
         fh.write("%d\n" % os.getpid())
         fh.close()
     opt = setup_options()
-    opt.container_prefix = ''
     app = create_app(opt)
-    print("Starting test server on http://%s:%d/ ..." % (opt.host, opt.port))
-    app.run(host=opt.host, port=opt.port)
+    # Set up app_host and app_port in case that we are running
+    # under reverse proxy setup, otherwise they default to
+    # opt.host and opt.port.
+    if (opt.app_host or opt.app_port):
+        print("Reverse proxy for service at http://%s:%d/ ..." %
+              (opt.host, opt.port))
+        app.wsgi_app = ReverseProxied(app.wsgi_app, opt.host)
+    else:
+        opt.app_host = opt.host
+        opt.app_port = opt.port
+    print("Starting test server on http://%s:%d/ ..." %
+          (opt.app_host, opt.app_port))
+    app.run(host=opt.app_host, port=opt.app_port)
 else:
     opt = optparse.Values()
     opt.verbose = 1
