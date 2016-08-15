@@ -730,17 +730,18 @@ class ReverseProxied(object):
     """Wrap the application call to deal with a reverse proxy setup.
 
     Overrides HTTP_HOST environment setting.
-
     See: <http://flask.pocoo.org/snippets/35/>
 
     :param app: the WSGI application
     """
 
     def __init__(self, app, host):
+        """Initialize reverse proxy wrapper, store host."""
         self.app = app
         self.host = host
 
     def __call__(self, environ, start_response):
+        """Set environment with service host."""
         environ['HTTP_HOST'] = self.host
         return self.app(environ, start_response)
 
