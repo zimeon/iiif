@@ -1,11 +1,15 @@
 <html>
 <head>
-  <title>IIIF demo no auth</title>
+  <title>IIIF Authentication - OpenSeadragon with no auth</title>
   <script src="openseadragon200/openseadragon.min.js"></script>
 </head>
 <body>
 
-<h1>IIIF Demo no auth</h1>
+<h1>IIIF Authentication - OpenSeadragon with no auth</h1>
+
+<p>Setup for image <code><a href="http://localhost:8001/2.1_pil_gauth/tetons/info.json">http://localhost:8001/2.1_pil_gauth/tetons/info.json</a></code></p>
+
+<p>Will be redirected to a degraded image (grayscale), better than nothing?</p>
 
 <div id="openseadragon1" style="width: 500px; height: 400px;"></div>  
 <script>
@@ -14,7 +18,7 @@ function initOpenSeadragon() {
         id: "openseadragon1",
         minZoomImageRatio: 1,
         prefixUrl: "openseadragon200/images/",
-        tileSources: "http://localhost:8001/1.1_pil/tetons/info.json",
+        tileSources: "http://localhost:8001/2.1_pil_gauth/tetons/info.json",
         crossOriginPolicy: false});
     }
     window.onload = initOpenSeadragon;
