@@ -28,8 +28,9 @@ class IIIFAuth(object):
         # running on the same server
         self.set_cookie_prefix(cookie_prefix)
         self.account_cookie_name = self.cookie_prefix + 'account'
-        self.auth_cookie_name = self.cookie_prefix + 'loggedin'
+        self.access_cookie_name = self.cookie_prefix + 'access'
         # Auth data
+        self.cookies = {}
         self.tokens = {}
 
     def set_cookie_prefix(self, cookie_prefix=None):

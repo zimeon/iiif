@@ -167,7 +167,7 @@ class TestAll(unittest.TestCase):
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(j['accessToken'],
-                             'bbe1966ed41dd92aee52489c606253e8016532b3')
+                             'e6ee17edc6690565bfd517bac8b930f066540572')
             self.assertEqual(j['tokenType'], "Bearer")
         # add an account cookie and a messageId
         h = Headers()

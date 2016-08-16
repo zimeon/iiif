@@ -25,22 +25,22 @@ class IIIFAuthFlask(IIIFAuth):
         """Check to see if user if authenticated for info.json.
 
         Must have Authorization header with value that is an appropriate
-        token.
+        and valid access token.
         """
         authz_header = request.headers.get('Authorization', '[none]')
-        return self.token_valid(
+        return self.access_token_valid(
             authz_header, "info_authn: Authorization header")
 
     def image_authn(self):
         """Check to see if user if authenticated for image requests.
 
-        Must have auth cookie with an appropriate token value.
+        Must have access cookie with an appropriate value.
         """
         authn_cookie = request.cookies.get(
-            self.auth_cookie_name, default='[none]')
-        return self.token_valid(authn_cookie, "image_authn: auth cookie")
+            self.access_cookie_name, default='[none]')
+        return self.access_cookie_valid(authn_cookie, "image_authn: auth cookie")
 
-    def token_valid(self, token, log_msg):
+    def access_token_valid(self, token, log_msg):
         """Check token validity.
 
         Returns true if the token is valid. The set of allowed tokens is
@@ -52,10 +52,28 @@ class IIIFAuthFlask(IIIFAuth):
         if (token in self.tokens):
             age = int(time.time()) - self.tokens[token]
             self.logger.info(log_msg + " " + token +
-                             " ACCEPTED (%ds old)" % age)
+                             " ACCEPTED TOKEN (%ds old)" % age)
             return True
         else:
-            self.logger.info(log_msg + " " + token + " REJECTED")
+            self.logger.info(log_msg + " " + token + " REJECTED TOKEN")
+            return False
+
+    def access_cookie_valid(self, cookie, log_msg):
+        """Check access cookie validity.
+
+        Returns true if the access cookie is valid. The set of allowed
+        cookies is stored in self.cookies.
+
+        Uses log_msg as prefix to info level log message of accetance or
+        rejection.
+        """
+        if (cookie in self.cookies):
+            age = int(time.time()) - self.cookies[cookie]
+            self.logger.info(log_msg + " " + cookie +
+                             " ACCEPTED COOKIE (%ds old)" % age)
+            return True
+        else:
+            self.logger.info(log_msg + " " + cookie + " REJECTED COOKIE")
             return False
 
     def login_handler_redirect(self, url):
@@ -78,7 +96,7 @@ class IIIFAuthFlask(IIIFAuth):
             "<html><script>window.close();</script></html>", 200,
             {'Content-Type': "text/html"})
         response.set_cookie(self.account_cookie_name, expires=0)
-        response.set_cookie(self.auth_cookie_name, expires=0)
+        response.set_cookie(self.access_cookie_name, expires=0)
         response.headers['Access-Control-Allow-Origin'] = '*'
         return response
 
@@ -98,9 +116,13 @@ class IIIFAuthFlask(IIIFAuth):
         message_id = request.args.get('messageId', default='')
         account = request.cookies.get(self.account_cookie_name, default='')
         token = self.access_token(account)
-        data_str = json.dumps(self.access_token_response(token, message_id))
 
+        # Build JSON response
+        data_str = json.dumps(self.access_token_response(token, message_id))
         ct = "application/json"
+
+        # If message_id is set the wrap in HTML with postMessage JavaScript
+        # for a browser client
         if (message_id):
             data_str = """<html>
 <body style="margin: 0px;">
@@ -112,13 +134,20 @@ class IIIFAuthFlask(IIIFAuth):
 </html>
 """ % (token, data_str)
             ct = "text/html"
-        # Build response
+
+        # Send response along with cookie
         response = make_response(data_str, 200, {'Content-Type': ct})
         if (token):
-            # Set the cookie for the image content
             self.logger.info(
-                "access_token_handler: sending token via cookie = " + token)
-            response.set_cookie(self.auth_cookie_name, token)
+                "access_token_handler: setting access token = " + token)
+            # Set the cookie for the image content
+            cookie = self.access_cookie(token)
+            self.logger.info(
+                "access_token_handler: setting access cookie = " + cookie)
+            response.set_cookie(self.access_cookie_name, cookie)
+        else:
+            self.logger.info(
+                "access_token_handler: auth failed, sending error")
         response.headers['Access-control-allow-origin'] = '*'
         return response
 
@@ -130,12 +159,12 @@ class IIIFAuthFlask(IIIFAuth):
         """
         return True if (account) else False
 
-    def access_token(self, account):
-        """Make and store access token from account data.
+    def access_cookie(self, account):
+        """Make and store access cookie from account data.
 
-        If account is set then make a token and add it to the dict
-        of accepted tokens with current timestamp as the value. Return
-        the token.
+        If account is set then make a cookie and add it to the dict
+        of accepted cookies with current timestamp as the value. Return
+        the cookie.
 
         Otherwise return None.
 
@@ -143,15 +172,33 @@ class IIIFAuthFlask(IIIFAuth):
         hash.
         """
         if (self.account_allowed(account)):
-            token = hashlib.sha1(
+            cookie = hashlib.sha1(
                 ("SeCrEt StUFF 'ERe" + account).encode('utf-8')).hexdigest()
+            self.cookies[cookie] = int(time.time())
+            return cookie
+        else:
+            return None
+
+    def access_token(self, cookie):
+        """Make and store access token as proxy for cookie.
+
+        Create an access token to act as a proxy for access cookie, add it to
+        the dict of accepted tokens with current timestamp as the value. Return
+        the token. Return None is cookie is not set.
+
+        FIXME - This should be secure! For now just make a trivial
+        hash.
+        """
+        if (cookie):
+            token = hashlib.sha1(
+                ("AS3CR#t" + cookie).encode('utf-8')).hexdigest()
             self.tokens[token] = int(time.time())
             return token
         else:
             return None
 
     def set_cookie_close_window_response(self, account_cookie_value):
-        """Response with cookie set and close window HTML/JavaScript."""
+        """Response to set account cookie and close window HTML/JavaScript."""
         response = make_response(
             "<html><script>window.close();</script></html>", 200,
             {'Content-Type': "text/html"})

@@ -74,9 +74,9 @@ class IIIFAuthGoogle(IIIFAuthFlask):
         gdata = self.google_get_data(config, gresponse)
         email = gdata.get('email', 'NO_EMAIL')
         name = gdata.get('name', 'NO_NAME')
-        # FIXME - Identity probably should not be in the clear...
-        return self.set_cookie_close_window_response(
-            'Authenticated identity: ' + name + ' ' + email)
+        # Make and store cookie from identity, set and close window
+        cookie = self.access_cookie(name + ' ' + email)
+        return self.set_cookie_close_window_response(cookie)
 
     ######################################################################
     # Code to get data from Google API
