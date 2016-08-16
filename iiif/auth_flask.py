@@ -15,7 +15,6 @@ from .auth import IIIFAuth
 
 
 class IIIFAuthFlask(IIIFAuth):
-
     """IIIF Authentication Class for a Flask application."""
 
     def __init__(self, cookie_prefix=None):

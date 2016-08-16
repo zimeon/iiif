@@ -14,7 +14,6 @@ from .auth_flask import IIIFAuthFlask
 
 
 class IIIFAuthBasic(IIIFAuthFlask):
-
     """IIIF Authentication Class using HTTP Basic Auth."""
 
     def __init__(self, cookie_prefix=None):

@@ -102,4 +102,3 @@ class TestAll(unittest.TestCase):
                 re.search(
                     r'<script>window.close\(\);</script>',
                     html))
-

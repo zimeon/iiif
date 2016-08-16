@@ -7,7 +7,6 @@ import re
 
 
 class IIIFAuth(object):
-
     """IIIF Authentication Class.
 
     Base authentication class which does not actually implement an

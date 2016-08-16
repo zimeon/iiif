@@ -22,7 +22,6 @@ from .auth_flask import IIIFAuthFlask
 
 
 class IIIFAuthGoogle(IIIFAuthFlask):
-
     """IIIF Authentication Class using Google Auth."""
 
     def __init__(self, client_secret_file='client_secret.json',
