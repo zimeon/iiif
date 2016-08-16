@@ -216,7 +216,7 @@ class TestAll(unittest.TestCase):
         """Test google_get_token method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),
-                            return_value=Readable('{"a":"b"}')):
+                            return_value=Readable(b'{"a":"b"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host', port=None)
                 j = auth.google_get_token(config, 'prefix')
@@ -226,7 +226,7 @@ class TestAll(unittest.TestCase):
         """Test google_get_data method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),
-                            return_value=Readable('{"c":"d"}')):
+                            return_value=Readable(b'{"c":"d"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host', port=None)
                 j = auth.google_get_data(config, {'access_token': 'TOKEN'})

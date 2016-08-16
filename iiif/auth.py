@@ -7,6 +7,7 @@ import re
 
 
 class IIIFAuth(object):
+
     """IIIF Authentication Class.
 
     Base authentication class which does not actually implement an
@@ -27,8 +28,10 @@ class IIIFAuth(object):
         # Need to have different cookie names for each auth domain
         # running on the same server
         self.set_cookie_prefix(cookie_prefix)
+        self.account_cookie_name = self.cookie_prefix + 'account'
         self.auth_cookie_name = self.cookie_prefix + 'loggedin'
-        self.token_cookie_name = self.cookie_prefix + 'token'
+        # Auth data
+        self.tokens = {}
 
     def set_cookie_prefix(self, cookie_prefix=None):
         """Set a random cookie prefix unless one is specified.
@@ -168,7 +171,8 @@ class IIIFAuth(object):
         """
         return self.image_authn()
 
-    def scheme_host_port_prefix(self, scheme='http', host='host', port=None, prefix=None):
+    def scheme_host_port_prefix(self, scheme='http', host='host',
+                                port=None, prefix=None):
         """Return URI composed of scheme, server, port, and prefix."""
         uri = scheme + '://' + host
         if (port and not ((scheme == 'http' and port == 80) or

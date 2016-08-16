@@ -17,8 +17,8 @@ class TestAll(unittest.TestCase):
         self.assertEqual(auth.name, "image server")
         auth = IIIFAuth(cookie_prefix='abc_')
         self.assertEqual(auth.cookie_prefix, 'abc_')
+        self.assertEqual(auth.account_cookie_name, 'abc_account')
         self.assertEqual(auth.auth_cookie_name, 'abc_loggedin')
-        self.assertEqual(auth.token_cookie_name, 'abc_token')
 
     def test02_set_cookie_prefix(self):
         """Test set_cookie_prefix."""
