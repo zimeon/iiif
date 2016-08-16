@@ -10,7 +10,7 @@
 
 /*jslint white: true*/
 /*jslint unparam: true*/
-/*global $, OpenSeadragon, window, document, setTimeout*/
+/*global $, OpenSeadragon, window, setTimeout*/
 
 // Use Revealing Module pattern:
 // https://addyosmani.com/resources/essentialjsdesignpatterns/book/#revealingmodulepatternjavascript
@@ -21,15 +21,17 @@ var iiif_auth = (function () {
 var osd_prefix_url = "openseadragon200/images/",
     osd_div = '<div id="openseadragon" style="width: 600px; height: 400px; border: 2px solid purple" ></div>',
     osd_id = "#openseadragon",
+    iframe_html = '<iframe id="messageFrame" style="margin-top: 10px; height: 3ex; border: 2px solid blue; width: 605px;"></iframe>',
     demo_html =
         '<div id="container" style="width: 605px; height: 405px;"></div>' +
         '<div id="authbox" style="margin-top: 10px; height: 3ex; border: 2px solid red; width: 605px;"></div>' +
-        '<div id="log" style="margin-top: 10px; height: 20ex; border: 2px solid green; width: 605px; overflow: auto;"></div>' +
-        '<iframe id="messageFrame" style="margin-top: 10px; height: 3ex; border: 2px solid blue; width: 605px;"></iframe>',
+        '<div id="log" style="margin-top: 10px; height: 26ex; border: 2px solid green; width: 605px; overflow: auto;"></div>' +
+        '<div id="frameWrapper">' + iframe_html + '</div>',
     container_id = "#container",
     authbox_id="#authbox",
     log_id = "#log",
     message_frame_id = "#messageFrame",
+    frame_wrapper_id = "#frameWrapper",
     token_service_uri = "",
     image_uri = "",
     viewer, // our instance of OpenSeadragon
@@ -40,13 +42,17 @@ var osd_prefix_url = "openseadragon200/images/",
  * Logging window function to show useful debugging output
  * 
  * Requires an HTML element (such as a <div>) with id="log"
- * to which new lines of text are appended on every call.
+ * to which new lines of text are appended on every call. If
+ * called with text False then will add a blank line.
  *
  * @param {string} text - a line of log text to display
  */
 function log(text) {
-    linenum += 1;
-    $(log_id).prepend("[" + linenum + "] " + text + "<br/>");
+    $(log_id).prepend("<br/>");
+    if (text) {
+        linenum += 1;
+        $(log_id).prepend("[" + linenum + "] " + text);
+    }
 }
 
 /** 
@@ -132,7 +138,7 @@ function authorization_failure(xhr, error, exception) {
     log("Authorization failed: " + error);
     // Set 3s delay before making viewer again
     setTimeout(function() {
-        log("");
+        log();
         make_viewer();
     }, 3000);
 }
@@ -156,7 +162,8 @@ function make_authorized_viewer_got_info(info) {
         $('#authbox').append("<button id='authbutton' data-login='" +
             svc.logout + "'>" + svc.logout_label + "</button>");
         $('#authbutton').bind('click', function() {
-            log("");
+            log();
+            $(frame_wrapper_id).html(iframe_html);
             make_viewer();
         });
     } else {
@@ -208,7 +215,7 @@ function receive_message(event) {
         }
         log("Failed to extract access token: " + explanation);
         // restart unauthorized viewer
-        log("");
+        log();
         make_viewer();
     }
 }
@@ -228,13 +235,13 @@ function request_access_token() {
     window.addEventListener("message", receive_message);
     // now attempt to get token by accessing token service from iFrame
     log("Requesting access token via iFrame");        
-    document.getElementById(message_frame_id).src = token_service_uri + '?messageId=1234';
+    $(message_frame_id).attr({ 'src': token_service_uri + '?messageId=1234'});
 }
 
 /**
  * Handler for login action
  *
- * When the login button has been pressed we mus then open a new window
+ * When the login button has been pressed we must then open a new window
  * where the user will interact with the login service. All we can 
  * tell is when that window is closed, at which point we try to get 
  * an access token (which is expected to work only if auth was successful).
@@ -244,6 +251,7 @@ function do_auth(event) {
         win, pollTimer;
     // The redirected to window will self-close
     // open/closed state is the only thing we can see across domains :(
+    log();
     log("Opening window for login");
     win = window.open(login, 'loginwindow');
     pollTimer = window.setInterval(function() { 
