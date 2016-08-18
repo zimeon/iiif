@@ -234,8 +234,14 @@ function request_access_token() {
     // register an event listener to receive a cross domain message:
     window.addEventListener("message", receive_message);
     // now attempt to get token by accessing token service from iFrame
-    log("Requesting access token via iFrame");        
-    $(message_frame_id).attr({ 'src': token_service_uri + '?messageId=1234'});
+    log("Requesting access token via iFrame");    
+    if (!window.location.origin) {
+        window.location.origin = window.location.protocol + "//" +
+            window.location.hostname +
+            (window.location.port ? ':' + window.location.port: '');
+    }    
+    $(message_frame_id).attr({'src': token_service_uri +
+        '?messageId=1&origin=' + window.location.origin});
 }
 
 /**

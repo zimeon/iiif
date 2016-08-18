@@ -80,7 +80,7 @@ class IIIFAuthFlask(IIIFAuth):
         """Complete login handler behavior with redirect.
 
         There will be some authentication specific code before but
-        it will return the value fro this method which builds the
+        it will return the value from this method which builds the
         Flask redirect response.
         """
         response = redirect(url)
@@ -113,7 +113,9 @@ class IIIFAuthFlask(IIIFAuth):
         sent as JSON wrapped in HTML containing a postMessage() script
         that conveys the access token to the viewer.
         """
-        message_id = request.args.get('messageId', default='')
+        message_id = request.args.get('messageId', default=None)
+        origin = request.args.get('origin', default='unknown_origin')
+        self.logger.info("access_token_handler: origin = " + origin)
         account = request.cookies.get(self.account_cookie_name, default='')
         token = self.access_token(account)
 
@@ -123,16 +125,16 @@ class IIIFAuthFlask(IIIFAuth):
 
         # If message_id is set the wrap in HTML with postMessage JavaScript
         # for a browser client
-        if (message_id):
+        if (message_id is not None):
             data_str = """<html>
 <body style="margin: 0px;">
 <div>postMessage ACCESS TOKEN %s</div>
 <script>
-(window.opener || window.parent).postMessage(%s, '*');
+window.parent.postMessage(%s, '%s');
 </script>
 </body>
 </html>
-""" % (token, data_str)
+""" % (token, data_str, origin)
             ct = "text/html"
 
         # Send response along with cookie

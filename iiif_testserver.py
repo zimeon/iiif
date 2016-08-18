@@ -196,7 +196,8 @@ class IIIFHandler(object):
         # Set up auth object with locations if not already done
         if (self.auth and not self.auth.login_uri):
             self.auth.login_uri = self.server_and_prefix + '/login'
-            self.auth.logout_uri = self.server_and_prefix + '/logout'
+            if (self.auth.logout_handler is not None):
+                self.auth.logout_uri = self.server_and_prefix + '/logout'
             self.auth.access_token_uri = self.server_and_prefix + '/token'
         #
         # Response headers
@@ -423,10 +424,10 @@ def degraded_request(identifier):
 
 
 def options_handler(**args):
-    """Handler to respond to OPTIONS requests."""
+    """Handler to respond to OPTIONS preflight CORS requests."""
     headers = {'Access-Control-Allow-Origin': '*',
                'Access-Control-Allow-Methods': 'GET,OPTIONS',
-               'Access-Control-Allow-Headers': 'Origin, Accept, Authorization'}
+               'Access-Control-Allow-Headers': 'Origin, Accept, Accept-Encoding, Authorization'}
     return make_response("", 200, headers)
 
 
@@ -605,6 +606,8 @@ def setup_options():
         opt.auth_types.append('gauth')
     if (opt.draft and 'basic' not in opt.auth_types):
         opt.auth_types.append('basic')
+    if (opt.draft and 'clickthrough' not in opt.auth_types):
+        opt.auth_types.append('clickthrough')
 
     return(opt)
 
@@ -631,6 +634,9 @@ def add_handler(app, config, prefixes):
     elif (config.auth_type == 'basic'):
         from iiif.auth_basic import IIIFAuthBasic
         auth = IIIFAuthBasic()
+    elif (config.auth_type == 'clickthrough'):
+        from iiif.auth_clickthrough import IIIFAuthClickthrough
+        auth = IIIFAuthClickthrough()
     else:
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return

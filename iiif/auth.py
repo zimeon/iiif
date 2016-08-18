@@ -70,7 +70,7 @@ class IIIFAuth(object):
             # Add one as direct child of service property, else array for >1
             if (len(svcs) == 1):
                 svc['service'] = svcs[0]
-            elif (len(svcs) > 0):
+            elif (len(svcs) > 1):
                 svc['service'] = svcs
             info.add_service(svc)
 
@@ -80,18 +80,12 @@ class IIIFAuth(object):
         The login service description _MUST_ include the token service
         description.
         """
-        services = [self.access_token_service_description()]
-        if (self.client_id_uri is not None):
-            services.append(self.client_id_service_description())
-        if (self.logout_uri is not None):
-            services.append(self.logout_service_description())
         label = 'Login to ' + self.name
         if (self.auth_type):
             label = label + ' (' + self.auth_type + ')'
         return({"@id": self.login_uri,
                 "profile": self.profile_base + 'login',
-                "label": label,
-                "service": services})
+                "label": label})
 
     def logout_service_description(self):
         """Logout service description."""

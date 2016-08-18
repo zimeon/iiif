@@ -20,7 +20,6 @@ class IIIFAuthBasic(IIIFAuthFlask):
         """Initialize IIIFAuthBasic object."""
         super(IIIFAuthBasic, self).__init__(cookie_prefix=cookie_prefix)
         self.auth_type = 'basic auth'
-        self.logout_uri = None
 
     def login_handler(self, config=None, prefix=None, **args):
         """HTTP Basic login handler.

@@ -68,24 +68,9 @@ class TestAll(unittest.TestCase):
         self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/login')
         auth.login_uri = 'id1'
         auth.profile_base = 'http://pb1/'
-        auth.access_token_uri = 'id1access'
         lsd = auth.login_service_description()
         self.assertEqual(lsd['@id'], 'id1')
         self.assertEqual(lsd['profile'], 'http://pb1/login')
-        # Check for embedded access token service description
-        self.assertEqual(len(lsd['service']), 1)
-        self.assertEqual(lsd['service'][0]['@id'], 'id1access')
-        self.assertEqual(lsd['service'][0]['profile'], 'http://pb1/token')
-        # Add in client id and logout services
-        auth.client_id_uri = 'id1client_id'
-        auth.logout_uri = 'id1logout'
-        lsd = auth.login_service_description()
-        self.assertEqual(lsd['@id'], 'id1')
-        self.assertEqual(lsd['profile'], 'http://pb1/login')
-        # Check for embedded client id and logout service descriptions
-        self.assertEqual(len(lsd['service']), 3)
-        self.assertEqual(lsd['service'][1]['@id'], 'id1client_id')
-        self.assertEqual(lsd['service'][2]['@id'], 'id1logout')
 
     def test05_logout_service_description(self):
         """Test logout_service_description."""
