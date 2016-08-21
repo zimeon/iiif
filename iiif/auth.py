@@ -118,13 +118,12 @@ class IIIFAuth(object):
         """
         if (token):
             data = {"accessToken": token,
-                    "tokenType": "Bearer",
                     "expiresIn": 3600}
             if (message_id):
                 data['messageId'] = message_id
         else:
             data = {"error": "client_unauthorized",
-                    "description": "No login details received"}
+                    "description": "No authorization details received"}
         return data
 
     # Override with method to implement

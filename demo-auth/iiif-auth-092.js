@@ -34,6 +34,8 @@ var osd_prefix_url = "openseadragon200/images/",
     frame_wrapper_id = "#frameWrapper",
     token_service_uri = "",
     image_uri = "",
+    profiles = {'http://iiif.io/api/auth/0/login': 'login',
+                'http://iiif.io/api/auth/0/clickthrough': 'clickthrough'},
     viewer, // our instance of OpenSeadragon
     linenum = 0, // line number of log text
     make_viewer;
@@ -81,9 +83,10 @@ function find_auth_services(info) {
         }
         for (i=0, len=services.length; i < len; i+=1) {
             service=services[i];
-            if (service.profile === 'http://iiif.io/api/auth/0/login') {
+            if (service.profile in profiles) {
+                svc.pattern = profiles[service.profile]
                 svc.login = service['@id'];
-                log("Found login service (" + svc.login + ")");
+                log("Found " + svc.pattern +" service (" + svc.login + ")");
                 if (service.hasOwnProperty('label')) {
                     svc.login_label = service.label;
                 }
@@ -159,7 +162,7 @@ function make_authorized_viewer_got_info(info) {
     svc = find_auth_services(info);
     if (svc.hasOwnProperty('logout')) {
         log("Adding logout button");
-        $('#authbox').append("<button id='authbutton' data-login='" +
+        $('#authbox').append("<button id='authbutton' data-auth-svc='" +
             svc.logout + "'>" + svc.logout_label + "</button>");
         $('#authbutton').bind('click', function() {
             log();
@@ -221,6 +224,20 @@ function receive_message(event) {
 }
 
 /**
+ * Get window document origin.
+ *
+ * Not all browsers support window.location.origin.
+ */
+function origin() {
+    if (!window.location.origin) {
+        window.location.origin = window.location.protocol + "//" +
+            window.location.hostname +
+            (window.location.port ? ':' + window.location.port: '');
+    }
+    return window.location.origin
+}
+
+/**
  * Attempt to get access token via postMessage to iFrame
  *
  * FIXME - Should spec say something specific about the need to create an iFrame
@@ -235,13 +252,8 @@ function request_access_token() {
     window.addEventListener("message", receive_message);
     // now attempt to get token by accessing token service from iFrame
     log("Requesting access token via iFrame");    
-    if (!window.location.origin) {
-        window.location.origin = window.location.protocol + "//" +
-            window.location.hostname +
-            (window.location.port ? ':' + window.location.port: '');
-    }    
     $(message_frame_id).attr({'src': token_service_uri +
-        '?messageId=1&origin=' + window.location.origin});
+        '?messageId=1&origin=' + origin()});
 }
 
 /**
@@ -253,7 +265,7 @@ function request_access_token() {
  * an access token (which is expected to work only if auth was successful).
  */
 function do_auth(event) {
-    var login = $(this).attr('data-login'),
+    var login = $(this).attr('data-auth-svc'),
         win, pollTimer;
     // The redirected to window will self-close
     // open/closed state is the only thing we can see across domains :(
@@ -283,8 +295,9 @@ function handle_open(event) {
     // This only gets called when we're NOT authed, so no need to put in logout
     if (svc.hasOwnProperty('login')) {
         log("Adding login button");
-        $('#authbox').append("<button id='authbutton' data-login='" + 
-            svc.login + "'>" + svc.login_label + "</button>");
+        $('#authbox').append("<button id='authbutton' data-auth-svc='" + 
+            svc.login + '?origin=' + origin() + "'>" +
+            svc.login_label + "</button>");
         $('#authbutton').bind('click', do_auth);
         token_service_uri = svc.token; // FIXME - stash token URI for later
     } else {
