@@ -137,7 +137,7 @@ class TestAll(unittest.TestCase):
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(
                 j['description'],
-                "No login details received")
+                "No authorization details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add callback but no account cookie
         with dummy_app.test_request_context('/a_request?messageId=1234'):
@@ -168,7 +168,6 @@ class TestAll(unittest.TestCase):
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(j['accessToken'],
                              'e6ee17edc6690565bfd517bac8b930f066540572')
-            self.assertEqual(j['tokenType'], "Bearer")
         # add an account cookie and a messageId
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')

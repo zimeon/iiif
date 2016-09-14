@@ -139,7 +139,6 @@ class TestAll(unittest.TestCase):
         # token
         good_response = IIIFAuth().access_token_response('TOKEN_HERE')
         self.assertEqual(good_response['accessToken'], 'TOKEN_HERE')
-        self.assertEqual(good_response['tokenType'], 'Bearer')
         self.assertTrue(int(good_response['expiresIn']) > 1000)
         self.assertFalse('error' in good_response)
 
