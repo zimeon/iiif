@@ -1,5 +1,5 @@
 /* IIIF Demo Authentication Library
- * For v0.9.2: http://auth_notes.iiif.io/api/auth/0.9/
+ * For v0.9.3: http://auth_notes.iiif.io/api/auth/0.9/
  * 
  * Requires OpenSeadragon 121, 200 or higher.
  * Requires jQuery 1.11 or higher.
