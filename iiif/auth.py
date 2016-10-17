@@ -4,6 +4,8 @@ import json
 import logging
 import random
 import re
+import string
+import time
 
 
 class IIIFAuth(object):
@@ -176,3 +178,29 @@ class IIIFAuth(object):
         if (prefix):
             uri += '/' + prefix
         return uri
+
+    def _generate_random_token(self):
+        """Generate a random token string."""
+        return ''.join([random.SystemRandom().choice(string.digits + string.ascii_letters)
+                        for n in range(20)])
+
+    def access_token(self, cookie):
+        """Make and store access token as proxy for the access cookie.
+
+        Create an access token to act as a proxy for access cookie, add it to
+        the dict of accepted tokens with current timestamp as the value. Return
+        the token. Return None if cookie is not set.
+
+        FIXME - This should be secure! For now just make a trivial
+        hash.
+        """
+        if (cookie):
+            # Generate a token we haven't used before
+            while True:
+                token = self._generate_random_token()
+                if (token not in self.tokens):
+                    break
+            self.tokens[token] = int(time.time())
+            return token
+        else:
+            return None

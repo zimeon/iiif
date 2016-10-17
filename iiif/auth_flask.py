@@ -8,8 +8,8 @@ component.
 
 import hashlib
 import json
-import time
 from flask import request, make_response, redirect
+import time
 
 from .auth import IIIFAuth
 
@@ -178,24 +178,6 @@ window.parent.postMessage(%s, '%s');
                 ("SeCrEt StUFF 'ERe" + account).encode('utf-8')).hexdigest()
             self.cookies[cookie] = int(time.time())
             return cookie
-        else:
-            return None
-
-    def access_token(self, cookie):
-        """Make and store access token as proxy for cookie.
-
-        Create an access token to act as a proxy for access cookie, add it to
-        the dict of accepted tokens with current timestamp as the value. Return
-        the token. Return None is cookie is not set.
-
-        FIXME - This should be secure! For now just make a trivial
-        hash.
-        """
-        if (cookie):
-            token = hashlib.sha1(
-                ("AS3CR#t" + cookie).encode('utf-8')).hexdigest()
-            self.tokens[token] = int(time.time())
-            return token
         else:
             return None
 

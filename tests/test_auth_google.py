@@ -160,14 +160,15 @@ class TestAll(unittest.TestCase):
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
         with dummy_app.test_request_context('/a_request', headers=h):
             auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
+            # stub token gen:
+            auth._generate_random_token = lambda: 'lkjhg'
             response = auth.access_token_handler()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['accessToken'],
-                             'e6ee17edc6690565bfd517bac8b930f066540572')
+            self.assertEqual(j['accessToken'], 'lkjhg')
         # add an account cookie and a messageId
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
