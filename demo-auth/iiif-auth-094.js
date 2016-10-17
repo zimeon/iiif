@@ -1,5 +1,5 @@
 /* IIIF Demo Authentication Library
- * For v0.9.3: http://auth_notes.iiif.io/api/auth/0.9/
+ * For v0.9.4: http://auth_notes.iiif.io/api/auth/0.9/
  * 
  * Requires OpenSeadragon 121, 200 or higher.
  * Requires jQuery 1.11 or higher.
@@ -35,7 +35,8 @@ var osd_prefix_url = "openseadragon200/images/",
     token_service_uri = "",
     image_uri = "",
     profiles = {'http://iiif.io/api/auth/0/login': 'login',
-                'http://iiif.io/api/auth/0/clickthrough': 'clickthrough'},
+                'http://iiif.io/api/auth/0/clickthrough': 'clickthrough',
+                'http://iiif.io/api/auth/0/kiosk': 'kiosk'},
     viewer, // our instance of OpenSeadragon
     linenum = 0, // line number of log text
     make_viewer;
@@ -244,7 +245,7 @@ function origin() {
  * in any particular way?
  *
  * FIXME - Should add some useful timeout here that gets canceled if
- * a message is recieved. Otherwise we just get a hang if no postMessage
+ * a message is received. Otherwise we just get a hang if no postMessage
  * comes back.
  */
 function request_access_token() {
@@ -259,10 +260,15 @@ function request_access_token() {
 /**
  * Handler for login action
  *
- * When the login button has been pressed we must then open a new window
- * where the user will interact with the login service. All we can 
- * tell is when that window is closed, at which point we try to get 
- * an access token (which is expected to work only if auth was successful).
+ * When the login button has been pressed, clickthrough completed, or
+ * immediately in the case of kiosk interaction, we must then open a new 
+ * window to interact with the login service. 
+ *
+ * In the case of login interaction this is where the user will interact 
+ * with the login service, in other cases there will be no user interaction
+ * in the new window. All we can tell is when that window is closed, at 
+ * which point we try to get an access token (which is expected to work 
+ * only if auth was successful).
  */
 function do_auth(event) {
     var login = $(this).attr('data-auth-svc'),
@@ -300,6 +306,10 @@ function handle_open(event) {
             svc.login_label + "</button>");
         $('#authbutton').bind('click', do_auth);
         token_service_uri = svc.token; // FIXME - stash token URI for later
+        if (svc.pattern === 'kiosk') {
+            log("Kiosk pattern so no user interaction required")
+            $('#authbutton').click();
+        }
     } else {
         log("No login service");
     }

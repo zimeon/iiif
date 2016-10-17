@@ -33,6 +33,7 @@ class IIIFAuthGoogle(IIIFAuthFlask):
         """
         super(IIIFAuthGoogle, self).__init__(cookie_prefix=cookie_prefix)
         #
+        self.auth_pattern = 'login'
         self.auth_type = 'Google auth'
         try:
             # Assign defaults so code/tests will have some data even if load

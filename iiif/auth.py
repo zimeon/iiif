@@ -18,6 +18,7 @@ class IIIFAuth(object):
         """Initialize IIIFAuth object."""
         self.profile_base = 'http://iiif.io/api/auth/0/'
         self.name = 'image server'
+        self.auth_pattern = 'login'
         self.auth_type = None
         self.login_uri = None
         self.logout_uri = None
@@ -78,13 +79,14 @@ class IIIFAuth(object):
         """Login service description.
 
         The login service description _MUST_ include the token service
-        description.
+        description. The authentication pattern is indicated via the
+        profile URI which is built using self.auth_pattern.
         """
         label = 'Login to ' + self.name
         if (self.auth_type):
             label = label + ' (' + self.auth_type + ')'
         return({"@id": self.login_uri,
-                "profile": self.profile_base + 'login',
+                "profile": self.profile_base + self.auth_pattern,
                 "label": label})
 
     def logout_service_description(self):

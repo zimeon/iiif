@@ -13,7 +13,7 @@ class IIIFAuthClickthrough(IIIFAuthFlask):
     def __init__(self, cookie_prefix=None):
         """Initialize IIIFAuthBasic object."""
         super(IIIFAuthClickthrough, self).__init__(cookie_prefix=cookie_prefix)
-        self.auth_type = 'clickthrough'
+        self.auth_pattern = 'clickthrough'
 
     def login_handler(self, config=None, prefix=None, **args):
         """Login handler for clickthrough.

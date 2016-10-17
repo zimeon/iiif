@@ -608,6 +608,8 @@ def setup_options():
         opt.auth_types.append('basic')
     if (opt.draft and 'clickthrough' not in opt.auth_types):
         opt.auth_types.append('clickthrough')
+    if (opt.draft and 'kiosk' not in opt.auth_types):
+        opt.auth_types.append('kiosk')
 
     return(opt)
 
@@ -637,6 +639,9 @@ def add_handler(app, config, prefixes):
     elif (config.auth_type == 'clickthrough'):
         from iiif.auth_clickthrough import IIIFAuthClickthrough
         auth = IIIFAuthClickthrough()
+    elif (config.auth_type == 'kiosk'):
+        from iiif.auth_kiosk import IIIFAuthKiosk
+        auth = IIIFAuthKiosk()
     else:
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
