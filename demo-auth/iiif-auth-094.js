@@ -4,7 +4,7 @@
  * Requires OpenSeadragon 121, 200 or higher.
  * Requires jQuery 1.11 or higher.
  *
- * Based on IIIF Auth v0.9 implementation by Robert Sanderson @azaroth42.
+ * Starting point was IIIF Auth v0.9 implementation by Robert Sanderson @azaroth42.
  * Simeon Warner @zimeon - 2016-08-10...
  */
 
@@ -38,6 +38,7 @@ var osd_prefix_url = "openseadragon200/images/",
                 'http://iiif.io/api/auth/0/clickthrough': 'clickthrough',
                 'http://iiif.io/api/auth/0/kiosk': 'kiosk'},
     viewer, // our instance of OpenSeadragon
+    viewer_authed = false,
     linenum = 0, // line number of log text
     make_viewer;
 
@@ -89,8 +90,8 @@ function find_auth_services(info) {
         // FIXME - should handle the case of multiple authentication services
         for (i=0, len=services.length; i < len; i+=1) {
             service=services[i];
-            if (service.profile in profiles) {
-                svc.pattern = profiles[service.profile]
+            if (profiles.hasOwnProperty(service.profile)) {
+                svc.pattern = profiles[service.profile];
                 svc.uri = service['@id'];
                 log("Found " + svc.pattern +" service (" + svc.uri + ")");
                 if (service.hasOwnProperty('label')) {
@@ -220,12 +221,23 @@ function make_authorized_viewer(token) {
  */
 function receive_message(event) {
     var data = event.data,
-        token, explanation;
+        token, expires, explanation;
     log("Received postMessage");
     if (data.hasOwnProperty('accessToken')) {
         token = data.accessToken;
-        log("Extracted access token (" + token + ")");
-        make_authorized_viewer(token);
+        expires = null;
+        if (data.hasOwnProperty('expiresIn')) {
+            expires = parseInt(data.expiresIn, 10);
+        }
+        log("Extracted access token (" + token + " , " + expires + ")");
+        if (expires > 0) {
+            // Set up next request to get access token
+            setTimeout(request_access_token, 1000*expires);
+        }
+        if (!viewer_authed) {
+            make_authorized_viewer(token);
+            viewer_authed = true;
+        }
     } else {
         explanation = "no description in response";
         if (data.hasOwnProperty("description")) {
@@ -234,7 +246,10 @@ function receive_message(event) {
         log("Failed to extract access token: " + explanation);
         // restart unauthorized viewer
         log();
-        make_viewer();
+        if (viewer_authed) {
+            make_viewer();
+            viewer_authed = false;
+        }
     }
 }
 
@@ -249,14 +264,11 @@ function origin() {
             window.location.hostname +
             (window.location.port ? ':' + window.location.port: '');
     }
-    return window.location.origin
+    return window.location.origin;
 }
 
 /**
  * Attempt to get access token via postMessage to iFrame
- *
- * FIXME - Should spec say something specific about the need to create an iFrame
- * in any particular way?
  *
  * FIXME - Should add some useful timeout here that gets canceled if
  * a message is received. Otherwise we just get a hang if no postMessage
@@ -292,13 +304,14 @@ function do_auth(event) {
     log();
     log("Opening window for login");
     win = window.open(login, 'loginwindow');
+    // Check for window close at 0.1s intervals
     pollTimer = window.setInterval(function() { 
         if (win.closed) {
             window.clearInterval(pollTimer);
             log("Detected login window close (success or not unknown)");
             request_access_token();
         }
-    }, 500);
+    }, 100);
 }
 
 /**
@@ -307,7 +320,7 @@ function do_auth(event) {
  * FIXME - Do something other than pass-through...
  */
 function sanitize_html(html) {
-    return(html)
+    return html;
 }
 
 /**
@@ -325,14 +338,14 @@ function handle_open(event) {
     if (svc.hasOwnProperty('uri')) {
         // Show header and/or description if givem
         if (svc.hasOwnProperty('header')) {
-            $('#authbox').append("<b>" + sanitize_html(svc.header) + "</b><br/>")
+            $('#authbox').append("<b>" + sanitize_html(svc.header) + "</b><br/>");
         }
         if (svc.hasOwnProperty('description')) {
-            $('#authbox').append(sanitize_html(svc.description) + "<br/>")
+            $('#authbox').append(sanitize_html(svc.description) + "<br/>");
         }
         token_service_uri = svc.token; // FIXME - stash token URI for later
         if (svc.pattern === 'kiosk') {
-            log("Kiosk pattern so no user interaction required")
+            log("Kiosk pattern so no user interaction required");
             $('#authbox').append("<button id='authbutton' " +
                 "style='display: none' data-auth-svc='" + 
                 svc.uri + '?origin=' + origin() + "'>x</button>");
