@@ -59,4 +59,6 @@ These demos rely upon having a copy of OpenSeadragon in this directory. They sho
 
 ## Issues with demo
 
-  1. Demo client does not look for or use any clientId service specified by the image server.
+  1. Demo client does not handle failures well
+  2. Demo client does not handle lifetimes of access cookies or access tokens
+
