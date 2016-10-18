@@ -64,6 +64,7 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='abc')
         self.assertEqual(auth.cookie_prefix, 'abc')
         self.assertEqual(auth.google_api_client_id, 'SECRET_CODE_537')
+        self.assertEqual(auth.account_cookie_name, 'abcaccount')
         auth = IIIFAuthGoogle(
             client_secret_file='/does_not_exist',
             cookie_prefix='abcd')
@@ -161,7 +162,7 @@ class TestAll(unittest.TestCase):
         with dummy_app.test_request_context('/a_request', headers=h):
             auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
             # stub token gen:
-            auth._generate_random_token = lambda: 'lkjhg'
+            auth._generate_random_string = lambda x: 'lkjhg'
             response = auth.access_token_handler()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(

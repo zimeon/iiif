@@ -1,8 +1,9 @@
 """IIIF Authentication using HTTP Basic auth.
 
-FIXME - this code is specific to Flask. Not only does
-it extend the iiif.auth_flask class, it also uses Flask
-directly.
+See <http://iiif.io/api/auth/#login-interaction-pattern>.
+
+This code extends IIIFAuthFlask and is thus specific to the
+Flask framework.
 """
 
 import json

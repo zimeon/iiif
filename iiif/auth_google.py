@@ -1,9 +1,7 @@
-"""IIIF Authentication via Google.
+"""IIIF Authentication using the login interaction pattern via Google.
 
-FIXME - this code extends the iiif.auth_flask class which makes
-it specifc to the Flask webapp framework. Perhaps interface
-could/should be abstracted to be able to work with another
-framework.
+See <http://iiif.io/api/auth/#login-interaction-pattern>.
+This code is specifc to the Flask webapp framework.
 """
 
 import json

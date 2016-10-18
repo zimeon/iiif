@@ -1,11 +1,29 @@
 <html>
 <head>
-<title>IIIF Authentication API Tests</title>
+<title>IIIF Authentication API Demo</title>
 <head>
 <body>
-<h1>IIIF Authentication API Tests</h1>
+<h1>IIIF Authentication API Demo</h1>
 
-<p>Designed for current IIIF Authentication API draft at <a href="http://auth_notes.iiif.io/api/auth/0.9/">http://auth_notes.iiif.io/api/auth/0.9/</a>.</p>
+<p>Demonstrations of IIIF Authentication API at <a href="http://iiif.io/api/auth/">http://iiif.io/api/auth/</a>.</p>
+
+<h2>Test links running entirely on local machine</h2>
+
+<p>These tests expect the image server on port 8001, see <a href="https://github.com/zimeon/iiif/tree/master/demo-auth">https://github.com/zimeon/iiif/tree/master/demo-auth</a>.</p>
+
+<ul>
+<li><a href="local_osd_pil_gauth.html">Server run locally on port 8001 using PIL & Google auth</a></li>
+<li><a href="local_osd_pil_basic.html">Server run locally on port 8001 using PIL & Basic auth</a></li>
+<li><a href="local_osd_pil_clickthrough.html">Server run locally on port 8001 using PIL & Clickthrough auth</a></li>
+<li><a href="local_osd_pil_kiosk.html">Server run locally on port 8001 using PIL & Kiosk auth</a></li>
+<li><a href="local_osd_pil_no_auth.html">Server run locally on port 8001 using PIL with full access without auth</a></li>
+<li><a href="local_osd_no_auth.html">OpenSeadragon expecting image on localhost:8001 with no auth</a></li>
+<li><a href="local_html_pil_gauth.html">Plain HTML page with image on localhost:8001</a></li>
+</ul>
+
+<h2>Test links relying remote image servers</h2>
+
+<p>These tests rely upon a test image server running at <a href="http://resync.library.cornell.edu/iiif_auth_test/">http://resync.library.cornell.edu/iiif_auth_test/</a></p>
 
 <ol>
 <li><a href="cornell_osd_gauth.html">Cornell / GAuth / Non-authenticated => gray</a></li>
@@ -13,31 +31,10 @@
 <li><a href="cornell_html_gauth.html">HTML page with <code>img</code> tag</a></li>
 </ol>
 
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-
 <h2>Control..</h2>
 
 <ul>
 <li><a href="https://security.google.com/settings/security/permissions?pli=1">Google app auth management</a></li>
-</ul>
-
-<h2>Tests links for running on local machine</h2>
-
-<p>These expect the image server on port 8001.</p>
-<ul>
-<li><a href="local_osd_pil_gauth.html">Simeon's server run locally on port 8001 using PIL & Google auth</a></li>
-<li><a href="local_osd_pil_basic.html">Simeon's server run locally on port 8001 using PIL & Basic auth</a></li>
-<li><a href="local_osd_pil_clickthrough.html">Simeon's server run locally on port 8001 using PIL & Clickthrough auth</a></li>
-<li><a href="local_osd_pil_kiosk.html">Simeon's server run locally on port 8001 using PIL & Kiosk auth</a></li>
-<li><a href="local_osd_no_auth.html">OpenSeadragon expecting image on localhost:8001 with no auth</a></li>
-<li><a href="local_html_pil_gauth.html">Plain HTML page with image on localhost:8001</a></li>
 </ul>
 
 </body>

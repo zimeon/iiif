@@ -24,7 +24,7 @@ var osd_prefix_url = "openseadragon200/images/",
     iframe_html = '<iframe id="messageFrame" style="margin-top: 10px; height: 3ex; border: 2px solid blue; width: 605px;"></iframe>',
     demo_html =
         '<div id="container" style="width: 605px; height: 405px;"></div>' +
-        '<div id="authbox" style="margin-top: 10px; height: 3ex; border: 2px solid red; width: 605px;"></div>' +
+        '<div id="authbox" style="margin-top: 10px; height: 9ex; border: 2px solid red; width: 605px; overflow: auto;"></div>' +
         '<div id="log" style="margin-top: 10px; height: 26ex; border: 2px solid green; width: 605px; overflow: auto;"></div>' +
         '<div id="frameWrapper">' + iframe_html + '</div>',
     container_id = "#container",
@@ -63,16 +63,17 @@ function log(text) {
  * 
  * @param {object} info - the info.json object
  * @return {object} - with properties as below:
- *   login - URI of login service (not set if none found)
+ *   uri - URI of auth service (not set if none found)
  *   login_label - a string with default or label given
  *   token - URI of login service (not set if none found)
  * 
  */
 function find_auth_services(info) {
     // Result object with default labels
-    var services, login, service, i, len,
+    var services, auth, service, i, len,
         svc = {login_label: "Login",
-               logout_label: "Logout"};
+               logout_label: "Logout",
+               confirm_label: "I agree, give me access"};
     log("Looking for auth service descriptions");
     if (info.hasOwnProperty('service')) {
         if (info.service.hasOwnProperty('@id')) {
@@ -82,32 +83,45 @@ function find_auth_services(info) {
             // array of service entries
             services = info.service;
         }
+        // Look through services and exit at the first recognized authentication
+        // service. 
+        //
+        // FIXME - should handle the case of multiple authentication services
         for (i=0, len=services.length; i < len; i+=1) {
             service=services[i];
             if (service.profile in profiles) {
                 svc.pattern = profiles[service.profile]
-                svc.login = service['@id'];
-                log("Found " + svc.pattern +" service (" + svc.login + ")");
+                svc.uri = service['@id'];
+                log("Found " + svc.pattern +" service (" + svc.uri + ")");
                 if (service.hasOwnProperty('label')) {
                     svc.login_label = service.label;
                 }
-                login = service;
+                if (service.hasOwnProperty('confirmLabel')) {
+                    svc.confirm_label = service.confirmLabel;
+                }
+                if (service.hasOwnProperty('header')) {
+                    svc.header= service.header;
+                }
+                if (service.hasOwnProperty('description')) {
+                    svc.description = service.description;
+                }
+                auth = service;
                 break;
             }
         }
-        // All bets off if we haven't found the login service, can't
-        // look for more
-        if (!svc.hasOwnProperty('login')) {
+        // All bets off if we haven't found and auth service with a profile
+        // we recognize, can't look for more
+        if (!auth) {
             return svc;
         }
         // Now look for token (required) and logout (optional) as sub-services
-        if (login.hasOwnProperty('service')) {
-            if (login.service.hasOwnProperty('@id')) {
+        if (auth.hasOwnProperty('service')) {
+            if (auth.service.hasOwnProperty('@id')) {
                 // make array from single service entry
-                services = [login.service];
+                services = [auth.service];
             } else {
                 // array of service entries
-                services = login.service;
+                services = auth.service;
             }
             for (i=0, len=services.length; i < len; i+=1) {
                 service=services[i];
@@ -123,10 +137,10 @@ function find_auth_services(info) {
                 }
             }
         }
-        // Login won't work without a token service so delete the
-        // login entry if that is the case
+        // Auth won't work without a token service so delete the
+        // auth entry if that is the case
         if (!svc.hasOwnProperty('token')) {
-            delete svc.login;
+            delete svc.uri;
         }
     }
     return svc;
@@ -288,6 +302,15 @@ function do_auth(event) {
 }
 
 /**
+ * Santize HTML received before displaying
+ *
+ * FIXME - Do something other than pass-through...
+ */
+function sanitize_html(html) {
+    return(html)
+}
+
+/**
  * Handler for OpenSeadragon event used as hook to get login information
  *
  * The action of the clicking the login button is tied to the
@@ -299,19 +322,37 @@ function handle_open(event) {
     var info = event.eventSource.source,
         svc = find_auth_services(info);
     // This only gets called when we're NOT authed, so no need to put in logout
-    if (svc.hasOwnProperty('login')) {
-        log("Adding login button");
-        $('#authbox').append("<button id='authbutton' data-auth-svc='" + 
-            svc.login + '?origin=' + origin() + "'>" +
-            svc.login_label + "</button>");
-        $('#authbutton').bind('click', do_auth);
+    if (svc.hasOwnProperty('uri')) {
+        // Show header and/or description if givem
+        if (svc.hasOwnProperty('header')) {
+            $('#authbox').append("<b>" + sanitize_html(svc.header) + "</b><br/>")
+        }
+        if (svc.hasOwnProperty('description')) {
+            $('#authbox').append(sanitize_html(svc.description) + "<br/>")
+        }
         token_service_uri = svc.token; // FIXME - stash token URI for later
         if (svc.pattern === 'kiosk') {
             log("Kiosk pattern so no user interaction required")
-            $('#authbutton').click();
+            $('#authbox').append("<button id='authbutton' " +
+                "style='display: none' data-auth-svc='" + 
+                svc.uri + '?origin=' + origin() + "'>x</button>");
+        } else if (svc.pattern === 'clickthrough') {
+            log("Adding clickthrough button");
+            $('#authbox').append("<button id='authbutton' data-auth-svc='" + 
+                svc.uri + '?origin=' + origin() + "'>" +
+                svc.confirm_label + "</button>");
+        } else {
+            log("Adding login button");
+            $('#authbox').append("<button id='authbutton' data-auth-svc='" + 
+                svc.uri + '?origin=' + origin() + "'>" +
+                svc.login_label + "</button>");
+        }
+        $('#authbutton').bind('click', do_auth);
+        if (svc.pattern === 'kiosk') {
+           $('#authbutton').click();
         }
     } else {
-        log("No login service");
+        log("No authentication service");
     }
 }
 

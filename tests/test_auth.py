@@ -17,7 +17,6 @@ class TestAll(unittest.TestCase):
         self.assertEqual(auth.name, "image server")
         auth = IIIFAuth(cookie_prefix='abc_')
         self.assertEqual(auth.cookie_prefix, 'abc_')
-        self.assertEqual(auth.account_cookie_name, 'abc_account')
         self.assertEqual(auth.access_cookie_name, 'abc_access')
 
     def test02_set_cookie_prefix(self):
@@ -139,7 +138,7 @@ class TestAll(unittest.TestCase):
         # token
         good_response = IIIFAuth().access_token_response('TOKEN_HERE')
         self.assertEqual(good_response['accessToken'], 'TOKEN_HERE')
-        self.assertTrue(int(good_response['expiresIn']) > 1000)
+        self.assertTrue(int(good_response['expiresIn']) > 10)
         self.assertFalse('error' in good_response)
 
     def test11_null_authn_authz(self):

@@ -21,6 +21,8 @@ class IIIFAuth(object):
         self.profile_base = 'http://iiif.io/api/auth/0/'
         self.name = 'image server'
         self.auth_pattern = 'login'
+        self.header = None
+        self.description = None
         self.auth_type = None
         self.login_uri = None
         self.logout_uri = None
@@ -30,11 +32,11 @@ class IIIFAuth(object):
         # Need to have different cookie names for each auth domain
         # running on the same server
         self.set_cookie_prefix(cookie_prefix)
-        self.account_cookie_name = self.cookie_prefix + 'account'
         self.access_cookie_name = self.cookie_prefix + 'access'
-        # Auth data
-        self.cookies = {}
-        self.tokens = {}
+        self.access_cookies = {}
+        self.access_cookie_lifetime = 36000  # seconds
+        self.access_tokens = {}
+        self.access_token_lifetime = 20  # seconds
 
     def set_cookie_prefix(self, cookie_prefix=None):
         """Set a random cookie prefix unless one is specified.
@@ -87,9 +89,14 @@ class IIIFAuth(object):
         label = 'Login to ' + self.name
         if (self.auth_type):
             label = label + ' (' + self.auth_type + ')'
-        return({"@id": self.login_uri,
+        desc = {"@id": self.login_uri,
                 "profile": self.profile_base + self.auth_pattern,
-                "label": label})
+                "label": label}
+        if (self.header):
+            desc['header'] = self.header
+        if (self.description):
+            desc['description'] = self.description
+        return desc
 
     def logout_service_description(self):
         """Logout service description."""
@@ -122,7 +129,7 @@ class IIIFAuth(object):
         """
         if (token):
             data = {"accessToken": token,
-                    "expiresIn": 3600}
+                    "expiresIn": self.access_token_lifetime}
             if (message_id):
                 data['messageId'] = message_id
         else:
@@ -179,28 +186,113 @@ class IIIFAuth(object):
             uri += '/' + prefix
         return uri
 
-    def _generate_random_token(self):
-        """Generate a random token string."""
-        return ''.join([random.SystemRandom().choice(string.digits + string.ascii_letters)
-                        for n in range(20)])
+    def _generate_random_string(self, container, length=20):
+        """Generate a random cookie or token string not in container.
+
+        The cookie or token should be secure in the sense that it should not
+        be likely to be able guess a value. Because it is not derived from
+        anything else, there is no vulnerability of the token from computation,
+        or possible leakage of information from the token.
+        """
+        while True:
+            s = ''.join([random.SystemRandom().choice(string.digits + string.ascii_letters)
+                         for n in range(length)])
+            if (s not in container):
+                break
+        return s
+
+    def account_allowed(self, account):
+        """True if the account credentials should be accepted.
+
+        Default implementation is that any account is allowed,
+        so response is True if account is True. Override this method
+        to authorize particular values of account.
+        """
+        return True if (account) else False
+
+    def access_cookie(self, account):
+        """Make and store access cookie for a given account.
+
+        If account is allowed then make a cookie and add it to the dict
+        of accepted access cookies with current timestamp as the value.
+        Return the access cookie.
+
+        Otherwise return None.
+        """
+        if (self.account_allowed(account)):
+            cookie = self._generate_random_string(self.access_cookies)
+            self.access_cookies[cookie] = int(time.time())
+            return cookie
+        else:
+            return None
+
+    def access_cookie_valid(self, cookie, log_msg):
+        """Check access cookie validity.
+
+        Returns true if the access cookie is valid. The set of allowed
+        access cookies is stored in self.access_cookies.
+
+        Uses log_msg as prefix to info level log message of accetance or
+        rejection.
+        """
+        if (cookie in self.access_cookies):
+            age = int(time.time()) - self.access_cookies[cookie]
+            if (age <= (self.access_cookie_lifetime + 1)):
+                self.logger.info(log_msg + " " + cookie +
+                                 " ACCEPTED COOKIE (%ds old)" % age)
+                return True
+            # Expired...
+            self.logger.info(log_msg + " " + cookie +
+                             " EXPIRED COOKIE (%ds old > %ds)" %
+                             (age, self.access_cookie_lifetime))
+            # Keep cookie for 2x lifetim in order to generate
+            # helpful expired message
+            if (age > (self.access_cookie_lifetime * 2)):
+                del self.access_cookies[cookie]
+            return False
+        else:
+            self.logger.info(log_msg + " " + cookie + " REJECTED COOKIE")
+            return False
 
     def access_token(self, cookie):
         """Make and store access token as proxy for the access cookie.
 
         Create an access token to act as a proxy for access cookie, add it to
-        the dict of accepted tokens with current timestamp as the value. Return
-        the token. Return None if cookie is not set.
-
-        FIXME - This should be secure! For now just make a trivial
-        hash.
+        the dict of accepted access tokens with (cookie, current timestamp)
+        as the value. Return the access token. Return None if cookie is not set.
         """
         if (cookie):
-            # Generate a token we haven't used before
-            while True:
-                token = self._generate_random_token()
-                if (token not in self.tokens):
-                    break
-            self.tokens[token] = int(time.time())
+            token = self._generate_random_string(self.access_tokens)
+            self.access_tokens[token] = (cookie, int(time.time()))
             return token
         else:
             return None
+
+    def access_token_valid(self, token, log_msg):
+        """Check token validity.
+
+        Returns true if the token is valid. The set of allowed access tokens
+        is stored in self.access_tokens.
+
+        Uses log_msg as prefix to info level log message of acceptance or
+        rejection.
+        """
+        if (token in self.access_tokens):
+            (cookie, issue_time) = self.access_tokens[token]
+            age = int(time.time()) - issue_time
+            if (age <= (self.access_token_lifetime + 1)):
+                self.logger.info(log_msg + " " + token +
+                                 " ACCEPTED TOKEN (%ds old)" % age)
+                return True
+            # Expired...
+            self.logger.info(log_msg + " " + token +
+                             " EXPIRED TOKEN (%ds old > %ds)" %
+                             (age, self.access_token_lifetime))
+            # Keep token for 2x lifetim in order to generate
+            # helpful expired message
+            if (age > (self.access_token_lifetime * 2)):
+                del self.access_tokens[token]
+            return False
+        else:
+            self.logger.info(log_msg + " " + token + " REJECTED TOKEN")
+            return False

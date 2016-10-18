@@ -1,5 +1,6 @@
-"""IIIF Authentication for the kiosk pattern.
+"""IIIF Authentication for the kiosk interaction pattern.
 
+See <http://iiif.io/api/auth/#kiosk-interaction-pattern>.
 Trivial code to immediately close the login window and
 set the account cookie.
 """
@@ -14,6 +15,7 @@ class IIIFAuthKiosk(IIIFAuthFlask):
         """Initialize IIIFAuthBasic object."""
         super(IIIFAuthKiosk, self).__init__(cookie_prefix=cookie_prefix)
         self.auth_pattern = 'kiosk'
+        self.header = 'Kiosk setup in progress, please wait...'
 
     def login_handler(self, config=None, prefix=None, **args):
         """Login handler for kiosk.
