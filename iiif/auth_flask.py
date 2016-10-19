@@ -23,12 +23,16 @@ class IIIFAuthFlask(IIIFAuth):
     def info_authn(self):
         """Check to see if user if authenticated for info.json.
 
-        Must have Authorization header with value that is an appropriate
-        and valid access token.
+        Must have Authorization header with value that has the form
+        "Bearer TOKEN", where TOKEN is an appropriate and valid access
+        token.
         """
         authz_header = request.headers.get('Authorization', '[none]')
+        if (not authz_header.startswith('Bearer ')):
+            return False
+        token = authz_header[7:]
         return self.access_token_valid(
-            authz_header, "info_authn: Authorization header")
+            token, "info_authn: Authorization header")
 
     def image_authn(self):
         """Check to see if user if authenticated for image requests.

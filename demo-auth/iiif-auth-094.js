@@ -90,6 +90,7 @@ function find_auth_services(info) {
         // FIXME - should handle the case of multiple authentication services
         for (i=0, len=services.length; i < len; i+=1) {
             service=services[i];
+            log("service @id " + service['@id']);
             if (profiles.hasOwnProperty(service.profile)) {
                 svc.pattern = profiles[service.profile];
                 svc.uri = service['@id'];
@@ -173,7 +174,7 @@ function authorization_failure(xhr, error, exception) {
  */
 function make_authorized_viewer_got_info(info) {
     var svc;
-    log("Got full info.json");
+    log("Got full info.json, id=" + info['@id']);
     // Do we have a logout definition?
     svc = find_auth_services(info);
     if (svc.hasOwnProperty('logout')) {
@@ -203,11 +204,13 @@ function make_authorized_viewer_got_info(info) {
  * @param {string} token - the access token
  */
 function make_authorized_viewer(token) {
+    var image_info_uri = image_uri + "/info.json";
+    log("Attempting to get " + image_info_uri + " using token");
     $(osd_id).remove();
     $(authbox_id).empty();
     $(container_id).append(osd_div);
-    $.ajax({ url: image_uri+"/info.json",
-             headers: {"Authorization": token},
+    $.ajax({ url: image_info_uri,
+             headers: {"Authorization": "Bearer " + token},
              cache: false,
              success: make_authorized_viewer_got_info,
              error: authorization_failure });
@@ -235,8 +238,8 @@ function receive_message(event) {
             setTimeout(request_access_token, 1000*expires);
         }
         if (!viewer_authed) {
-            make_authorized_viewer(token);
             viewer_authed = true;
+            make_authorized_viewer(token);
         }
     } else {
         explanation = "no description in response";
@@ -247,8 +250,8 @@ function receive_message(event) {
         // restart unauthorized viewer
         log();
         if (viewer_authed) {
-            make_viewer();
             viewer_authed = false;
+            make_viewer();
         }
     }
 }
@@ -299,6 +302,7 @@ function request_access_token() {
 function do_auth(event) {
     var login = $(this).attr('data-auth-svc'),
         win, pollTimer;
+    viewer_authed = false;
     // The redirected to window will self-close
     // open/closed state is the only thing we can see across domains :(
     log();
@@ -331,9 +335,9 @@ function sanitize_html(html) {
  *
  * @param event
  */
-function handle_open(event) {
-    var info = event.eventSource.source,
-        svc = find_auth_services(info);
+function add_auth_options(info) {
+    var svc;
+    svc = find_auth_services(info);
     // This only gets called when we're NOT authed, so no need to put in logout
     if (svc.hasOwnProperty('uri')) {
         // Show header and/or description if givem
@@ -369,28 +373,51 @@ function handle_open(event) {
     }
 }
 
+
+function make_viewer_got_info(info, status) {
+    $(osd_id).remove();
+    $(container_id).append(osd_div);
+    if (status === 200) {
+        log("Starting viewer for " + info['@id'] + " (" + status + ")");
+        var viewer = new OpenSeadragon({
+            id: "openseadragon",
+            tileSources: info,
+            showNavigator: true,
+            prefixUrl: osd_prefix_url
+        });
+    } else {
+        log("HTTP status " + status + ", not starting viewer for " + info['@id']);
+    }
+}
+
 /**
  * Make an OpenSeadragon viewer
  *
  * @param {string} image_uri_in - optionally the IIIF Image URI (no /info.json or /params/) 
  */
 make_viewer = function (image_uri_in) {
+    var info = {};
     if (image_uri_in !== undefined) {
         image_uri = image_uri_in;
     }
-    log("Making unauthenticated viewer for " + image_uri_in);
-
-    $('#openseadragon').remove();
-    $('#authbox').empty();
-    $('#container').append(osd_div);
-    var viewer = new OpenSeadragon({
-        id: "openseadragon",
-        tileSources: image_uri + "/info.json?t=" + new Date().getTime(),
-        showNavigator: true,
-        prefixUrl: osd_prefix_url
-    });
-    viewer.addHandler('open', handle_open);
-    viewer.addHandler('failed-open', handle_open);
+    log("Getting image information for " + image_uri);
+    var client = new XMLHttpRequest();
+    var image_info_uri = image_uri + '/info.json';
+    client.onload = function() {
+        info = $.parseJSON(this.response);
+        $('#authbox').empty();
+        if (info) {
+            add_auth_options(info);
+            make_viewer_got_info(info, this.status);
+        } else {
+            log("Failed to parse image information from " + image_info_uri);
+        }
+    }
+    client.error = function() {
+        log("Failed to load image information from " + image_info_uri);
+    }
+    client.open("GET", image_info_uri);
+    client.send();
 };
 
 /**
@@ -409,6 +436,8 @@ function make_demo_page(image_uri_in, demo_id) {
     $(demo_id).append('<p>IIIF image id: <code><input type="text" size="80" id="image_id" value="' +
                       image_uri_in + '"/></code> <button id="uri_button">Update</button></p>');
     $('#uri_button').bind('click', function() {
+        log();
+        viewer_authed = false;
         make_viewer($('#image_id').val());
     })
     make_viewer(image_uri_in);
