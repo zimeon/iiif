@@ -378,7 +378,7 @@ make_viewer = function (image_uri_in) {
     if (image_uri_in !== undefined) {
         image_uri = image_uri_in;
     }
-    log("Making unauthenticated viewer");
+    log("Making unauthenticated viewer for " + image_uri_in);
 
     $('#openseadragon').remove();
     $('#authbox').empty();
@@ -406,8 +406,11 @@ function make_demo_page(image_uri_in, demo_id) {
     demo_id = demo_id !== undefined ? demo_id : '#demo';
     $(demo_id).empty();
     $(demo_id).append(demo_html);
-    $(demo_id).append('<p>Relies upon image at <code><a href="' +
-                      image_uri_in + '">' + image_uri_in + '</a></code>.</p>');
+    $(demo_id).append('<p>IIIF image id: <code><input type="text" size="80" id="image_id" value="' +
+                      image_uri_in + '"/></code> <button id="uri_button">Update</button></p>');
+    $('#uri_button').bind('click', function() {
+        make_viewer($('#image_id').val());
+    })
     make_viewer(image_uri_in);
 }
 
