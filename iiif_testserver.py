@@ -582,6 +582,10 @@ def setup_options():
                  help="Include a page with OpenSeadragon for each source")
     p.add_option('--draft', action='store_true',
                  help="Enable features implementing draft of IIIF auth specification")
+    p.add_option('--access-cookie-lifetime', type='int', default=3600,
+                 help="Set access cookie lifetime for authenticated access (default %default s)")
+    p.add_option('--access-token-lifetime', type='int', default=10,
+                 help="Set access token lifetime for authenticated access (default %default s)")
     p.add_option('--debug', action='store_true',
                  help="Set debug mode for web application. INSECURE!")
     p.add_option('--verbose', '-v', action='store_true',
@@ -645,6 +649,9 @@ def add_handler(app, config, prefixes):
     else:
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
+    if (auth is not None):
+        auth.access_cookie_lifetime = opt.access_cookie_lifetime
+        auth.access_token_lifetime = opt.access_token_lifetime
     klass = None
     if (config.klass_name == 'pil'):
         from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -798,5 +805,7 @@ else:
     # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
     opt.host = 'resync.library.cornell.edu'  # FIXME - get from WSGI
     opt.port = 80
+    opt.access_cookie_lifetime = 36000
+    opt.access_token_lifetime = 10
     opt.gauth_client_secret = 'client_secret.json'
     app = create_app(opt)

@@ -36,7 +36,7 @@ class IIIFAuth(object):
         self.access_cookies = {}
         self.access_cookie_lifetime = 36000  # seconds
         self.access_tokens = {}
-        self.access_token_lifetime = 20  # seconds
+        self.access_token_lifetime = 600  # seconds
 
     def set_cookie_prefix(self, cookie_prefix=None):
         """Set a random cookie prefix unless one is specified.
