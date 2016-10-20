@@ -164,6 +164,42 @@ function authorization_failure(xhr, error, exception) {
 }
 
 /**
+ * Get image information
+ *
+ * Have to do this with XMLHttpRequest in order to still get access to
+ * the JSON response for a 401 response code. On success will pass the
+ * parsed image information and HTTP status code to success(info, status).
+ *
+ * @param {string} image_uri - image identifier (no trailing /info.json)
+ * @param {function} success - funcation called on success
+ * @param {string} token - bearer authorization token if specified
+ */
+function get_image_information(imagee_uri, success, token) {
+    var client = new XMLHttpRequest(),
+        image_info_uri = image_uri + '/info.json',
+        info;
+    client.onload = function () {
+        info = $.parseJSON(this.response);
+        if (info) {
+            success(info, this.status);
+        } else {
+            log("Failed to parse image information from " + image_info_uri);
+        }
+    }
+    client.error = function() {
+        log("Failed to load image information from " + image_info_uri);
+    }
+    client.open("GET", image_info_uri);
+    if (token) {
+       log("Getting image information for " + image_uri + " with token " + token);
+       client.setRequestHeader("Authorization", "Bearer " + token);
+    } else {
+       log("Getting image information for " + image_uri + " (no token)");
+    }
+    client.send();
+}
+
+/**
  * Second part of making authorized viewer, after getting info.json
  * 
  * Called after sucessful load of the authorized info.json. Looks
@@ -171,8 +207,9 @@ function authorization_failure(xhr, error, exception) {
  * starts OpenSeadragon again with the new info.json object.
  *
  * @param {object} info - the info.json object of the authorized image
+ * @param (integer} status - HTTP status code
  */
-function make_authorized_viewer_got_info(info) {
+function make_authorized_viewer(info, status) {
     var svc;
     log("Got full info.json, id=" + info['@id']);
     // Do we have a logout definition?
@@ -199,21 +236,19 @@ function make_authorized_viewer_got_info(info) {
 }
 
 /**
- * Use token to make authorized viewer
+ * Use token to try getting image information again.
+ *
+ * Function called after we successfully get an access token. If the
+ * image information request is successful then we will make the 
+ * authorized viewer.
  * 
  * @param {string} token - the access token
  */
-function make_authorized_viewer(token) {
-    var image_info_uri = image_uri + "/info.json";
-    log("Attempting to get " + image_info_uri + " using token");
+function try_authorized_access(token) {
     $(osd_id).remove();
     $(authbox_id).empty();
     $(container_id).append(osd_div);
-    $.ajax({ url: image_info_uri,
-             headers: {"Authorization": "Bearer " + token},
-             cache: false,
-             success: make_authorized_viewer_got_info,
-             error: authorization_failure });
+    get_image_information(image_uri, make_authorized_viewer, token);
 }
 
 /**
@@ -239,7 +274,7 @@ function receive_message(event) {
         }
         if (!viewer_authed) {
             viewer_authed = true;
-            make_authorized_viewer(token);
+            try_authorized_access(token);
         }
     } else {
         explanation = "no description in response";
@@ -373,8 +408,14 @@ function add_auth_options(info) {
     }
 }
 
-
-function make_viewer_got_info(info, status) {
+/**
+  * Make an unauthorized viewer
+  *
+  * @param {object} info - parsed image information (info.json)
+  * @param {integer} status - HTTP status code
+  */
+function make_unauthorized_viewer(info, status) {
+    add_auth_options(info);
     $(osd_id).remove();
     $(container_id).append(osd_div);
     if (status === 200) {
@@ -400,24 +441,8 @@ make_viewer = function (image_uri_in) {
     if (image_uri_in !== undefined) {
         image_uri = image_uri_in;
     }
-    log("Getting image information for " + image_uri);
-    var client = new XMLHttpRequest();
-    var image_info_uri = image_uri + '/info.json';
-    client.onload = function() {
-        info = $.parseJSON(this.response);
-        $('#authbox').empty();
-        if (info) {
-            add_auth_options(info);
-            make_viewer_got_info(info, this.status);
-        } else {
-            log("Failed to parse image information from " + image_info_uri);
-        }
-    }
-    client.error = function() {
-        log("Failed to load image information from " + image_info_uri);
-    }
-    client.open("GET", image_info_uri);
-    client.send();
+    $(authbox_id).empty();
+    get_image_information(image_uri, make_unauthorized_viewer);
 };
 
 /**
