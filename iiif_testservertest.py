@@ -40,7 +40,6 @@ class TestAll(unittest.TestCase):
         self.assertEqual(self.get(id + '/full/pct:100/.000/color'), size)
         self.assertEqual(self.get(id + '/full/pct:100/0/color.jpg'), size)
         self.assertEqual(self.get(id + '/full/pct:99.99/0/color'), size)
-        # self.assertEqual( self.get('/214-2/0,0,50,100/pct:100/360/color.png'), 0 )
         # ask for png
         size = 13929
         self.assertEqual(self.get(id + '/full/pct:100/0/color.png'), size)

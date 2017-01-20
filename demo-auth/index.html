@@ -1,54 +1,41 @@
 <html>
 <head>
-<title>IIIF Auth Tests</title>
+<title>IIIF Authentication API Demo</title>
 <head>
 <body>
-<h1>IIIF Auth Tests</h1>
+<h1>IIIF Authentication API Demo</h1>
+
+<p>Demonstrations of IIIF Authentication API v1.0 at <a href="http://iiif.io/api/auth/1.0/">http://iiif.io/api/auth/1.0/</a>.</p>
+
+<h2>Test links running entirely on local machine</h2>
+
+<p>These tests expect the image server on port 8001, see <a href="https://github.com/zimeon/iiif/tree/master/demo-auth">https://github.com/zimeon/iiif/tree/master/demo-auth</a>.</p>
+
+<ul>
+<li><a href="local_osd_pil_gauth.html">Server run locally on port 8001 using PIL & Google auth</a></li>
+<li><a href="local_osd_pil_basic.html">Server run locally on port 8001 using PIL & Basic auth</a></li>
+<li><a href="local_osd_pil_clickthrough.html">Server run locally on port 8001 using PIL & Clickthrough auth</a></li>
+<li><a href="local_osd_pil_kiosk.html">Server run locally on port 8001 using PIL & Kiosk auth</a></li>
+<li><a href="local_osd_pil_no_auth.html">Server run locally on port 8001 using PIL with full access without auth</a></li>
+<li><a href="local_osd_no_auth.html">OpenSeadragon expecting image on localhost:8001 with no auth</a></li>
+<li><a href="local_html_pil_gauth.html">Plain HTML page with image on localhost:8001</a></li>
+</ul>
+
+<h2>Test links relying remote image servers</h2>
+
+<p>These tests rely upon a test image server running at <a href="http://resync.library.cornell.edu/iiif_auth_test/">http://resync.library.cornell.edu/iiif_auth_test/</a></p>
 
 <ol>
-<li><a href="rob_stanford_google.html">Stanford / OAuth / Non-authenticated => limited resolution</a></li>
-<li><a href="simeon_cornell_google.html">Cornell / OAuth / Non-authenticated => gray</a></li>
-<li><a href="two_up.html">Two-up Stanford & Cornell / OAuth and HTTP Basic</a></li>
-<li><a href="simeon_cornell_gauth.html">HTML page with <code>img</code> tag</a></li>
+<li><a href="wellcome_clickthrough.html">Wellcome image with clickthrough</a></li>
+<li><a href="cornell_osd_gauth.html">Cornell / GAuth / Non-authenticated => gray</a></li>
+<li><a href="cornell_osd_basic.html">Cornell / Basic / Non-authenticated => gray</a></li>
+<li><a href="cornell_html_gauth.html">HTML page with <code>img</code> tag</a></li>
 </ol>
-
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
 
 <h2>Control..</h2>
 
 <ul>
 <li><a href="https://security.google.com/settings/security/permissions?pli=1">Google app auth management</a></li>
-</ul>
-
-<h2>Remote tests</h2>
-
-<ul>
-<li><a href="rob_stanford_basic.html">Rob's server running at Stanford using Basic auth</a></li>
-<li><a href="simeon_cornell_basic.html">Simeon's server running at Cornell using Basic auth</a></li>
-<li><a href="rob_stanford_plain_google.html">HTML page with images at Standford</a></li>
-</ul>
-
-<h2>Local tests</h2>
-
-<ul>
-<li><a href="rob_local.html">Rob's server run locally on port 8001 using Google auth</a></li>
-<li><a href="pref_pil_gauth.html">Simeon's server run locally on port 8001 using PIL & Google auth</a></li>
-<li><a href="pref_pil_basic.html">Simeon's server run locally on port 8001 using PIL & Basic auth</a></li>
-<li><a href="local_8001_pil_gauth.html">HTML page with images locally</a></li>
 </ul>
 
 </body>

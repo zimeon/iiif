@@ -64,6 +64,7 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='abc')
         self.assertEqual(auth.cookie_prefix, 'abc')
         self.assertEqual(auth.google_api_client_id, 'SECRET_CODE_537')
+        self.assertEqual(auth.account_cookie_name, 'abcaccount')
         auth = IIIFAuthGoogle(
             client_secret_file='/does_not_exist',
             cookie_prefix='abcd')
@@ -75,9 +76,11 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthGoogle(client_secret_file=csf)
         auth.logout_uri = 'xyz'
         lsd = auth.logout_service_description()
-        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/logout')
+        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/1/logout')
         self.assertEqual(lsd['@id'], 'xyz')
-        self.assertEqual(lsd['label'], 'Logout from image server')
+        self.assertEqual(
+            lsd['label'],
+            'Logout from image server (Google auth)')
 
     def test03_info_authn(self):
         """Test info_authn method."""
@@ -91,7 +94,7 @@ class TestAll(unittest.TestCase):
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             ia = auth.image_authn()
-            self.assertEqual(ia, '')
+            self.assertEqual(ia, False)
 
     def test05_login_handler(self):
         """Test login_handler method."""
@@ -134,40 +137,63 @@ class TestAll(unittest.TestCase):
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
             self.assertEqual(
-                j['error_description'],
-                "No login details received")
+                j['description'],
+                "No authorization details received")
             self.assertEqual(j['error'], "client_unauthorized")
         # add callback but no account cookie
-        with dummy_app.test_request_context('/a_request?callback=CB'):
+        with dummy_app.test_request_context('/a_request?messageId=1234'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
             response = auth.access_token_handler()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(
                 response.headers['Content-type'],
-                'application/javascript')
-            # strip JavaScript wrapper and then check JSON
-            js = response.get_data().decode('utf-8')
-            self.assertTrue(re.match('CB\(.*\);', js))
-            j = json.loads(js.lstrip('CB(').rstrip(');'))
-            self.assertEqual(
-                j['error_description'],
-                "No login details received")
-            self.assertEqual(j['error'], "client_unauthorized")
+                'text/html')
+            # Check HTML is postMessage, includes an error
+            html = response.get_data().decode('utf-8')
+            self.assertTrue(re.search(
+                r'postMessage\(',
+                html))
+            self.assertTrue(re.search(
+                r'"error"',
+                html))
         # add an account cookie
         h = Headers()
         h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
         with dummy_app.test_request_context('/a_request', headers=h):
             auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
+            # stub token gen:
+            auth._generate_random_string = lambda x: 'lkjhg'
             response = auth.access_token_handler()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(
                 response.headers['Content-type'],
                 'application/json')
             j = json.loads(response.get_data().decode('utf-8'))
-            self.assertEqual(j['access_token'], "ACCOUNT_TOKEN")
-            self.assertEqual(j['token_type'], "Bearer")
+            self.assertEqual(j['accessToken'], 'lkjhg')
+        # add an account cookie and a messageId
+        h = Headers()
+        h.add('Cookie', 'lol_account=ACCOUNT_TOKEN')
+        with dummy_app.test_request_context('/a_request?messageId=2345', headers=h):
+            auth = IIIFAuthGoogle(client_secret_file=csf, cookie_prefix='lol_')
+            response = auth.access_token_handler()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                response.headers['Content-type'],
+                'text/html')
+            # Check HTML is postMessage, includes messageId,
+            # does not include an error
+            html = response.get_data().decode('utf-8')
+            self.assertTrue(re.search(
+                r'postMessage\(',
+                html))
+            self.assertTrue(re.search(
+                r'"messageId":\s*"2345"',
+                html))
+            self.assertFalse(re.search(
+                r'"error"',
+                html))
 
-    def test07_home_handler(self):
+    def test08_home_handler(self):
         """Test home_handler method."""
         with dummy_app.test_request_context('/a_request'):
             auth = IIIFAuthGoogle(client_secret_file=csf)
@@ -187,21 +213,21 @@ class TestAll(unittest.TestCase):
                     r'<script>window.close\(\);</script>',
                     html))
 
-    def test08_google_get_token(self):
+    def test09_google_get_token(self):
         """Test google_get_token method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),
-                            return_value=Readable('{"a":"b"}')):
+                            return_value=Readable(b'{"a":"b"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host', port=None)
                 j = auth.google_get_token(config, 'prefix')
                 self.assertEqual(j, {'a': 'b'})
 
-    def test09_google_get_data(self):
+    def test10_google_get_data(self):
         """Test google_get_data method."""
         with dummy_app.test_request_context('/a_request'):
             with mock.patch(self.urlopen_name(),
-                            return_value=Readable('{"c":"d"}')):
+                            return_value=Readable(b'{"c":"d"}')):
                 auth = IIIFAuthGoogle(client_secret_file=csf)
                 config = Struct(host='a_host', port=None)
                 j = auth.google_get_data(config, {'access_token': 'TOKEN'})

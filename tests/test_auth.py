@@ -13,12 +13,11 @@ class TestAll(unittest.TestCase):
     def test01_init(self):
         """Test initialization with params and cookie prefix."""
         auth = IIIFAuth()
-        self.assertEqual(auth.profile_base, 'http://iiif.io/api/auth/0/')
+        self.assertEqual(auth.profile_base, 'http://iiif.io/api/auth/1/')
         self.assertEqual(auth.name, "image server")
         auth = IIIFAuth(cookie_prefix='abc_')
         self.assertEqual(auth.cookie_prefix, 'abc_')
-        self.assertEqual(auth.auth_cookie_name, 'abc_loggedin')
-        self.assertEqual(auth.token_cookie_name, 'abc_token')
+        self.assertEqual(auth.access_cookie_name, 'abc_access')
 
     def test02_set_cookie_prefix(self):
         """Test set_cookie_prefix."""
@@ -65,7 +64,7 @@ class TestAll(unittest.TestCase):
         """Test login_service_description."""
         auth = IIIFAuth()
         lsd = auth.login_service_description()
-        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/login')
+        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/1/login')
         auth.login_uri = 'id1'
         auth.profile_base = 'http://pb1/'
         lsd = auth.login_service_description()
@@ -129,6 +128,18 @@ class TestAll(unittest.TestCase):
         self.assertEqual(IIIFAuth().access_token_handler, None)
         self.assertEqual(IIIFAuth().client_id_handler, None)
         self.assertEqual(IIIFAuth().home_handler, None)
+
+    def test11_access_token_response(self):
+        """Test structure of access token response."""
+        # no token
+        err_response = IIIFAuth().access_token_response(None)
+        self.assertEqual(err_response['error'], 'client_unauthorized')
+        self.assertFalse('access_token' in err_response)
+        # token
+        good_response = IIIFAuth().access_token_response('TOKEN_HERE')
+        self.assertEqual(good_response['accessToken'], 'TOKEN_HERE')
+        self.assertTrue(int(good_response['expiresIn']) > 10)
+        self.assertFalse('error' in good_response)
 
     def test11_null_authn_authz(self):
         """Test null authn and auth.

@@ -36,8 +36,8 @@ class Coverage(Command):
 
     def run(self):
         """Run coverage program."""
-        os.system(
-            "coverage run --source=iiif --omit=iiif/manipulator_netpbm.py setup.py test")
+        os.system("coverage run --source=iiif "
+                  "--omit=iiif/manipulator_netpbm.py setup.py test")
         os.system("coverage report")
         os.system("coverage html")
         print("See htmlcov/index.html for details.")
@@ -59,8 +59,9 @@ setup(
     scripts=['iiif_static.py', 'iiif_testserver.py'],
     classifiers=["Development Status :: 4 - Beta",
                  "Intended Audience :: Developers",
-                 "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-                 "Operating System :: OS Independent",  # is this true? know Linux & OS X ok
+                 "License :: OSI Approved :: "
+                 "GNU General Public License v3 (GPLv3)",
+                 "Operating System :: OS Independent",
                  "Programming Language :: Python",
                  "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
@@ -69,7 +70,8 @@ setup(
                  "Programming Language :: Python :: 3.5",
                  "Topic :: Internet :: WWW/HTTP",
                  "Topic :: Multimedia :: Graphics :: Graphics Conversion",
-                 "Topic :: Software Development :: Libraries :: Python Modules",
+                 "Topic :: Software Development :: "
+                 "Libraries :: Python Modules",
                  "Environment :: Web Environment"],
     url='https://github.com/zimeon/iiif',
     license='LICENSE.txt',

@@ -159,7 +159,7 @@ def osd_page_handler(config=None, identifier=None, prefix=None, **args):
 def host_port_prefix(host, port, prefix):
     """Return URI composed of scheme, server, port, and prefix."""
     uri = "http://" + host
-    if (host != 80):
+    if (port != 80):
         uri += ':' + str(port)
     if (prefix):
         uri += '/' + prefix
@@ -196,7 +196,8 @@ class IIIFHandler(object):
         # Set up auth object with locations if not already done
         if (self.auth and not self.auth.login_uri):
             self.auth.login_uri = self.server_and_prefix + '/login'
-            self.auth.logout_uri = self.server_and_prefix + '/logout'
+            if (self.auth.logout_handler is not None):
+                self.auth.logout_uri = self.server_and_prefix + '/logout'
             self.auth.access_token_uri = self.server_and_prefix + '/token'
         #
         # Response headers
@@ -353,7 +354,7 @@ class IIIFHandler(object):
         (outfile, mime_type) = self.manipulator.derive(file, self.iiif)
         # FIXME - find efficient way to serve file with headers
         self.add_compliance_header()
-        return send_file(open(outfile, 'rb'), mimetype=mime_type)
+        return send_file(outfile, mimetype=mime_type)
 
     def error_response(self, e):
         """Make response for an IIIFError e.
@@ -364,7 +365,8 @@ class IIIFHandler(object):
         return self.make_response(*e.image_server_response(self.api_version))
 
 
-def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, auth=None, **args):
+def iiif_info_handler(prefix=None, identifier=None,
+                      config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Information requests."""
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
@@ -387,7 +389,8 @@ def iiif_info_handler(prefix=None, identifier=None, config=None, klass=None, aut
 iiif_info_handler.provide_automatic_options = False
 
 
-def iiif_image_handler(prefix=None, identifier=None, path=None, config=None, klass=None, auth=None, **args):
+def iiif_image_handler(prefix=None, identifier=None,
+                       path=None, config=None, klass=None, auth=None, **args):
     """Handler for IIIF Image Requests.
 
     Behaviour for case of a non-authn or non-authz case is to
@@ -421,10 +424,10 @@ def degraded_request(identifier):
 
 
 def options_handler(**args):
-    """Handler to respond to OPTIONS requests."""
+    """Handler to respond to OPTIONS preflight CORS requests."""
     headers = {'Access-Control-Allow-Origin': '*',
                'Access-Control-Allow-Methods': 'GET,OPTIONS',
-               'Access-Control-Allow-Headers': 'Origin, Accept, Authorization'}
+               'Access-Control-Allow-Headers': 'Origin, Accept, Accept-Encoding, Authorization'}
     return make_response("", 200, headers)
 
 
@@ -542,9 +545,17 @@ def setup_options():
     """Parse options and arguments."""
     p = optparse.OptionParser(description='IIIF Image Testserver')
     p.add_option('--host', default='localhost',
-                 help="Server host (default %default)")
+                 help="Service host (default %default)")
     p.add_option('--port', '-p', type='int', default=8000,
-                 help="Server port (default %default)")
+                 help="Service port (default %default)")
+    p.add_option('--container-prefix', default=None,
+                 help="Container prefix (default %default)")
+    p.add_option('--app-host', default=None,
+                 help="Local application host for reverse proxy deployment, "
+                      "as opposed to service --host (default %default)")
+    p.add_option('--app-port', type='int', default=None,
+                 help="Local application port for reverse proxy deployment. "
+                      "as opposed to service --port (default %default)")
     p.add_option('--image-dir', '-d', default='testimages',
                  help="Image directory (default %default)")
     p.add_option('--generator-dir', default='iiif/generators',
@@ -560,7 +571,7 @@ def setup_options():
                  help="Set of API versions to support (default %default)")
     p.add_option('--manipulators', default='pil',
                  help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
-                      "or gen for generated image. (default %default")
+                      "or gen for generated image. (default %default)")
     p.add_option('--auth-types', default='none',
                  help="Set of authentication types to support (default %default)")
     p.add_option('--gauth-client-secret', default='client_secret.json',
@@ -569,8 +580,12 @@ def setup_options():
                  help="Test pages directory (default %default)")
     p.add_option('--include-osd', action='store_true',
                  help="Include a page with OpenSeadragon for each source")
-    p.add_option('--draft', action='store_true',
-                 help="Enable features implementing draft of IIIF auth specification")
+    p.add_option('--auth', action='store_true',
+                 help="Enable features implementing the IIIF Authentication specification")
+    p.add_option('--access-cookie-lifetime', type='int', default=3600,
+                 help="Set access cookie lifetime for authenticated access (default %default s)")
+    p.add_option('--access-token-lifetime', type='int', default=10,
+                 help="Set access token lifetime for authenticated access (default %default s)")
     p.add_option('--debug', action='store_true',
                  help="Set debug mode for web application. INSECURE!")
     p.add_option('--verbose', '-v', action='store_true',
@@ -590,11 +605,15 @@ def setup_options():
     opt.api_versions = split_option(opt.api_versions)
     opt.auth_types = split_option(opt.auth_types)
 
-    # Draft features...
-    if (opt.draft and 'gauth' not in opt.auth_types):
+    # Authentication features...
+    if (opt.auth and 'gauth' not in opt.auth_types):
         opt.auth_types.append('gauth')
-    if (opt.draft and 'basic' not in opt.auth_types):
+    if (opt.auth and 'basic' not in opt.auth_types):
         opt.auth_types.append('basic')
+    if (opt.auth and 'clickthrough' not in opt.auth_types):
+        opt.auth_types.append('clickthrough')
+    if (opt.auth and 'kiosk' not in opt.auth_types):
+        opt.auth_types.append('kiosk')
 
     return(opt)
 
@@ -621,9 +640,18 @@ def add_handler(app, config, prefixes):
     elif (config.auth_type == 'basic'):
         from iiif.auth_basic import IIIFAuthBasic
         auth = IIIFAuthBasic()
+    elif (config.auth_type == 'clickthrough'):
+        from iiif.auth_clickthrough import IIIFAuthClickthrough
+        auth = IIIFAuthClickthrough()
+    elif (config.auth_type == 'kiosk'):
+        from iiif.auth_kiosk import IIIFAuthKiosk
+        auth = IIIFAuthKiosk()
     else:
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
+    if (auth is not None):
+        auth.access_cookie_lifetime = opt.access_cookie_lifetime
+        auth.access_token_lifetime = opt.access_token_lifetime
     klass = None
     if (config.klass_name == 'pil'):
         from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -716,6 +744,25 @@ def create_app(opt):
     return(app)
 
 
+class ReverseProxied(object):
+    """Wrap the application call to deal with a reverse proxy setup.
+
+    Overrides HTTP_HOST environment setting.
+    See: <http://flask.pocoo.org/snippets/35/>
+
+    :param app: the WSGI application
+    """
+
+    def __init__(self, app, host):
+        """Initialize reverse proxy wrapper, store host."""
+        self.app = app
+        self.host = host
+
+    def __call__(self, environ, start_response):
+        """Set environment with service host."""
+        environ['HTTP_HOST'] = self.host
+        return self.app(environ, start_response)
+
 if __name__ == '__main__':
     # Command line, run own server
     pidfile = os.path.basename(__file__)[:-3] + '.pid'  # strip .py, add .pid
@@ -723,15 +770,25 @@ if __name__ == '__main__':
         fh.write("%d\n" % os.getpid())
         fh.close()
     opt = setup_options()
-    opt.container_prefix = ''
     app = create_app(opt)
-    print("Starting test server on http://%s:%d/ ..." % (opt.host, opt.port))
-    app.run(host=opt.host, port=opt.port)
+    # Set up app_host and app_port in case that we are running
+    # under reverse proxy setup, otherwise they default to
+    # opt.host and opt.port.
+    if (opt.app_host or opt.app_port):
+        print("Reverse proxy for service at http://%s:%d/ ..." %
+              (opt.host, opt.port))
+        app.wsgi_app = ReverseProxied(app.wsgi_app, opt.host)
+    else:
+        opt.app_host = opt.host
+        opt.app_port = opt.port
+    print("Starting test server on http://%s:%d/ ..." %
+          (opt.app_host, opt.app_port))
+    app.run(host=opt.app_host, port=opt.app_port)
 else:
     opt = optparse.Values()
     opt.verbose = 1
     opt.debug = 1
-    opt.draft = 1
+    opt.auth = 1
     mydir = os.path.dirname(os.path.realpath(__file__))
     opt.pages_dir = mydir + '/testpages'
     opt.image_dir = mydir + '/testimages'
@@ -748,5 +805,7 @@ else:
     # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
     opt.host = 'resync.library.cornell.edu'  # FIXME - get from WSGI
     opt.port = 80
+    opt.access_cookie_lifetime = 36000
+    opt.access_token_lifetime = 10
     opt.gauth_client_secret = 'client_secret.json'
     app = create_app(opt)
