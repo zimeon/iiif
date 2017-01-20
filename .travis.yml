@@ -4,8 +4,6 @@ python:
   - "2.7"
   - "3.4"
   - "3.5"
-# commands to install dependencies
-# need "python setup.py install" to install resync so that client tests work
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
