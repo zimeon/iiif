@@ -580,8 +580,8 @@ def setup_options():
                  help="Test pages directory (default %default)")
     p.add_option('--include-osd', action='store_true',
                  help="Include a page with OpenSeadragon for each source")
-    p.add_option('--draft', action='store_true',
-                 help="Enable features implementing draft of IIIF auth specification")
+    p.add_option('--auth', action='store_true',
+                 help="Enable features implementing the IIIF Authentication specification")
     p.add_option('--access-cookie-lifetime', type='int', default=3600,
                  help="Set access cookie lifetime for authenticated access (default %default s)")
     p.add_option('--access-token-lifetime', type='int', default=10,
@@ -605,14 +605,14 @@ def setup_options():
     opt.api_versions = split_option(opt.api_versions)
     opt.auth_types = split_option(opt.auth_types)
 
-    # Draft features...
-    if (opt.draft and 'gauth' not in opt.auth_types):
+    # Authentication features...
+    if (opt.auth and 'gauth' not in opt.auth_types):
         opt.auth_types.append('gauth')
-    if (opt.draft and 'basic' not in opt.auth_types):
+    if (opt.auth and 'basic' not in opt.auth_types):
         opt.auth_types.append('basic')
-    if (opt.draft and 'clickthrough' not in opt.auth_types):
+    if (opt.auth and 'clickthrough' not in opt.auth_types):
         opt.auth_types.append('clickthrough')
-    if (opt.draft and 'kiosk' not in opt.auth_types):
+    if (opt.auth and 'kiosk' not in opt.auth_types):
         opt.auth_types.append('kiosk')
 
     return(opt)
@@ -788,7 +788,7 @@ else:
     opt = optparse.Values()
     opt.verbose = 1
     opt.debug = 1
-    opt.draft = 1
+    opt.auth = 1
     mydir = os.path.dirname(os.path.realpath(__file__))
     opt.pages_dir = mydir + '/testpages'
     opt.image_dir = mydir + '/testimages'

@@ -18,7 +18,7 @@ class IIIFAuth(object):
 
     def __init__(self, cookie_prefix=None):
         """Initialize IIIFAuth object."""
-        self.profile_base = 'http://iiif.io/api/auth/0/'
+        self.profile_base = 'http://iiif.io/api/auth/1/'
         self.name = 'image server'
         self.auth_pattern = 'login'
         self.header = None

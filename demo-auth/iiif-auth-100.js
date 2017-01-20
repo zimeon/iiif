@@ -1,10 +1,10 @@
 /* IIIF Demo Authentication Library
- * For v0.9.4: http://auth_notes.iiif.io/api/auth/0.9/
+ * For v1.0.0: http://auth_notes.iiif.io/api/auth/1.0/
  * 
  * Requires OpenSeadragon 121, 200 or higher.
  * Requires jQuery 1.11 or higher.
  *
- * Starting point was IIIF Auth v0.9 implementation by Robert Sanderson @azaroth42.
+ * Based on v0.9 implementation by Robert Sanderson @azaroth42.
  * Simeon Warner @zimeon - 2016-08-10...
  */
 
@@ -34,9 +34,9 @@ var osd_prefix_url = "openseadragon200/images/",
     frame_wrapper_id = "#frameWrapper",
     token_service_uri = "",
     image_uri = "",
-    profiles = {'http://iiif.io/api/auth/0/login': 'login',
-                'http://iiif.io/api/auth/0/clickthrough': 'clickthrough',
-                'http://iiif.io/api/auth/0/kiosk': 'kiosk'},
+    profiles = {'http://iiif.io/api/auth/1/login': 'login',
+                'http://iiif.io/api/auth/1/clickthrough': 'clickthrough',
+                'http://iiif.io/api/auth/1/kiosk': 'kiosk'},
     viewer, // our instance of OpenSeadragon
     viewer_authed = false,
     linenum = 0, // line number of log text
@@ -127,10 +127,10 @@ function find_auth_services(info) {
             }
             for (i=0, len=services.length; i < len; i+=1) {
                 service=services[i];
-                if (service.profile === 'http://iiif.io/api/auth/0/token') {
+                if (service.profile === 'http://iiif.io/api/auth/1/token') {
                     svc.token = service['@id'];
                     log("Found token service (" + svc.token + ")");
-                } else if (service.profile === 'http://iiif.io/api/auth/0/logout') {
+                } else if (service.profile === 'http://iiif.io/api/auth/1/logout') {
                     svc.logout = service['@id'];
                     log("Found logout service (" + svc.logout + ")");
                     if (service.hasOwnProperty('label')) {

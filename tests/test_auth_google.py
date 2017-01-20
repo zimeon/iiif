@@ -76,7 +76,7 @@ class TestAll(unittest.TestCase):
         auth = IIIFAuthGoogle(client_secret_file=csf)
         auth.logout_uri = 'xyz'
         lsd = auth.logout_service_description()
-        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/0/logout')
+        self.assertEqual(lsd['profile'], 'http://iiif.io/api/auth/1/logout')
         self.assertEqual(lsd['@id'], 'xyz')
         self.assertEqual(
             lsd['label'],

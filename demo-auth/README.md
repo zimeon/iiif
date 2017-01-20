@@ -9,15 +9,16 @@ In order to simulate client and server on different servers, we run the client p
 In one window, change to root of the checked out repository (parent dir of this dir) and run:
 
 ```sh
-(py2)simeon@RottenApple iiif>./iiif_testserver.py -p 8001
+(py2) iiif> ./iiif_testserver.py -p 8001 --auth
 Installing pil IIIFManipulator at /1.0_pil/ v1.0 none
 Installing pil IIIFManipulator at /1.1_pil/ v1.1 none
 Installing pil IIIFManipulator at /2.0_pil/ v2.0 none
 Installing pil IIIFManipulator at /2.1_pil/ v2.1 none
 Installing pil IIIFManipulator at /2.1_pil_gauth/ v2.1 gauth
 Installing pil IIIFManipulator at /2.1_pil_basic/ v2.1 basic
+Installing pil IIIFManipulator at /2.1_pil_clickthrough/ v2.1 clickthrough
+Installing pil IIIFManipulator at /2.1_pil_kiosk/ v2.1 kiosk
 Starting test server on http://localhost:8001/ ...
-werkzeug:  * Running on http://localhost:8001/ (Press CTRL+C to quit)
 ...
 (will then show log lines for any access)
 ```
@@ -48,7 +49,7 @@ Serving HTTP on 0.0.0.0 port 8000 ...
 127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /cornell_osd_gauth.html HTTP/1.1" 200 -
 127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /openseadragon200/openseadragon.min.js HTTP/1.1" 200 -
 127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /jquery-1.11.1.min.js HTTP/1.1" 200 -
-127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /iiif-auth-094.js HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /iiif-auth-100.js HTTP/1.1" 200 -
 127.0.0.1 - - [16/Aug/2016 16:18:38] "GET /openseadragon200/images/zoomin_rest.png HTTP/1.1" 200 -
 ...
 ```

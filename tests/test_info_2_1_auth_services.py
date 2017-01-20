@@ -30,7 +30,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(info.service['@id'], "http://example.com/login")
         self.assertEqual(info.service['label'], "Login to image server")
         self.assertEqual(info.service['profile'],
-                         "http://iiif.io/api/auth/0/login")
+                         "http://iiif.io/api/auth/1/login")
 
     def test03_login_and_logout(self):
         """Test login and logout."""
@@ -42,11 +42,11 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(info.service['@id'], "http://example.com/login")
         self.assertEqual(info.service['label'], "Login to image server")
         self.assertEqual(info.service['profile'],
-                         "http://iiif.io/api/auth/0/login")
+                         "http://iiif.io/api/auth/1/login")
         svcs = info.service['service']
         self.assertEqual(svcs['@id'], "http://example.com/logout")
         self.assertEqual(svcs['label'], "Logout from image server")
-        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/0/logout")
+        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/1/logout")
 
     def test04_login_and_client_id(self):
         """Test login and client id."""
@@ -58,10 +58,10 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(info.service['@id'], "http://example.com/login")
         self.assertEqual(info.service['label'], "Login to image server")
         self.assertEqual(info.service['profile'],
-                         "http://iiif.io/api/auth/0/login")
+                         "http://iiif.io/api/auth/1/login")
         svcs = info.service['service']
         self.assertEqual(svcs['@id'], "http://example.com/client_id")
-        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/0/clientId")
+        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/1/clientId")
 
     def test05_login_and_access_token(self):
         """Test login and access token."""
@@ -73,10 +73,10 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(info.service['@id'], "http://example.com/login")
         self.assertEqual(info.service['label'], "Login to image server")
         self.assertEqual(info.service['profile'],
-                         "http://iiif.io/api/auth/0/login")
+                         "http://iiif.io/api/auth/1/login")
         svcs = info.service['service']
         self.assertEqual(svcs['@id'], "http://example.com/token")
-        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/0/token")
+        self.assertEqual(svcs['profile'], "http://iiif.io/api/auth/1/token")
 
     def test06_full_set(self):
         """Test full set of auth services."""
