@@ -76,7 +76,7 @@ setup(
     description='IIIF Image API reference implementation',
     long_description=open('README').read(),
     install_requires=[
-        "Pillow",
+        "Pillow>=3.2.0,<4.0.0",  # Pillow 4.0.0 drops python 2.6 support
         "python-magic",
         "Flask",
         "mock"
