@@ -4,6 +4,7 @@ iiif changelog
 2017-??-?? v1.0.3
 
 - Drop python 3.3 from tests, add python 3.6
+- Add External authentication interaction pattern
 
 2017-01-19 v1.0.2
 
