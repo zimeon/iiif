@@ -614,7 +614,7 @@ def setup_options():
         opt.auth_types.append('clickthrough')
     if (opt.auth and 'kiosk' not in opt.auth_types):
         opt.auth_types.append('kiosk')
-    if (opt.draft and 'external' not in opt.auth_types):
+    if (opt.auth and 'external' not in opt.auth_types):
         opt.auth_types.append('external')
 
     return(opt)
