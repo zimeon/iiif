@@ -553,10 +553,25 @@ class IIIFRequest(object):
         opportunity for extension here just do a limited sanity check
         on characters and length.
         """
-        if (self.format is not None and not re.match(r'''\w{1,20}$''', self.format)):
+        if (self.format is not None and
+                not re.match(r'''\w{1,20}$''', self.format)):
             raise IIIFRequestError(
                 parameter='format',
                 text='Bad format parameter')
+
+    def is_scaled_full_image(self):
+        """True if this request is for a scaled full image.
+
+        To be used to determine whether this request should be used
+        in the set of `sizes` specificed in the Image Information.
+        """
+        return(self.region_full and
+            self.size_wh[0] is not None and
+            self.size_wh[1] is not None and
+            not self.size_bang and
+            self.rotation_deg == 0.0 and
+            self.quality == self.default_quality and
+            self.format == 'jpg')
 
     def __str__(self):
         """Return string of this object in human readable form.

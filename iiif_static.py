@@ -39,6 +39,9 @@ def main():
                  help="Identifier for the image that will be used in place of the filename "
                       "(minus extension). Notes that this option cannot be used if more than "
                       "one image file is to be processed")
+    p.add_option('--extra', '-e', action='append', default=[],
+                 help="Extra request parameters to be used to generate static files, may be "
+                      "repeated (e.g. '/full/90,/0/default.jpg' for a 90 wide thumnail)")
     p.add_option('--write-html', action='store', default=None,
                  help="Write HTML page to the specified directory using the 'identifier.html' "
                       "as the filename. HTML will launch OpenSeadragon for this image and to "
@@ -98,7 +101,8 @@ def main():
                             api_version=opt.api_version, dryrun=opt.dryrun,
                             prefix=opt.prefix, osd_version=opt.osd_version,
                             generator=opt.generator,
-                            max_image_pixels=opt.max_image_pixels)
+                            max_image_pixels=opt.max_image_pixels,
+                            extras=opt.extra)
             for source in sources:
                 # File or directory (or neither)?
                 if (os.path.isfile(source) or opt.generator):
