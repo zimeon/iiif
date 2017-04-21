@@ -36,7 +36,8 @@ var osd_prefix_url = "openseadragon200/images/",
     image_uri = "",
     profiles = {'http://iiif.io/api/auth/1/login': 'login',
                 'http://iiif.io/api/auth/1/clickthrough': 'clickthrough',
-                'http://iiif.io/api/auth/1/kiosk': 'kiosk'},
+                'http://iiif.io/api/auth/1/kiosk': 'kiosk',
+                'http://iiif.io/api/auth/1/external': 'external'},
     viewer, // our instance of OpenSeadragon
     viewer_authed = false,
     linenum = 0, // line number of log text
@@ -87,10 +88,10 @@ function find_auth_services(info) {
         // Look through services and exit at the first recognized authentication
         // service. 
         //
-        // FIXME - should handle the case of multiple authentication services
+        // FIXME - should handle the case of multiple authentication services,
+        // just find the first service with a recognized profile
         for (i=0, len=services.length; i < len; i+=1) {
             service=services[i];
-            log("service @id " + service['@id']);
             if (profiles.hasOwnProperty(service.profile)) {
                 svc.pattern = profiles[service.profile];
                 svc.uri = service['@id'];
@@ -211,7 +212,11 @@ function get_image_information(imagee_uri, success, token) {
  */
 function make_authorized_viewer(info, status) {
     var svc;
-    log("Got full info.json, id=" + info['@id']);
+    if (status === 200) {
+        log("Got image information for " + info['@id'] + " with HTTP status " + status);
+    } else {
+        log("Got image information for " + info['@id'] + " with unexpected HTTP status " + status);
+    }
     // Do we have a logout definition?
     svc = find_auth_services(info);
     if (svc.hasOwnProperty('logout')) {
@@ -383,7 +388,9 @@ function add_auth_options(info) {
             $('#authbox').append(sanitize_html(svc.description) + "<br/>");
         }
         token_service_uri = svc.token; // FIXME - stash token URI for later
-        if (svc.pattern === 'kiosk') {
+        if (svc.pattern === 'external') {
+            log("External pattern so no auth options shown");
+        } else if (svc.pattern === 'kiosk') {
             log("Kiosk pattern so no user interaction required");
             $('#authbox').append("<button id='authbutton' " +
                 "style='display: none' data-auth-svc='" + 
@@ -415,11 +422,12 @@ function add_auth_options(info) {
   * @param {integer} status - HTTP status code
   */
 function make_unauthorized_viewer(info, status) {
+    log("Got image information for " + info['@id'] + " with HTTP status " + status);
     add_auth_options(info);
     $(osd_id).remove();
     $(container_id).append(osd_div);
     if (status === 200) {
-        log("Starting viewer for " + info['@id'] + " (" + status + ")");
+        log("Starting viewer for " + info['@id']);
         var viewer = new OpenSeadragon({
             id: "openseadragon",
             tileSources: info,
