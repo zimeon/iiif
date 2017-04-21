@@ -1,7 +1,7 @@
 iiif changelog
 ==============
 
-2017-04-29 v1.0.4
+2017-04-20 v1.0.4
 
 - Add External authentication interaction pattern
 
