@@ -1,6 +1,10 @@
 iiif changelog
 ==============
 
+????-??-?? v1.0.5
+
+- ???
+
 2017-04-20 v1.0.4
 
 - Add External authentication interaction pattern
