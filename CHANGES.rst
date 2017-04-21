@@ -1,11 +1,14 @@
 iiif changelog
 ==============
 
+2017-04-29 v1.0.4
+
+- Add External authentication interaction pattern
+
 2017-03-20 v1.0.3
 
 - Add --extra parameter to iiif_static.py
 - Drop python 3.3 from tests, add python 3.6
-- Add External authentication interaction pattern
 - Drop rst-lint from travis tests as no longer works on python 2.6
 
 2017-01-19 v1.0.2
