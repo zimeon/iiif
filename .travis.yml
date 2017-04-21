@@ -4,10 +4,11 @@ python:
   - "2.7"
   - "3.4"
   - "3.5"
+  - "3.6"
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
-  - pip install iiif_validator coveralls pep8 pep257 restructuredtext_lint testfixtures
+  - pip install iiif_validator coveralls pep8 pep257 testfixtures
   - python setup.py install
 script:
   # use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet

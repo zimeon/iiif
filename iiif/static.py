@@ -118,7 +118,7 @@ class IIIFStatic(object):
     def __init__(self, src=None, dst=None, tilesize=None,
                  api_version='2.0', dryrun=None, prefix='',
                  osd_version=None, generator=False,
-                 max_image_pixels=0):
+                 max_image_pixels=0, extras=[]):
         """Initialization for IIIFStatic instances.
 
         All keyword arguments are optional:
@@ -129,6 +129,7 @@ class IIIFStatic(object):
         dryrun -- True to not write any output (default None)
         prefix -- identifier prefix
         osd_version -- use a specific version of OpenSeadragon
+        extras -- extras request parameters to generate for
         """
         self.src = src
         self.dst = dst
@@ -147,6 +148,16 @@ class IIIFStatic(object):
         else:
             self.manipulator_klass = IIIFManipulatorPIL
         self.max_image_pixels = max_image_pixels
+        # parse values in extras before adding to list, remove any leading /
+        # if present on extras values
+        self.extras = []
+        for extra in extras:
+            if extra.startswith('/'):
+                extra = extra[1:]
+            r = IIIFRequest(identifier='dummy',
+                            api_version=self.api_version)
+            r.parse_url(extra)
+            self.extras.append(r)
         # config for locations of OpenSeadragon
         # - dir is relative to base, will be copied to dir under html_dir
         # - js and images are relative to dir
@@ -212,10 +223,21 @@ class IIIFStatic(object):
         for (region, size) in static_partial_tile_sizes(width, height, self.tilesize, scale_factors):
             self.generate_tile(region, size)
         sizes = []
-        for (size) in static_full_sizes(width, height, self.tilesize):
+        for size in static_full_sizes(width, height, self.tilesize):
             # See https://github.com/zimeon/iiif/issues/9
             sizes.append({'width': size[0], 'height': size[1]})
             self.generate_tile('full', size)
+        for request in self.extras:
+            request.identifier = self.identifier
+            if (request.region_full and
+                    request.size_wh[0] is not None and
+                    request.size_wh[1] is not None and
+                    request.rotation_deg == 0.0 and
+                    request.quality == request.default_quality and
+                    request.format == 'jpg'):
+                # FIXME - should this test of be pushed into iiif.request?
+                sizes.append({'width': request.size_wh[0], 'height': request.size_wh[1]})
+            self.generate_file(request)
         # Write info.json
         qualities = ['default'] if (self.api_version > '1.1') else ['native']
         info = IIIFInfo(level=0, server_and_prefix=self.prefix, identifier=self.identifier,
@@ -238,7 +260,23 @@ class IIIFStatic(object):
             self.logger.debug("Written %s" % (json_file))
 
     def generate_tile(self, region, size):
-        """Generate one tile for this given region,size of this region.
+        """Generate one tile for this given region, size of this image."""
+        r = IIIFRequest(identifier=self.identifier,
+                        api_version=self.api_version)
+        if (region == 'full'):
+            r.region_full = True
+        else:
+            r.region_xywh = region  # [rx,ry,rw,rh]
+        r.size_wh = size  # [sw,sh]
+        r.format = 'jpg'
+        self.generate_file(r, True)
+
+    def generate_file(self, r, undistorted=False):
+        """Generate file for IIIFRequest object r from this image.
+
+        FIXME - Would be nicer to have the test for an undistorted image request
+        based on the IIIFRequest object, and then know whether to apply canonicalization
+        or not.
 
         Logically we might use `w,h` instead of the Image API v2.0 canonical
         form `w,` if the api_version is 1.x. However, OSD 1.2.1 and 2.x assume
@@ -246,19 +284,10 @@ class IIIFStatic(object):
         earlier. Thus, determine whether to use the canonical or `w,h` form based
         solely on the setting of osd_version.
         """
-        r = IIIFRequest(identifier=self.identifier,
-                        api_version=self.api_version)
-        osd_config = self.get_osd_config(self.osd_version)
-        use_canonical = osd_config['use_canonical']
-        if (region == 'full'):
-            r.region_full = True
-        else:
-            r.region_xywh = region  # [rx,ry,rw,rh]
-        if (use_canonical):
-            r.size_wh = [size[0], None]  # [sw,sh] -> [sw,]
-        else:
-            r.size_wh = size  # old form, full `w,h`
-        r.format = 'jpg'
+        use_canonical = self.get_osd_config(self.osd_version)['use_canonical']
+        if (undistorted and use_canonical):
+            height = r.size_wh[1]
+            r.size_wh = [r.size_wh[0], None]  # [sw,sh] -> [sw,]
         path = r.url()
         # Generate...
         if (self.dryrun):
@@ -272,8 +301,8 @@ class IIIFStatic(object):
             except IIIFZeroSizeError:
                 self.logger.info("%s / %s - zero size, skipped" %
                                  (self.dst, path))
-                return()  # done if zero size
-        if (region == 'full' and use_canonical):
+                return  # done if zero size
+        if (r.region_full and use_canonical):
             # In v2.0 of the spec, the canonical URI form `w,` for scaled
             # images of the full region was introduced. This is somewhat at
             # odds with the requirement for `w,h` specified in `sizes` to
@@ -286,9 +315,9 @@ class IIIFStatic(object):
             # FIXME - This is ugly because we duplicate code in
             # iiif.request.url to construct the partial URL
             region_dir = os.path.join(r.quote(r.identifier), "full")
-            wh_dir = "%d,%d" % (size[0], size[1])
+            wh_dir = "%d,%d" % (r.size_wh[0], height)
             wh_path = os.path.join(region_dir, wh_dir)
-            wc_dir = "%d," % (size[0])
+            wc_dir = "%d," % (r.size_wh[0])
             wc_path = os.path.join(region_dir, wc_dir)
             if (not self.dryrun):
                 ln = os.path.join(self.dst, wh_path)
