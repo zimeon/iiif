@@ -152,12 +152,7 @@ class IIIFStatic(object):
         # if present on extras values
         self.extras = []
         for extra in extras:
-            if extra.startswith('/'):
-                extra = extra[1:]
-            r = IIIFRequest(identifier='dummy',
-                            api_version=self.api_version)
-            r.parse_url(extra)
-            self.extras.append(r)
+            self.extras.append(self.parse_extra(extra))
         # config for locations of OpenSeadragon
         # - dir is relative to base, will be copied to dir under html_dir
         # - js and images are relative to dir
@@ -192,6 +187,17 @@ class IIIFStatic(object):
         self.identifier = None
         self.copied_osd = False
         self.template_dir = os.path.join(self.module_dir, 'templates')
+
+    def parse_extra(self, extra):
+        """Parse extra request parameters to IIIFRequest object."""
+        if extra.startswith('/'):
+            extra = extra[1:]
+        r = IIIFRequest(identifier='dummy',
+                        api_version=self.api_version)
+        r.parse_url(extra)
+        if (r.info):
+            raise IIIFStaticError("Attempt to specify Image Information in extras.")
+        return(r)
 
     def get_osd_config(self, osd_version):
         """Select appropriate portion of config.
@@ -229,14 +235,9 @@ class IIIFStatic(object):
             self.generate_tile('full', size)
         for request in self.extras:
             request.identifier = self.identifier
-            if (request.region_full and
-                    request.size_wh[0] is not None and
-                    request.size_wh[1] is not None and
-                    request.rotation_deg == 0.0 and
-                    request.quality == request.default_quality and
-                    request.format == 'jpg'):
-                # FIXME - should this test of be pushed into iiif.request?
-                sizes.append({'width': request.size_wh[0], 'height': request.size_wh[1]})
+            if (request.is_scaled_full_image()):
+                sizes.append({'width': request.size_wh[0],
+                              'height': request.size_wh[1]})
             self.generate_file(request)
         # Write info.json
         qualities = ['default'] if (self.api_version > '1.1') else ['native']
@@ -285,6 +286,7 @@ class IIIFStatic(object):
         solely on the setting of osd_version.
         """
         use_canonical = self.get_osd_config(self.osd_version)['use_canonical']
+        height = None
         if (undistorted and use_canonical):
             height = r.size_wh[1]
             r.size_wh = [r.size_wh[0], None]  # [sw,sh] -> [sw,]
@@ -302,7 +304,7 @@ class IIIFStatic(object):
                 self.logger.info("%s / %s - zero size, skipped" %
                                  (self.dst, path))
                 return  # done if zero size
-        if (r.region_full and use_canonical):
+        if (r.region_full and use_canonical and height is not None):
             # In v2.0 of the spec, the canonical URI form `w,` for scaled
             # images of the full region was introduced. This is somewhat at
             # odds with the requirement for `w,h` specified in `sizes` to

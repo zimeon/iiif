@@ -614,6 +614,8 @@ def setup_options():
         opt.auth_types.append('clickthrough')
     if (opt.auth and 'kiosk' not in opt.auth_types):
         opt.auth_types.append('kiosk')
+    if (opt.auth and 'external' not in opt.auth_types):
+        opt.auth_types.append('external')
 
     return(opt)
 
@@ -646,6 +648,9 @@ def add_handler(app, config, prefixes):
     elif (config.auth_type == 'kiosk'):
         from iiif.auth_kiosk import IIIFAuthKiosk
         auth = IIIFAuthKiosk()
+    elif (config.auth_type == 'external'):
+        from iiif.auth_external import IIIFAuthExternal
+        auth = IIIFAuthExternal()
     else:
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return

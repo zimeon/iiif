@@ -1,6 +1,10 @@
 iiif changelog
 ==============
 
+2017-04-29 v1.0.4
+
+- Add External authentication interaction pattern
+
 2017-03-20 v1.0.3
 
 - Add --extra parameter to iiif_static.py

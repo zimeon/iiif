@@ -3,7 +3,7 @@
 Extends iiif.auth to add Flask web application interaction
 necessary to build a real auth system. In theory one
 might be able to replace this module as the middle
-component.
+component to work with another framework.
 """
 
 import json

@@ -64,7 +64,29 @@ class TestAll(unittest.TestCase):
         self.assertRaises(ValueError,
                           r._parse_non_negative_int, '-1', 'region')
 
-    def test03_str(self):
+    def test03_is_scaled_full_image(self):
+        """Test check for whether request is scaled full image."""
+        r = IIIFRequest(identifier='dummy',
+                        api_version='2.1')
+        r.parse_url('full/full/0/default.jpg')
+        self.assertFalse(r.is_scaled_full_image())
+        r.parse_url('full/!10,10/0/default.jpg')
+        self.assertFalse(r.is_scaled_full_image())
+        r.parse_url('10,10,90,90/10,10/0/default.jpg')
+        self.assertFalse(r.is_scaled_full_image())
+        r.parse_url('full/10,10/1/default.jpg')
+        self.assertFalse(r.is_scaled_full_image())
+        r.parse_url('full/10,10/0/default.png')
+        self.assertFalse(r.is_scaled_full_image())
+        r.parse_url('full/10,10/0/color.jpg')
+        self.assertFalse(r.is_scaled_full_image())
+        #
+        r = IIIFRequest(identifier='dummy',
+                        api_version='2.1')
+        r.parse_url('full/10,10/0/default.jpg')
+        self.assertTrue(r.is_scaled_full_image())
+
+    def test04_str(self):
         """Simple tests of str() method."""
         r = IIIFRequest()
         r.baseurl = 'http://ex.org/'
@@ -85,7 +107,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue(re.search(r'region=R', str(r)))
         self.assertTrue(re.search(r'format=jpg', str(r)))
 
-    def test04_allow_slashes_in_identifier_munger(self):
+    def test05_allow_slashes_in_identifier_munger(self):
         """Test request munger, list in, list out."""
         r = IIIFRequest()
         # Image requests

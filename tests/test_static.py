@@ -15,8 +15,9 @@ try:  # python2
 except ImportError:  # python3
     import io
 
+from iiif.request import IIIFRequestError
 from iiif.static import IIIFStatic, IIIFStaticError, static_partial_tile_sizes, static_full_sizes
-
+from iiif.manipulator_gen import IIIFManipulatorGen
 
 class MyLogCapture(LogCapture):
     """LogCapture class with added all_msgs property."""
@@ -48,15 +49,33 @@ class TestAll(unittest.TestCase):
         s = IIIFStatic(src='abc', dst='def', tilesize=1024,
                        api_version='1', dryrun=True)
         self.assertEqual(s.api_version, '1.1')
+        # Test passing generator flag
+        s = IIIFStatic(generator=True)
+        self.assertEqual(s.manipulator_klass, IIIFManipulatorGen)
+        # Test extra
+        s = IIIFStatic(extras=['/full/full/0/default.png'])
+        self.assertEqual(len(s.extras), 1)
 
-    def test02_get_osd_config(self):
+    def test02_parse_extra(self):
+        """Test parse_extra."""
+        s = IIIFStatic()
+        r = s.parse_extra('/0,0,100,100/10,10/0/default.jpg')
+        self.assertEqual(r.region_xywh, [0, 0, 100, 100])
+        r = s.parse_extra('full/full/0/default.jpg')
+        self.assertEqual(r.region_full, True)
+        # Error cases
+        self.assertRaises(IIIFRequestError, s.parse_extra, '')
+        self.assertRaises(IIIFRequestError, s.parse_extra, '/bad/')
+        self.assertRaises(IIIFStaticError, s.parse_extra, 'info.json')
+
+    def test03_get_osd_config(self):
         """Test get_osd_config."""
         s = IIIFStatic()
         self.assertEqual(s.get_osd_config('2.0.0')['use_canonical'], True)
         self.assertRaises(IIIFStaticError, s.get_osd_config, 'abc')
         self.assertRaises(IIIFStaticError, s.get_osd_config, '0.0.0')
 
-    def test03_generate(self):
+    def test04_generate(self):
         """Test generation of a static image."""
         # dryrun covers most
         tmp1 = tempfile.mkdtemp()
@@ -96,10 +115,24 @@ class TestAll(unittest.TestCase):
                 re.search(' / a/full/1,/0/default.jpg', lc.all_msgs))
             self.assertTrue(
                 re.search(' / a/full/1,1 -> a/full/1,', lc.all_msgs))
+            # add extras
+            s = IIIFStatic(dst=tmp1, tilesize=1024,
+                           extras=['full/99,/0/default.png',
+                                   'full/150,200/0/default.jpg'],
+                           dryrun=True)
+            with MyLogCapture('iiif.static') as lc:
+                s.generate(src='testimages/starfish_1500x2000.png',
+                           identifier='a')
+            self.assertTrue(re.search(' / a/info.json', lc.all_msgs))
+            self.assertTrue(
+                re.search(' / a/full/99,/0/default.png', lc.all_msgs))
         finally:
             shutil.rmtree(tmp1)
         # real write
         tmp2 = tempfile.mkdtemp()
+        # include file that should be removed to make link
+        os.makedirs(os.path.join(tmp2, 'b/full/'))
+        open(os.path.join(tmp2, 'b/full/1,1'), 'w').close()
         try:
             s = IIIFStatic(dst=tmp2, tilesize=1024, api_version='2.0')
             with MyLogCapture('iiif.static') as lc:
@@ -113,7 +146,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp2)
 
-    def test04_generate_tile(self):
+    def test05_generate_tile(self):
         """Test generation of a tile."""
         # most tested via other calls, make sure zero size skip works
         tmp1 = tempfile.mkdtemp()
@@ -141,7 +174,7 @@ class TestAll(unittest.TestCase):
                 sizes.add(str(region) + str(size))
         return sizes
 
-    def test05_static_partial_tile_sizes(self):
+    def test06_static_partial_tile_sizes(self):
         """Generate set of static tile sizes and check examples."""
         sizes = self._generate_tile_sizes(100, 100, 64, [1, 2, 4])
         # would use assertIn for >=2.7
@@ -253,7 +286,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue('[512, 4608, 512, 509][512,]' in sizes)
         self.assertTrue('[512, 512, 512, 512][512,]' in sizes)
 
-    def test06_static_full_sizes(self):
+    def test07_static_full_sizes(self):
         """Test full region tiles."""
         # generate set of static tile sizes to look for examples in
         sizes = set()
@@ -282,7 +315,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue('[50, 50]' in sizes)
         self.assertEqual(len(sizes), 8)
 
-    def test07_setup_destination(self):
+    def test08_setup_destination(self):
         """Test setip_destination."""
         s = IIIFStatic()
         # no dst
@@ -290,6 +323,10 @@ class TestAll(unittest.TestCase):
         # now really create dir
         tmp = tempfile.mkdtemp()
         try:
+            # no dst
+            s.identifier = 'a'
+            s.dst = None
+            self.assertRaises(IIIFStaticError, s.setup_destination)
             # dst and no identifier
             s.src = 'a/b.ext'
             s.dst = os.path.join(tmp, 'xyz')
@@ -324,7 +361,7 @@ class TestAll(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
-    def test08_write_html(self):
+    def test09_write_html(self):
         """Test write_html."""
         s = IIIFStatic()
         # bad output dir
