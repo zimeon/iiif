@@ -11,8 +11,10 @@ install:
   - pip install iiif_validator coveralls pep8 pep257 testfixtures
   - python setup.py install
 script:
-  # use -n with run_validate.sh because I can't get the netpbm tests going on Travis yet
-  - ./run_tests.sh
+  - python setup.py test
+  - pep8 --ignore=E501 *.py iiif/*.py iiif/generators/*.py tests/*.py tests/testlib/*.py
+  - pep257 *.py iiif/*.py iiif/generators/*.py tests/*.py tests/testlib/*.py
+  # use -n with run_validate.sh because I can't get the netpbm tests going on Travis
   - ./run_validate.sh -n
 after_success:
   # omit the netpbm manipulator from coverage tests because I haven't flashed those out
