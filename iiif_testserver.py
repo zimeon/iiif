@@ -550,7 +550,7 @@ def get_config(base_dir=''):
       base_dir - set a specific base directory for file/path defaults.
     """
     p = configargparse.ArgParser(description='IIIF Image Testserver',
-                                 default_config_files=[os.path.join(base_dir, 'iiif_testserver.conf')],
+                                 default_config_files=[os.path.join(base_dir, 'iiif_testserver.cfg')],
                                  formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
     p.add('--host', default='localhost',
           help="Service host")
@@ -778,8 +778,9 @@ class ReverseProxied(object):
         environ['HTTP_HOST'] = self.host
         return self.app(environ, start_response)
 
+
 if __name__ == '__main__':
-    # Command line, run own server
+    # Command line, run server
     pidfile = os.path.basename(__file__)[:-3] + '.pid'  # strip .py, add .pid
     with open(pidfile, 'w') as fh:
         fh.write("%d\n" % os.getpid())
@@ -799,7 +800,3 @@ if __name__ == '__main__':
     print("Starting test server on http://%s:%d/ ..." %
           (cfg.app_host, cfg.app_port))
     app.run(host=cfg.app_host, port=cfg.app_port)
-else:
-    # WSGI server
-    cfg = get_config(base_dir=os.path.dirname(os.path.realpath(__file__)))
-    app = create_app(cfg)

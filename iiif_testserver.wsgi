@@ -15,10 +15,16 @@ configuration, it is not allowed to import the same WSGI configuration into
 two virtual hosts (e.g. SSL and non-SSL) in the Apache configuration.
 """
 
-# use dev copy of IIIF modules if present in same dir as this script
+# Use dev copy of IIIF modules if present in same dir as this script
 import os
 import sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+mydir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, mydir)
 
-# load my app
-from iiif_testserver import app as application
+# Configure and create iiif_testserver application
+#
+# Note that by default iiif_testserver.get_config(..) will look for a
+# file `iiif_testserver.cfg` in base_dir for configuration
+import iiif_testserver
+cfg = iiif_testserver.get_config(base_dir=mydir)
+application = iiif_testserver.create_app(cfg)
