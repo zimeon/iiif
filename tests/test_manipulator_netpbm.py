@@ -21,8 +21,8 @@ class TestAll(unittest.TestCase):
 
         # Don't actually do a test as we won't assume netpbm installed
         #
-        ## add image, get size
-        #m.srcfile = 'testimages/test1.png'
-        #self.assertEqual(m.do_first(), None)
-        #self.assertEqual(m.width, 175)
-        #self.assertEqual(m.height, 131)
+        # add image, get size
+        # m.srcfile = 'testimages/test1.png'
+        # self.assertEqual(m.do_first(), None)
+        # self.assertEqual(m.width, 175)
+        # self.assertEqual(m.height, 131)
