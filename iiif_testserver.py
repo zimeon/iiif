@@ -5,7 +5,7 @@ Relies upon IIIFManipulator objects to do any manipulations
 requested and is thus very slow. Supports a number of different
 versions of the specification via different base URIs (prefixes).
 
-Simeon Warner - 2014--2016
+Simeon Warner - 2014--2018
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory
@@ -14,7 +14,7 @@ import base64
 import logging
 import re
 import json
-import optparse
+import configargparse
 import os
 import os.path
 from string import Template
@@ -34,11 +34,11 @@ class Config(object):
     """Class to share configuration information in IIIFHandler instances.
 
     Designed to allow initialization from other Config
-    objects and from optparse.Values objects.
+    objects and from argparse.Namespace objects.
     """
 
     def __init__(self, *args):
-        """Initialize new Config onbject copying all properties from args."""
+        """Initialize new Config object copying all properties from args."""
         for arg in args:
             for k in list(arg.__dict__.keys()):
                 self.__dict__[k] = arg.__dict__[k]
@@ -536,88 +536,98 @@ def make_prefix(api_version, manipulator, auth_type):
     return(prefix)
 
 
-def split_option(comma_sep_str):
+def split_argument(comma_sep_str):
     """Split a comma separated option."""
     return comma_sep_str.split(',')  # FIXME - make more flexible
 
 
-def setup_options():
-    """Parse options and arguments."""
-    p = optparse.OptionParser(description='IIIF Image Testserver')
-    p.add_option('--host', default='localhost',
-                 help="Service host (default %default)")
-    p.add_option('--port', '-p', type='int', default=8000,
-                 help="Service port (default %default)")
-    p.add_option('--container-prefix', default=None,
-                 help="Container prefix (default %default)")
-    p.add_option('--app-host', default=None,
-                 help="Local application host for reverse proxy deployment, "
-                      "as opposed to service --host (default %default)")
-    p.add_option('--app-port', type='int', default=None,
-                 help="Local application port for reverse proxy deployment. "
-                      "as opposed to service --port (default %default)")
-    p.add_option('--image-dir', '-d', default='testimages',
-                 help="Image directory (default %default)")
-    p.add_option('--generator-dir', default='iiif/generators',
-                 help="Generator directory for manipulator='gen' (default %default)")
-    p.add_option('--tile-height', type='int', default=256,
-                 help="Tile height (default %default)")
-    p.add_option('--tile-width', type='int', default=256,
-                 help="Tile width (default %default)")
-    p.add_option('--scale-factors', default='auto',
-                 help="Set of tile scale factors or 'auto' to calculate for each image "
-                      "such that there are tiles up to the full image (default %default)")
-    p.add_option('--api-versions', default='1.0,1.1,2.0,2.1',
-                 help="Set of API versions to support (default %default)")
-    p.add_option('--manipulators', default='pil',
-                 help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
-                      "or gen for generated image. (default %default)")
-    p.add_option('--auth-types', default='none',
-                 help="Set of authentication types to support (default %default)")
-    p.add_option('--gauth-client-secret', default='client_secret.json',
-                 help="Name of file with Google auth client secret (default %default)")
-    p.add_option('--pages-dir', default='testpages',
-                 help="Test pages directory (default %default)")
-    p.add_option('--include-osd', action='store_true',
-                 help="Include a page with OpenSeadragon for each source")
-    p.add_option('--auth', action='store_true',
-                 help="Enable features implementing the IIIF Authentication specification")
-    p.add_option('--access-cookie-lifetime', type='int', default=3600,
-                 help="Set access cookie lifetime for authenticated access (default %default s)")
-    p.add_option('--access-token-lifetime', type='int', default=10,
-                 help="Set access token lifetime for authenticated access (default %default s)")
-    p.add_option('--debug', action='store_true',
-                 help="Set debug mode for web application. INSECURE!")
-    p.add_option('--verbose', '-v', action='store_true',
-                 help="Be verbose")
-    p.add_option('--quiet', '-q', action='store_true',
-                 help="Minimal output only")
-    (opt, args) = p.parse_args()
+def get_config(base_dir=''):
+    """Get config from defaults, config file and/or parse arguments.
 
-    if (opt.debug):
-        opt.verbose = True
-    elif (opt.verbose):
-        opt.quiet = False
+    Uses configargparse to allow argments to be set from a config file
+    or via command line arguments.
+
+      base_dir - set a specific base directory for file/path defaults.
+    """
+    p = configargparse.ArgParser(description='IIIF Image Testserver',
+                                 default_config_files=[os.path.join(base_dir, 'iiif_testserver.conf')],
+                                 formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+    p.add('--host', default='localhost',
+          help="Service host")
+    p.add('--port', '-p', type=int, default=8000,
+          help="Service port")
+    p.add('--container-prefix', default=None,
+          help="Container prefix")
+    p.add('--app-host', default=None,
+          help="Local application host for reverse proxy deployment, "
+               "as opposed to service --host")
+    p.add('--app-port', type=int, default=None,
+          help="Local application port for reverse proxy deployment. "
+               "as opposed to service --port")
+    p.add('--image-dir', '-d', default=os.path.join(base_dir, 'testimages'),
+          help="Image directory")
+    p.add('--generator-dir', default=os.path.join(base_dir, 'iiif/generators'),
+          help="Generator directory for manipulator='gen'")
+    p.add('--tile-height', type=int, default=512,
+          help="Tile height")
+    p.add('--tile-width', type=int, default=512,
+          help="Tile width")
+    p.add('--scale-factors', default='auto',
+          help="Set of tile scale factors or 'auto' to calculate for each image "
+               "such that there are tiles up to the full image")
+    p.add('--api-versions', default='1.0,1.1,2.0,2.1',
+          help="Set of API versions to support")
+    p.add('--manipulators', default='pil',
+          help="Set of manipuators to instantiate. May be dummy,netpbm,pil "
+               "or gen for generated image")
+    p.add('--auth-types', default='none',
+          help="Set of authentication types to support")
+    p.add('--gauth-client-secret', default=os.path.join(base_dir, 'client_secret.json'),
+          help="Name of file with Google auth client secret")
+    p.add('--pages-dir', default=os.path.join(base_dir, 'testpages'),
+          help="Test pages directory")
+    p.add('--include-osd', action='store_true',
+          help="Include a page with OpenSeadragon for each source")
+    p.add('--auth', action='store_true',
+          help="Enable features implementing the IIIF Authentication specification")
+    p.add('--access-cookie-lifetime', type=int, default=3600,
+          help="Set access cookie lifetime for authenticated access in seconds")
+    p.add('--access-token-lifetime', type=int, default=10,
+          help="Set access token lifetime for authenticated access in seconds")
+    p.add('--config', is_config_file=True, default=None,
+          help='Read config from given file path')
+    p.add('--debug', action='store_true',
+          help="Set debug mode for web application. INSECURE!")
+    p.add('--verbose', '-v', action='store_true',
+          help="Be verbose")
+    p.add('--quiet', '-q', action='store_true',
+          help="Minimal output only")
+    args = p.parse_args()
+
+    if (args.debug):
+        args.verbose = True
+    elif (args.verbose):
+        args.quiet = False
 
     # Split list arguments
-    opt.scale_factors = split_option(opt.scale_factors)
-    opt.manipulators = split_option(opt.manipulators)
-    opt.api_versions = split_option(opt.api_versions)
-    opt.auth_types = split_option(opt.auth_types)
+    args.scale_factors = split_argument(args.scale_factors)
+    args.manipulators = split_argument(args.manipulators)
+    args.api_versions = split_argument(args.api_versions)
+    args.auth_types = split_argument(args.auth_types)
 
     # Authentication features...
-    if (opt.auth and 'gauth' not in opt.auth_types):
-        opt.auth_types.append('gauth')
-    if (opt.auth and 'basic' not in opt.auth_types):
-        opt.auth_types.append('basic')
-    if (opt.auth and 'clickthrough' not in opt.auth_types):
-        opt.auth_types.append('clickthrough')
-    if (opt.auth and 'kiosk' not in opt.auth_types):
-        opt.auth_types.append('kiosk')
-    if (opt.auth and 'external' not in opt.auth_types):
-        opt.auth_types.append('external')
+    if (args.auth and 'gauth' not in args.auth_types):
+        args.auth_types.append('gauth')
+    if (args.auth and 'basic' not in args.auth_types):
+        args.auth_types.append('basic')
+    if (args.auth and 'clickthrough' not in args.auth_types):
+        args.auth_types.append('clickthrough')
+    if (args.auth and 'kiosk' not in args.auth_types):
+        args.auth_types.append('kiosk')
+    if (args.auth and 'external' not in args.auth_types):
+        args.auth_types.append('external')
 
-    return(opt)
+    return(args)
 
 
 def add_handler(app, config, prefixes):
@@ -655,8 +665,8 @@ def add_handler(app, config, prefixes):
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
     if (auth is not None):
-        auth.access_cookie_lifetime = opt.access_cookie_lifetime
-        auth.access_token_lifetime = opt.access_token_lifetime
+        auth.access_cookie_lifetime = args.access_cookie_lifetime
+        auth.access_token_lifetime = args.access_token_lifetime
     klass = None
     if (config.klass_name == 'pil'):
         from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -702,30 +712,30 @@ def serve_static(filename=None, prefix=None, basedir=''):
                                filename)
 
 
-def create_app(opt):
+def create_app(args):
     """Create Flask application with one or more IIIF handlers."""
     logging_level = logging.WARNING
-    if (opt.verbose):
+    if (args.verbose):
         logging_level = logging.INFO
-    elif (opt.quiet):
+    elif (args.quiet):
         logging_level = logging.ERROR
     logging.basicConfig(format='%(name)s: %(message)s', level=logging_level)
 
     # Create Flask app
-    app = Flask(__name__, static_url_path='/' + opt.pages_dir)
+    app = Flask(__name__, static_url_path='/' + args.pages_dir)
     Flask.secret_key = "SECRET_HERE"
-    app.debug = opt.debug
+    app.debug = args.debug
 
     # Create shared configuration dict based on options
-    config = Config(opt)
+    config = Config(args)
     config.homedir = os.path.dirname(os.path.realpath(__file__))
     config.gauth_client_secret_file = os.path.join(
         config.homedir, config.gauth_client_secret)
 
     prefixes = []
-    for api_version in opt.api_versions:
-        for klass_name in opt.manipulators:
-            for auth_type in opt.auth_types:
+    for api_version in args.api_versions:
+        for klass_name in args.manipulators:
+            for auth_type in args.auth_types:
                 # auth only for >=2.1
                 if (auth_type != 'none' and float(api_version) < 2.1):
                     continue
@@ -774,43 +784,22 @@ if __name__ == '__main__':
     with open(pidfile, 'w') as fh:
         fh.write("%d\n" % os.getpid())
         fh.close()
-    opt = setup_options()
-    app = create_app(opt)
+    cfg = get_config()
+    app = create_app(cfg)
     # Set up app_host and app_port in case that we are running
     # under reverse proxy setup, otherwise they default to
-    # opt.host and opt.port.
-    if (opt.app_host or opt.app_port):
+    # config.host and config.port.
+    if (cfg.app_host or cfg.app_port):
         print("Reverse proxy for service at http://%s:%d/ ..." %
-              (opt.host, opt.port))
-        app.wsgi_app = ReverseProxied(app.wsgi_app, opt.host)
+              (cfg.host, cfg.port))
+        app.wsgi_app = ReverseProxied(app.wsgi_app, cfg.host)
     else:
-        opt.app_host = opt.host
-        opt.app_port = opt.port
+        cfg.app_host = cfg.host
+        cfg.app_port = cfg.port
     print("Starting test server on http://%s:%d/ ..." %
-          (opt.app_host, opt.app_port))
-    app.run(host=opt.app_host, port=opt.app_port)
+          (cfg.app_host, cfg.app_port))
+    app.run(host=cfg.app_host, port=cfg.app_port)
 else:
-    opt = optparse.Values()
-    opt.verbose = 1
-    opt.debug = 1
-    opt.auth = 1
-    mydir = os.path.dirname(os.path.realpath(__file__))
-    opt.pages_dir = mydir + '/testpages'
-    opt.image_dir = mydir + '/testimages'
-    opt.generator_dir = mydir + '/iiif/generators'
-    opt.tile_width = 512
-    opt.tile_height = 512
-    opt.scale_factors = ['auto']
-    opt.api_versions = ['1.0', '1.1', '2.0', '2.1']
-    opt.auth_types = ['none', 'gauth', 'basic']
-    opt.manipulators = ['dummy', 'netpbm', 'pil']
-    opt.include_osd = False
-    opt.container_prefix = 'iiif_auth_test'
-    # Should get the following from WSGI environ,
-    # see https://code.google.com/p/modwsgi/wiki/ConfigurationGuidelines
-    opt.host = 'resync.library.cornell.edu'  # FIXME - get from WSGI
-    opt.port = 80
-    opt.access_cookie_lifetime = 36000
-    opt.access_token_lifetime = 10
-    opt.gauth_client_secret = 'client_secret.json'
-    app = create_app(opt)
+    # WSGI server
+    cfg = get_config(base_dir=os.path.dirname(os.path.realpath(__file__)))
+    app = create_app(cfg)

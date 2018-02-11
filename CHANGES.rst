@@ -1,9 +1,9 @@
 iiif changelog
 ==============
 
-????-??-?? v1.0.5
+2018-02-11 v1.0.5
 
-- ???
+- Allow use of config file for iiif_testserver.py through change to ConfigArgParser
 
 2017-04-20 v1.0.4
 

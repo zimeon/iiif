@@ -81,11 +81,13 @@ setup(
         "Pillow>=3.2.0,<4.0.0",  # Pillow 4.0.0 drops python 2.6 support
         "python-magic",
         "Flask",
-        "mock"
+        "ConfigArgParse>=0.13.0",
+        "argparse"  # So we have it for 2.6
     ],
     test_suite="tests",
     tests_require=[
         "testfixtures",
+        "mock"
     ],
     cmdclass={
         'coverage': Coverage,
