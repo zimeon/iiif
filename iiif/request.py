@@ -566,12 +566,12 @@ class IIIFRequest(object):
         in the set of `sizes` specificed in the Image Information.
         """
         return(self.region_full and
-            self.size_wh[0] is not None and
-            self.size_wh[1] is not None and
-            not self.size_bang and
-            self.rotation_deg == 0.0 and
-            self.quality == self.default_quality and
-            self.format == 'jpg')
+               self.size_wh[0] is not None and
+               self.size_wh[1] is not None and
+               not self.size_bang and
+               self.rotation_deg == 0.0 and
+               self.quality == self.default_quality and
+               self.format == 'jpg')
 
     def __str__(self):
         """Return string of this object in human readable form.

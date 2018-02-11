@@ -19,6 +19,7 @@ from iiif.request import IIIFRequestError
 from iiif.static import IIIFStatic, IIIFStaticError, static_partial_tile_sizes, static_full_sizes
 from iiif.manipulator_gen import IIIFManipulatorGen
 
+
 class MyLogCapture(LogCapture):
     """LogCapture class with added all_msgs property."""
 
