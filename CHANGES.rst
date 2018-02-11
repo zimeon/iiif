@@ -4,6 +4,7 @@ iiif changelog
 2018-02-11 v1.0.5
 
 - Allow use of config file for iiif_testserver.py through change to ConfigArgParser
+- Move WSGI app creation from iiif_testserver.py to iiif_testserver.wsgi
 
 2017-04-20 v1.0.4
 

@@ -18,6 +18,7 @@ import configargparse
 import os
 import os.path
 from string import Template
+import sys
 try:  # python3
     from urllib.parse import quote as urlquote
     from urllib.request import parse_keqv_list, parse_http_list
@@ -557,13 +558,13 @@ def get_config(base_dir=''):
     p.add('--port', '-p', type=int, default=8000,
           help="Service port")
     p.add('--container-prefix', default=None,
-          help="Container prefix")
+          help="Container prefix to add to links generated")
     p.add('--app-host', default=None,
           help="Local application host for reverse proxy deployment, "
-               "as opposed to service --host")
+               "as opposed to service --host (must also specify --app-port)")
     p.add('--app-port', type=int, default=None,
           help="Local application port for reverse proxy deployment. "
-               "as opposed to service --port")
+               "as opposed to service --port (must also specify --app-host)")
     p.add('--image-dir', '-d', default=os.path.join(base_dir, 'testimages'),
           help="Image directory")
     p.add('--generator-dir', default=os.path.join(base_dir, 'iiif/generators'),
@@ -665,8 +666,8 @@ def add_handler(app, config, prefixes):
         print("Unknown auth type %s, ignoring" % (config.auth_type))
         return
     if (auth is not None):
-        auth.access_cookie_lifetime = args.access_cookie_lifetime
-        auth.access_token_lifetime = args.access_token_lifetime
+        auth.access_cookie_lifetime = config.access_cookie_lifetime
+        auth.access_token_lifetime = config.access_token_lifetime
     klass = None
     if (config.klass_name == 'pil'):
         from iiif.manipulator_pil import IIIFManipulatorPIL
@@ -712,30 +713,30 @@ def serve_static(filename=None, prefix=None, basedir=''):
                                filename)
 
 
-def create_app(args):
+def create_flask_app(cfg):
     """Create Flask application with one or more IIIF handlers."""
     logging_level = logging.WARNING
-    if (args.verbose):
+    if (cfg.verbose):
         logging_level = logging.INFO
-    elif (args.quiet):
+    elif (cfg.quiet):
         logging_level = logging.ERROR
     logging.basicConfig(format='%(name)s: %(message)s', level=logging_level)
 
     # Create Flask app
-    app = Flask(__name__, static_url_path='/' + args.pages_dir)
+    app = Flask(__name__, static_url_path='/' + cfg.pages_dir)
     Flask.secret_key = "SECRET_HERE"
-    app.debug = args.debug
+    app.debug = cfg.debug
 
     # Create shared configuration dict based on options
-    config = Config(args)
+    config = Config(cfg)
     config.homedir = os.path.dirname(os.path.realpath(__file__))
     config.gauth_client_secret_file = os.path.join(
         config.homedir, config.gauth_client_secret)
 
     prefixes = []
-    for api_version in args.api_versions:
-        for klass_name in args.manipulators:
-            for auth_type in args.auth_types:
+    for api_version in cfg.api_versions:
+        for klass_name in cfg.manipulators:
+            for auth_type in cfg.auth_types:
                 # auth only for >=2.1
                 if (auth_type != 'none' and float(api_version) < 2.1):
                     continue
@@ -765,7 +766,8 @@ class ReverseProxied(object):
     Overrides HTTP_HOST environment setting.
     See: <http://flask.pocoo.org/snippets/35/>
 
-    :param app: the WSGI application
+    :param app: the application being reverse proxied
+    :param host: the configured host name for the application
     """
 
     def __init__(self, app, host):
@@ -779,6 +781,28 @@ class ReverseProxied(object):
         return self.app(environ, start_response)
 
 
+def create_app(cfg):
+    """Create Flask app and handle reverse proxy setup if configured.
+
+    :param cfg: configuration data
+    """
+    app = create_flask_app(cfg)
+    # Set up app_host and app_port in case that we are running
+    # under reverse proxy setup, otherwise they default to
+    # config.host and config.port.
+    if (cfg.app_host and cfg.app_port):
+        print("Reverse proxy for service at http://%s:%d/ ..." % (cfg.host, cfg.port))
+        app.wsgi_app = ReverseProxied(app.wsgi_app, cfg.host)
+    elif (cfg.app_host or cfg.app_port):
+        logging.critical("Must specify both app-host and app-port for reverse proxy configuration, aborting")
+        sys.exit(1)
+    else:
+        cfg.app_host = cfg.host
+        cfg.app_port = cfg.port
+    print("Starting server on http://%s:%d/ ..." % (cfg.app_host, cfg.app_port))
+    return(app)
+
+
 if __name__ == '__main__':
     # Command line, run server
     pidfile = os.path.basename(__file__)[:-3] + '.pid'  # strip .py, add .pid
@@ -787,16 +811,4 @@ if __name__ == '__main__':
         fh.close()
     cfg = get_config()
     app = create_app(cfg)
-    # Set up app_host and app_port in case that we are running
-    # under reverse proxy setup, otherwise they default to
-    # config.host and config.port.
-    if (cfg.app_host or cfg.app_port):
-        print("Reverse proxy for service at http://%s:%d/ ..." %
-              (cfg.host, cfg.port))
-        app.wsgi_app = ReverseProxied(app.wsgi_app, cfg.host)
-    else:
-        cfg.app_host = cfg.host
-        cfg.app_port = cfg.port
-    print("Starting test server on http://%s:%d/ ..." %
-          (cfg.app_host, cfg.app_port))
     app.run(host=cfg.app_host, port=cfg.app_port)
