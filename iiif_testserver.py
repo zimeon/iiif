@@ -20,9 +20,10 @@ import os.path
 from string import Template
 import sys
 try:  # python3
-    from urllib.parse import quote as urlquote
+    from urllib.parse import urljoin, quote as urlquote
     from urllib.request import parse_keqv_list, parse_http_list
 except ImportError:  # python2
+    from urlparse import urljoin
     from urllib import quote as urlquote
     from urllib2 import parse_keqv_list, parse_http_list
 
@@ -63,11 +64,11 @@ def html_page(title="Page Title", body=""):
 
 
 def top_level_index_page(config):
-    """HTML top-level index page."""
+    """HTML top-level index page which provides a link to each handler."""
     http_host = request.environ.get('HTTP_HOST', '')
     title = "iiif_testserver on %s" % (http_host)
     body = "<ul>\n"
-    for prefix in sorted(config.prefixes):
+    for prefix in sorted(config.prefixes.keys()):
         body += '<li><a href="/%s">%s</a></li>\n' % (prefix, prefix)
     body += "</ul>\n"
     return html_page(title, body)
@@ -97,10 +98,14 @@ def identifiers(config):
     return ids
 
 
-def prefix_index_page(config=None, prefix=None):
-    """HTML index page for a specific prefix."""
+def prefix_index_page(config=None):
+    """HTML index page for a specific prefix.
+
+    The prefix seen by the client is obtained from config.client_prefix
+    as opposed to the local server prefix in config.prefix.
+    """
     http_host = request.environ.get('HTTP_HOST', '')
-    title = "Prefix %s  (from iiif_testserver on %s)" % (prefix, http_host)
+    title = "Prefix %s  (from iiif_testserver on %s)" % (config.client_prefix, http_host)
     # details of this prefix handler
     body = '<p>\n'
     body += 'api_version = %s<br/>\n' % (config.api_version)
@@ -112,29 +117,26 @@ def prefix_index_page(config=None, prefix=None):
     default = 'native' if api_version < '2.0' else 'default'
     body += '<table border="1">\n<tr><th align="left">Source image</th>'
     body += '<th> </th><th>full</th>'
-    if (prefix != 'dummy'):
+    if (config.prefix != 'dummy'):
         body += '<th>256,256</th>'
         body += '<th>30deg</th>'
         if (config.include_osd):
             body += '<th> </th>'
     body += "</tr>\n"
     for identifier in sorted(ids):
+        base = urljoin('/', config.client_prefix + '/' + identifier)
         body += '<tr><th align="left">%s</th>' % (identifier)
-        info = "/%s/%s/info.json" % (prefix, identifier)
+        info = base + "/info.json"
         body += '<td><a href="%s">%s</a></td>' % (info, 'info')
         suffix = "full/full/0/%s" % (default)
-        url = "/%s/%s/%s" % (prefix, identifier, suffix)
-        body += '<td><a href="%s">%s</a></td>' % (url, suffix)
-        if (prefix != 'dummy'):
+        body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
+        if (config.prefix != 'dummy'):
             suffix = "full/256,256/0/%s" % (default)
-            url = "/%s/%s/%s" % (prefix, identifier, suffix)
-            body += '<td><a href="%s">%s</a></td>' % (url, suffix)
+            body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
             suffix = "full/100,/30/%s" % (default)
-            url = "/%s/%s/%s" % (prefix, identifier, suffix)
-            body += '<td><a href="%s">%s</a></td>' % (url, suffix)
+            body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
             if (config.include_osd):
-                url = "/%s/%s/osd.html" % (prefix, identifier)
-                body += '<td><a href="%s">OSD</a></td>' % (url)
+                body += '<td><a href="%s/osd.html">OSD</a></td>' % (base)
         body += "</tr>\n"
     body += "</table<\n"
     return html_page(title, body)
@@ -514,7 +516,7 @@ def do_conneg(accept, supported):
 
 def setup_auth_paths(app, auth, prefix, params):
     """Add URL rules for auth paths."""
-    base = '/' + prefix + '/'
+    base = urljoin('/', prefix + '/')  # Must end in slash
     app.add_url_rule(base + 'login', prefix + 'login_handler',
                      auth.login_handler, defaults=params)
     app.add_url_rule(base + 'logout', prefix + 'logout_handler',
@@ -557,8 +559,12 @@ def get_config(base_dir=''):
           help="Service host")
     p.add('--port', '-p', type=int, default=8000,
           help="Service port")
-    p.add('--container-prefix', default=None,
-          help="Container prefix to add to links generated")
+    p.add('--container-prefix', default='',
+          help="Container prefix seen by client to add to links generated")
+    p.add('--one-handler-no-prefix', action='store_true',
+          help="In the case that only one handler is configured, do not use "
+               "a prefix on the local server. Will raise and error if there "
+               "are multiple handlers specified")
     p.add('--app-host', default=None,
           help="Local application host for reverse proxy deployment, "
                "as opposed to service --host (must also specify --app-port)")
@@ -631,25 +637,24 @@ def get_config(base_dir=''):
     return(args)
 
 
-def add_handler(app, config, prefixes):
+def add_handler(app, config):
     """Add a single handler to the app.
 
-    Adds handlers to app, with config from config. Add prefix to list
-    in prefixes.
+    Adds one IIIF Image API handler to app, with config from config.
+
+    Arguments:
+        app - Flask app
+        config - Configuration object
+        server_prefix - String path prefix for this handler
+        client_prefix - String path prefix seen by client (which may be different
+             because of reverse proxy or such)
     """
-    wsgi_prefix = make_prefix(
-        config.api_version, config.klass_name, config.auth_type)
-    prefix = wsgi_prefix
-    if (config.container_prefix):
-        prefix = os.path.join(config.container_prefix, wsgi_prefix)
-    prefixes.append(prefix)
     auth = None
     if (config.auth_type is None or config.auth_type == 'none'):
         pass
     elif (config.auth_type == 'gauth'):
         from iiif.auth_google import IIIFAuthGoogle
-        auth = IIIFAuthGoogle(
-            client_secret_file=config.gauth_client_secret_file)
+        auth = IIIFAuthGoogle(client_secret_file=config.gauth_client_secret_file)
     elif (config.auth_type == 'basic'):
         from iiif.auth_basic import IIIFAuthBasic
         auth = IIIFAuthBasic()
@@ -684,43 +689,54 @@ def add_handler(app, config, prefixes):
     else:
         print("Unknown manipulator type %s, ignoring" % (config.klass_name))
         return
-    print("Installing %s IIIFManipulator at /%s/ v%s %s" %
-          (config.klass_name, prefix, config.api_version, config.auth_type))
-    params = dict(config=config, klass=klass, auth=auth, prefix=prefix)
-    app.add_url_rule('/' + wsgi_prefix, 'prefix_index_page',
-                     prefix_index_page, defaults={'config': config, 'prefix': prefix})
-    app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>/info.json',
+    base = urljoin('/', config.prefix + '/')  # ensure has trailing slash
+    client_base = urljoin('/', config.client_prefix + '/')  # ensure has trailing slash
+    print("Installing %s IIIFManipulator at %s v%s %s" %
+          (config.klass_name, base, config.api_version, config.auth_type))
+    params = dict(config=config, klass=klass, auth=auth, prefix=config.client_prefix)
+    app.add_url_rule(urljoin('/', config.prefix), 'prefix_index_page',
+                     prefix_index_page, defaults={'config': config})
+    app.add_url_rule(base + '<string(minlength=1):identifier>/info.json',
                      'options_handler', options_handler, methods=['OPTIONS'])
-    app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>/info.json',
+    app.add_url_rule(base + '<string(minlength=1):identifier>/info.json',
                      'iiif_info_handler', iiif_info_handler, methods=['GET'], defaults=params)
     if (config.include_osd):
-        app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>/osd.html',
+        app.add_url_rule(base + '<string(minlength=1):identifier>/osd.html',
                          'osd_page_handler', osd_page_handler, methods=['GET'], defaults=params)
-    app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>/<path:path>',
+    app.add_url_rule(base + '<string(minlength=1):identifier>/<path:path>',
                      'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
     if (auth):
-        setup_auth_paths(app, auth, wsgi_prefix, params)
+        setup_auth_paths(app, auth, server_prefix, params)
     # redirects to info.json must come after auth
-    app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>',
-                     'iiif_info_handler', redirect_to='/' + prefix + '/<identifier>/info.json')
-    app.add_url_rule('/' + wsgi_prefix + '/<string(minlength=1):identifier>/',
-                     'iiif_info_handler', redirect_to='/' + prefix + '/<identifier>/info.json')
+    app.add_url_rule(base + '<string(minlength=1):identifier>',
+                     'iiif_info_handler',
+                     redirect_to=client_base + '<identifier>/info.json')
+    app.add_url_rule(base + '<string(minlength=1):identifier>/',
+                     'iiif_info_handler',
+                     redirect_to=client_base + '<identifier>/info.json')
 
 
 def serve_static(filename=None, prefix=None, basedir=''):
     """Handler for static files under basedir."""
-    return send_from_directory(os.path.join('third_party', prefix),
-                               filename)
+    return send_from_directory(os.path.join('third_party', prefix), filename)
 
 
 def create_flask_app(cfg):
     """Create Flask application with one or more IIIF handlers."""
     logging_level = logging.WARNING
-    if (cfg.verbose):
+    if cfg.verbose:
         logging_level = logging.INFO
-    elif (cfg.quiet):
+    elif cfg.quiet:
         logging_level = logging.ERROR
     logging.basicConfig(format='%(name)s: %(message)s', level=logging_level)
+
+    # If cfg.one_handler_no_prefix is set then check that multiple handlers have not been
+    # specified. If so then disable index
+    if cfg.one_handler_no_prefix:
+        if ((len(cfg.api_versions) > 1) or (len(cfg.manipulators) > 1) or
+                (len(cfg.auth_types) > 1) or cfg.include_osd):
+            logging.critical("Configration incompatible with --one-handler-no-prefix, aborting")
+            sys.exit(1)
 
     # Create Flask app
     app = Flask(__name__, static_url_path='/' + cfg.pages_dir)
@@ -733,7 +749,8 @@ def create_flask_app(cfg):
     config.gauth_client_secret_file = os.path.join(
         config.homedir, config.gauth_client_secret)
 
-    prefixes = []
+    # Install request handlers
+    client_prefixes = dict()
     for api_version in cfg.api_versions:
         for klass_name in cfg.manipulators:
             for auth_type in cfg.auth_types:
@@ -744,13 +761,25 @@ def create_flask_app(cfg):
                 handler_config.api_version = api_version
                 handler_config.klass_name = klass_name
                 handler_config.auth_type = auth_type
-                add_handler(app, handler_config, prefixes)
+                if cfg.one_handler_no_prefix:
+                    prefix = ''
+                    client_prefix = config.container_prefix
+                else:
+                    prefix = make_prefix(api_version, klass_name, auth_type)
+                    client_prefix = os.path.join(config.container_prefix, prefix)
+                logging.debug("prefix = %s, client_prefix = %s" % (prefix, client_prefix))
+                client_prefixes[client_prefix] = prefix
+                handler_config.prefix = prefix
+                handler_config.client_prefix = client_prefix
+                add_handler(app, handler_config)
 
-    # Index page
-    config.prefixes = prefixes
-    app.add_url_rule('/', 'top_level_index_page',
-                     top_level_index_page, defaults={'config': config})
-    if (config.include_osd):
+    if not cfg.one_handler_no_prefix:
+        # Index page
+        config.prefixes = client_prefixes
+        app.add_url_rule('/', 'top_level_index_page',
+                         top_level_index_page, defaults={'config': config})
+
+    if cfg.include_osd:
         # OpenSeadragon files
         # app.add_url_rule('/openseadragon100/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon100','basedir':'third_party'})
         # app.add_url_rule('/openseadragon121/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon121','basedir':'third_party'})
