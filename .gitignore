@@ -5,8 +5,7 @@ htmlcov
 .DS_store
 .cache
 # server files
-iiif_testserver.pid
-iiif_testserver_flask.pid
+*.pid
 client_secret
 # test files
 demo-static/biggie
