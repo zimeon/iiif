@@ -9,12 +9,12 @@ Simeon Warner - 2014--2018
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory
 
 import base64
-import logging
-import re
-import json
 import configargparse
+import json
+import logging
 import os
 import os.path
+import re
 from string import Template
 import sys
 try:  # python3
@@ -34,7 +34,9 @@ class Config(object):
     """Class to share configuration information in IIIFHandler instances.
 
     Designed to allow initialization from other Config
-    objects and from argparse.Namespace objects.
+    objects and from argparse.Namespace objects in order to create
+    independent copies of config data needed for each Flask request
+    handler.
     """
 
     def __init__(self, *args):
@@ -42,14 +44,6 @@ class Config(object):
         for arg in args:
             for k in list(arg.__dict__.keys()):
                 self.__dict__[k] = arg.__dict__[k]
-
-
-def no_op(self, format, *args):
-    """Function that does nothing - no-op.
-
-    Used to silence logging
-    """
-    pass
 
 
 def html_page(title="Page Title", body=""):
@@ -63,8 +57,7 @@ def html_page(title="Page Title", body=""):
 
 def top_level_index_page(config):
     """HTML top-level index page which provides a link to each handler."""
-    http_host = request.environ.get('HTTP_HOST', '')
-    title = "IIIF Test Server on %s" % (http_host)
+    title = "IIIF Test Server on %s" % (config.host)
     body = "<ul>\n"
     for prefix in sorted(config.prefixes.keys()):
         body += '<li><a href="/%s">%s</a></li>\n' % (prefix, prefix)
@@ -105,16 +98,26 @@ def identifiers(config):
     return ids
 
 
-def prefix_index_page(config=None):
+def prefix_index_page(config):
     """HTML index page for a specific prefix.
 
     The prefix seen by the client is obtained from config.client_prefix
-    as opposed to the local server prefix in config.prefix.
+    as opposed to the local server prefix in config.prefix. Also uses
+    the identifiers(config) function to get identifiers available.
+
+    Arguments:
+        config - configuration object in which:
+            config.client_prefix - URI path prefix seen by client
+            config.host - URI host seen by client
+            config.api_version - string for api_version
+            config.manipulator - string manipulator type
+            config.auth_type - string for auth type
+            config.include_osd - whether OSD is included
     """
     title = "IIIF Image API services under %s" % (config.client_prefix)
     # details of this prefix handler
     body = '<p>\n'
-    body += 'host = %s<br/>\n' % (request.environ.get('HTTP_HOST', ''))
+    body += 'host = %s<br/>\n' % (config.host)
     body += 'api_version = %s<br/>\n' % (config.api_version)
     body += 'manipulator = %s<br/>\n' % (config.klass_name)
     body += 'auth_type = %s\n</p>\n' % (config.auth_type)
@@ -124,7 +127,7 @@ def prefix_index_page(config=None):
     default = 'native' if api_version < '2.0' else 'default'
     body += '<table border="1">\n<tr><th align="left">Image identifier</th>'
     body += '<th> </th><th>full</th>'
-    if (config.prefix != 'dummy'):
+    if (config.klass_name != 'dummy'):
         body += '<th>256,256</th>'
         body += '<th>30deg</th>'
         if (config.include_osd):
@@ -137,7 +140,7 @@ def prefix_index_page(config=None):
         body += '<td><a href="%s">%s</a></td>' % (info, 'info')
         suffix = "full/full/0/%s" % (default)
         body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
-        if (config.prefix != 'dummy'):
+        if (config.klass_name != 'dummy'):
             suffix = "full/256,256/0/%s" % (default)
             body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
             suffix = "full/100,/30/%s" % (default)
@@ -149,8 +152,28 @@ def prefix_index_page(config=None):
     return html_page(title, body)
 
 
+def host_port_prefix(host, port, prefix):
+    """Return URI composed of scheme, server, port, and prefix."""
+    uri = "http://" + host
+    if (port != 80):
+        uri += ':' + str(port)
+    if (prefix):
+        uri += '/' + prefix
+    return uri
+
+
+# Flask request handlers
+
+
 def osd_page_handler(config=None, identifier=None, prefix=None, **args):
-    """Produce HTML response for OpenSeadragon view of identifier."""
+    """Flask handler to produce HTML response for OpenSeadragon view of identifier.
+
+    Arguments:
+        config - Config object for this IIIF handler
+        identifier - identifier of image/generator
+        prefix - path prefix
+        **args - other aguments ignored
+    """
     template_dir = os.path.join(os.path.dirname(__file__), 'templates')
     with open(os.path.join(template_dir, 'testserver_osd.html'), 'r') as f:
         template = f.read()
@@ -164,16 +187,6 @@ def osd_page_handler(config=None, identifier=None, prefix=None, **args):
              osd_width=500,
              info_json_uri='info.json')
     return make_response(Template(template).safe_substitute(d))
-
-
-def host_port_prefix(host, port, prefix):
-    """Return URI composed of scheme, server, port, and prefix."""
-    uri = "http://" + host
-    if (port != 80):
-        uri += ':' + str(port)
-    if (prefix):
-        uri += '/' + prefix
-    return uri
 
 
 class IIIFHandler(object):
@@ -479,14 +492,14 @@ def parse_authorization_header(value):
     try:
         (auth_type, auth_info) = value.split(' ', 1)
         auth_type = auth_type.lower()
-    except ValueError as e:
+    except ValueError:
         return
     if (auth_type == 'basic'):
         try:
             decoded = base64.b64decode(auth_info).decode(
                 'utf-8')  # b64decode gives bytes in python3
             (username, password) = decoded.split(':', 1)
-        except ValueError:  # Exception as e:
+        except ValueError:
             return
         return {'type': 'basic', 'username': username, 'password': password}
     elif (auth_type == 'digest'):
@@ -508,15 +521,20 @@ def parse_authorization_header(value):
 def do_conneg(accept, supported):
     """Parse accept header and look for preferred type in supported list.
 
-    accept parameter is HTTP header, supported is a list of MIME types
-    supported by the server. Returns the supported MIME type with highest
-    q value in request, else None.
+    Arguments:
+        accept - HTTP Accept header
+        supported - list of MIME type supported by the server
+
+    Returns:
+        supported MIME type with highest q value in request, else None.
+
+    FIXME - Should replace this with negotiator2
     """
     for result in parse_accept_header(accept):
         mime_type = result[0]
         if (mime_type in supported):
-            return(mime_type)
-    return(None)
+            return mime_type
+    return None
 
 ######################################################################
 
@@ -543,7 +561,7 @@ def make_prefix(api_version, manipulator, auth_type):
     prefix = "%s_%s" % (api_version, manipulator)
     if (auth_type and auth_type != 'none'):
         prefix += '_' + auth_type
-    return(prefix)
+    return prefix
 
 
 def split_comma_argument(comma_sep_str):
@@ -566,10 +584,10 @@ def add_shared_configs(p, base_dir=''):
           help="Local application host for reverse proxy deployment, "
                "as opposed to service --host (must also specify --app-port)")
     p.add('--app-port', type=int, default=None,
-          help="Local application port for reverse proxy deployment. "
+          help="Local application port for reverse proxy deployment, "
                "as opposed to service --port (must also specify --app-host)")
     p.add('--image-dir', '-d', default=os.path.join(base_dir, 'testimages'),
-          help="Image directory")
+          help="Image file directory")
     p.add('--generator-dir', default=os.path.join(base_dir, 'iiif/generators'),
           help="Generator directory for manipulator='gen'")
     p.add('--tile-height', type=int, default=512,
@@ -685,13 +703,15 @@ class ReverseProxied(object):
 
     Overrides HTTP_HOST environment setting.
     See: <http://flask.pocoo.org/snippets/35/>
-
-    :param app: the application being reverse proxied
-    :param host: the configured host name for the application
     """
 
     def __init__(self, app, host):
-        """Initialize reverse proxy wrapper, store host."""
+        """Initialize reverse proxy wrapper, store host.
+
+        Arguments:
+            app - the application being reverse proxied
+            host - the configured host name for the application
+        """
         self.app = app
         self.host = host
 
