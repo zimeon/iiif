@@ -1,8 +1,8 @@
-"""Test code for iiif_testserver.py."""
+"""Test code for iiif.flask_utils.py."""
 import unittest
 import re  # needed because no assertRegexpMatches in 2.6
 import json
-from iiif_testserver import parse_authorization_header, parse_accept_header
+from iiif.flask_utils import parse_authorization_header, parse_accept_header
 
 
 class TestAll(unittest.TestCase):
