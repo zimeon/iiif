@@ -75,7 +75,7 @@ class TestAll(unittest.TestCase):
         # Addition of auth_type in label
         auth.auth_type = "my-auth"
         lsd = auth.login_service_description()
-        self.assertIn('(my-auth)', lsd['label'])
+        self.assertTrue('(my-auth)' in lsd['label'])  # FIXME - use assertIn when 2.6 dropped
 
     def test05_logout_service_description(self):
         """Test logout_service_description."""
@@ -163,7 +163,7 @@ class TestAll(unittest.TestCase):
         auth.account_allowed = mock.Mock(return_value=True)
         cookie = auth.access_cookie('abc')
         self.assertTrue(cookie)
-        self.assertIn(cookie, auth.access_cookies)
+        self.assertTrue(cookie in auth.access_cookies)  # FIXME - use assertIn when 2.6 dropped
         auth.account_allowed = mock.Mock(return_value=False)
         cookie = auth.access_cookie('abc')
         self.assertEqual(cookie, None)
@@ -195,7 +195,7 @@ class TestAll(unittest.TestCase):
         # Success
         token = auth.access_token('cookie1')
         self.assertTrue(token)
-        self.assertIn(token, auth.access_tokens)
+        self.assertTrue(token in auth.access_tokens)  # FIXME - use assertIn when 2.6 dropped
         self.assertEqual(len(auth.access_tokens), 1)
         # Failure
         self.assertFalse(auth.access_token(None))
