@@ -1,6 +1,8 @@
 """Test code for iiif.auth."""
 import json
+import mock
 import re
+import time
 import unittest
 
 from iiif.auth import IIIFAuth
@@ -70,6 +72,10 @@ class TestAll(unittest.TestCase):
         lsd = auth.login_service_description()
         self.assertEqual(lsd['@id'], 'id1')
         self.assertEqual(lsd['profile'], 'http://pb1/login')
+        # Addition of auth_type in label
+        auth.auth_type = "my-auth"
+        lsd = auth.login_service_description()
+        self.assertIn('(my-auth)', lsd['label'])
 
     def test05_logout_service_description(self):
         """Test logout_service_description."""
@@ -141,7 +147,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue(int(good_response['expiresIn']) > 10)
         self.assertFalse('error' in good_response)
 
-    def test11_null_authn_authz(self):
+    def test12_null_authn_authz(self):
         """Test null authn and auth.
 
         No auth so they return False always.
@@ -150,3 +156,66 @@ class TestAll(unittest.TestCase):
         self.assertEqual(IIIFAuth().info_authz(), False)
         self.assertEqual(IIIFAuth().image_authn(), False)
         self.assertEqual(IIIFAuth().image_authz(), False)
+
+    def test13_access_cookie(self):
+        """Test access_cookie()."""
+        auth = IIIFAuth()
+        auth.account_allowed = mock.Mock(return_value=True)
+        cookie = auth.access_cookie('abc')
+        self.assertTrue(cookie)
+        self.assertIn(cookie, auth.access_cookies)
+        auth.account_allowed = mock.Mock(return_value=False)
+        cookie = auth.access_cookie('abc')
+        self.assertEqual(cookie, None)
+        self.assertEqual(len(auth.access_cookies), 1)
+
+    def test14_access_cooked_valid(self):
+        """Test access_cooked_valid()."""
+        auth = IIIFAuth()
+        now = int(time.time())
+        # No allowed cookies stored, so reject
+        self.assertFalse(auth.access_cookie_valid('a-cookie', 'testy'))
+        # Wrong cookie, so reject
+        auth.access_cookies['cookie1'] = now
+        self.assertFalse(auth.access_cookie_valid('cookie2', 'testy'))
+        # Right cookie, recent, so accept
+        self.assertTrue(auth.access_cookie_valid('cookie1', 'testy'))
+        # Make cookie old, so reject
+        auth.access_cookies['cookie1'] = now - auth.access_cookie_lifetime - 2
+        self.assertFalse(auth.access_cookie_valid('cookie1', 'testy'))
+        self.assertEqual(len(auth.access_cookies), 1)
+        # Make cookie very old, so deleted
+        auth.access_cookies['cookie1'] = now - 2 * auth.access_cookie_lifetime - 2
+        self.assertFalse(auth.access_cookie_valid('cookie1', 'testy'))
+        self.assertEqual(len(auth.access_cookies), 0)
+
+    def test15_access_token(self):
+        """Test access_token()."""
+        auth = IIIFAuth()
+        # Success
+        token = auth.access_token('cookie1')
+        self.assertTrue(token)
+        self.assertIn(token, auth.access_tokens)
+        self.assertEqual(len(auth.access_tokens), 1)
+        # Failure
+        self.assertFalse(auth.access_token(None))
+    
+    def test16_access_token_valid(self):
+        """Test access_token_valid()."""
+        auth = IIIFAuth()
+        now = int(time.time())
+        # No allowed tokens stored, so reject
+        self.assertFalse(auth.access_token_valid('a-token', 'testy'))
+        # Wrong token, so reject
+        auth.access_tokens['token1'] = ('cookie1', now)
+        self.assertFalse(auth.access_token_valid('token2', 'testy'))
+        # Right token, recent, so accept
+        self.assertTrue(auth.access_token_valid('token1', 'testy'))
+        # Make token old, so reject
+        auth.access_tokens['token1'] = ('cookie1', now - auth.access_token_lifetime - 2)
+        self.assertFalse(auth.access_token_valid('token1', 'testy'))
+        self.assertEqual(len(auth.access_tokens), 1)
+        # Make token very old, so deleted
+        auth.access_tokens['token1'] = ('cookie1', now - 2 * auth.access_token_lifetime - 2)
+        self.assertFalse(auth.access_token_valid('token1', 'testy'))
+        self.assertEqual(len(auth.access_tokens), 0)        
