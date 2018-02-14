@@ -199,7 +199,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(len(auth.access_tokens), 1)
         # Failure
         self.assertFalse(auth.access_token(None))
-    
+
     def test16_access_token_valid(self):
         """Test access_token_valid()."""
         auth = IIIFAuth()
@@ -218,4 +218,4 @@ class TestAll(unittest.TestCase):
         # Make token very old, so deleted
         auth.access_tokens['token1'] = ('cookie1', now - 2 * auth.access_token_lifetime - 2)
         self.assertFalse(auth.access_token_valid('token1', 'testy'))
-        self.assertEqual(len(auth.access_tokens), 0)        
+        self.assertEqual(len(auth.access_tokens), 0)
