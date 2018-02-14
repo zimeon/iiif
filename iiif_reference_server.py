@@ -15,7 +15,7 @@ import os
 import os.path
 import sys
 
-from iiif.flask_utils import Config, write_pid_file, add_handler, make_prefix, top_level_index_page, serve_static, ReverseProxied, setup_app, split_comma_argument, add_shared_configs
+from iiif.flask_utils import Config, write_pid_file, add_handler, make_prefix, ReverseProxied, setup_app, split_comma_argument, add_shared_configs
 
 
 def get_config(base_dir=''):
