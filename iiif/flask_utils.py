@@ -497,7 +497,7 @@ def parse_authorization_header(value):
             decoded = base64.b64decode(auth_info).decode(
                 'utf-8')  # b64decode gives bytes in python3
             (username, password) = decoded.split(':', 1)
-        except ValueError:
+        except (ValueError, TypeError):  # py3, py2
             return
         return {'type': 'basic', 'username': username, 'password': password}
     elif (auth_type == 'digest'):
