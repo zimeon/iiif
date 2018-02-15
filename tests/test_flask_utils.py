@@ -5,7 +5,13 @@ import flask
 import os.path
 import re  # needed because no assertRegexpMatches in 2.6
 import json
-from iiif.flask_utils import Config, html_page, top_level_index_page, identifiers, prefix_index_page, host_port_prefix, osd_page_handler, parse_authorization_header, parse_accept_header, add_shared_configs
+from iiif.flask_utils import (Config, html_page, top_level_index_page, identifiers,
+    prefix_index_page, host_port_prefix,
+    osd_page_handler, IIIFHandler,
+    parse_authorization_header, parse_accept_header, make_prefix,
+    split_comma_argument, add_shared_configs, add_handler)
+from iiif.auth_basic import IIIFAuthBasic
+from iiif.manipulator import IIIFManipulator
 
 
 class TestAll(unittest.TestCase):
@@ -95,6 +101,54 @@ class TestAll(unittest.TestCase):
             self.assertTrue(b'openseadragon.min.js' in html)
             self.assertTrue(b'an-unusual-id' in html)
 
+    def test21_IIIFHandler_init(self):
+        """Test IIIFHandler class init."""
+        # No auth
+        c = Config()
+        c.api_version = '2.1'
+        i = IIIFHandler(prefix='/p', identifier='i', config=c,
+                        klass=IIIFManipulator, auth=None)
+        self.assertTrue(i.manipulator.api_version, '2.1')
+        # Basic auth
+        a = IIIFAuthBasic()
+        c.host = 'example.org'
+        c.port = 80
+        c.prefix = '/p'
+        i = IIIFHandler(prefix='/p', identifier='i', config=c,
+                        klass=IIIFManipulator, auth=a)
+        self.assertTrue(i.manipulator.api_version, '2.1')
+    
+    def test22_IIIFHandler_json_mime_type(self):
+        """Test IIIFHandler.json_mime_type()."""
+        # No auth, no test for API 1.0
+        c = Config()
+        c.api_version = '1.0'
+        i = IIIFHandler(prefix='/p', identifier='i', config=c,
+                        klass=IIIFManipulator, auth=None)
+        self.assertEqual(i.json_mime_type, "application/json")
+        # No auth, connecg for API 1.1       
+        c = Config()
+        c.api_version = '1.1'
+        i = IIIFHandler(prefix='/p', identifier='i', config=c,
+                        klass=IIIFManipulator, auth=None)
+        # https://www.python.org/dev/peps/pep-0333/#environ-variables
+        environ = dict()
+        environ['REQUEST_METHOD'] = 'GET'
+        environ['SCRIPT_NAME'] = ''
+        environ['PATH_INFO'] = '/'
+        environ['SERVER_NAME'] = 'ex.org'
+        environ['SERVER_PORT'] = '80'
+        environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
+        environ['wsgi.url_scheme'] = 'http'
+        with self.test_app.request_context(environ):
+            self.assertEqual(i.json_mime_type, "application/json")
+        environ['HTTP_ACCEPT'] = 'application/ld+json'
+        with self.test_app.request_context(environ):
+            self.assertEqual(i.json_mime_type, "application/ld+json")        
+        environ['HTTP_ACCEPT'] = 'text/plain'
+        with self.test_app.request_context(environ):
+            self.assertEqual(i.json_mime_type, "application/json")        
+
     def test51_parse_authorization_header(self):
         """Test parse_authorization_header."""
         # Garbage
@@ -123,6 +177,12 @@ class TestAll(unittest.TestCase):
              'opaque': '5ccc069c403ebaf9f0171e9517f40e41',
              'uri': '/dir/index.html',
              'response': '6629fae49393a05397450978507c4ef1'})
+        # Error cases
+        self.assertEqual(parse_authorization_header('basic ZZZ'), None)
+        self.assertEqual(parse_authorization_header('Digest badpair'), None)
+        self.assertEqual(parse_authorization_header('Digest badkey="a"'), None)
+        self.assertEqual(parse_authorization_header('Digest username="a", '
+            'realm="r", nonce="n", uri="u", response="rr", qop="no_nc"'), None)
 
     def test52_parse_accept_header(self):
         """Test parse_accept_header."""
@@ -137,8 +197,53 @@ class TestAll(unittest.TestCase):
         self.assertEqual(accepts[0], ('text/html', (), 0.6))
         self.assertEqual(accepts[1], ('text/xml', (), 0.5))
 
+    def test58_make_prefix(self):
+        """Test make_prefix."""
+        self.assertEqual(make_prefix('vv', 'mm', None), 'vv_mm')
+        self.assertEqual(make_prefix('v2', 'm2', 'none'), 'v2_m2')
+        self.assertEqual(make_prefix('v3', 'm3', 'a'), 'v3_m3_a')
+
+    def test59_split_comma_argument(self):
+        """Test split_comma_argument()."""
+        self.assertEqual(split_comma_argument(''), [])
+        self.assertEqual(split_comma_argument('a,b'), ['a','b'])
+        self.assertEqual(split_comma_argument('a,b,cccccccccc,,,'), ['a','b','cccccccccc'])
+
     def test60_add_shared_configs(self):
         """Test add_shared_configs() - just check it runs."""
         p = argparse.ArgumentParser()
         add_shared_configs(p)
         self.assertTrue('--include-osd' in p.format_help())
+
+    def test61_add_handler(self):
+        """Test add_handler."""
+        c = Config()
+        c.klass_name = 'pil'
+        c.api_version = '2.1'
+        c.include_osd = False
+        c.gauth_client_secret_file = 'file'
+        c.access_cookie_lifetime = 10
+        c.access_token_lifetime = 10
+        # Auth types
+        for auth in ('none', 'gauth', 'basic', 'clickthrough', 'kiosk', 'external'):
+            c.auth_type = auth
+            c.prefix = 'pfx1_' + auth
+            c.client_prefix = c.prefix
+            self.assertTrue(add_handler(self.test_app, Config(c)))
+        # Manipulator types
+        c.auth_type = 'none'
+        for klass in ('pil', 'netpbm', 'gen', 'dummy'):
+            c.klass_name = klass
+            c.prefix = 'pfx2_' + klass
+            c.client_prefix = c.prefix
+            self.assertTrue(add_handler(self.test_app, Config(c)))
+        # Include OSD
+        c.include_osd = True
+        self.assertTrue(add_handler(self.test_app, Config(c)))
+        # Bad cases
+        c.auth_type = 'bogus'
+        self.assertFalse(add_handler(self.test_app, Config(c)))
+        c.auth_type = 'none'
+        c.klass_name = 'no-klass'
+        self.assertFalse(add_handler(self.test_app, Config(c)))
+

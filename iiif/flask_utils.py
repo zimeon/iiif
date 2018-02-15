@@ -200,7 +200,7 @@ class IIIFHandler(object):
         identifier -- identifier of image
         config -- instance of Config class
         klass -- IIIFManipulator sub-class to do manipulations
-        auth -- IIIFAuth sub-class for auth
+        auth -- IIIFAuth sub-class instance for auth or None
         """
         self.prefix = prefix
         self.identifier = identifier
@@ -241,8 +241,7 @@ class IIIFHandler(object):
         http://iiif.io/api/image/2.1/#information-request
         """
         mime_type = "application/json"
-        if (self.api_version >= '1.1' and
-                'Accept' in request.headers):
+        if (self.api_version >= '1.1' and 'Accept' in request.headers):
             mime_type = do_conneg(request.headers['Accept'], [
                                   'application/ld+json']) or mime_type
         return mime_type
@@ -326,7 +325,6 @@ class IIIFHandler(object):
         if (len(path) > 1024):
             raise IIIFError(code=414,
                             text="URI Too Long: Max 1024 chars, got %d\n" % len(path))
-        # print "GET " + path
         try:
             self.iiif.identifier = self.identifier
             self.iiif.parse_url(path)
@@ -394,7 +392,7 @@ def iiif_info_handler(prefix=None, identifier=None,
     if (not auth or degraded_request(identifier) or auth.info_authz()):
         # go ahead with request as made
         if (auth):
-            print("Authorized for image %s" % identifier)
+            logging.debug("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_information_response()
@@ -422,7 +420,7 @@ def iiif_image_handler(prefix=None, identifier=None,
     if (not auth or degraded_request(identifier) or auth.image_authz()):
         # serve image
         if (auth):
-            print("Authorized for image %s" % identifier)
+            logging.debug("Authorized for image %s" % identifier)
         i = IIIFHandler(prefix, identifier, config, klass, auth)
         try:
             return i.image_request_response(path)
@@ -432,7 +430,7 @@ def iiif_image_handler(prefix=None, identifier=None,
         # redirect to degraded (for not authz and for authn but not authz too)
         degraded_uri = host_port_prefix(
             config.host, config.port, prefix) + '/' + identifier + '-deg/' + path
-        print("Redirection to degraded: %s" % degraded_uri)
+        logging.info("Redirection to degraded: %s" % degraded_uri)
         response = redirect(degraded_uri)
         response.headers['Access-control-allow-origin'] = '*'
         return response
@@ -503,14 +501,16 @@ def parse_authorization_header(value):
             return
         return {'type': 'basic', 'username': username, 'password': password}
     elif (auth_type == 'digest'):
-        auth_map = parse_keqv_list(parse_http_list(auth_info))
-        print(auth_map)
+        try:
+            auth_map = parse_keqv_list(parse_http_list(auth_info))
+        except ValueError:
+            return
+        logging.debug(auth_map)
         for key in 'username', 'realm', 'nonce', 'uri', 'response':
             if key not in auth_map:
                 return
-            if 'qop' in auth_map:
-                if not auth_map.get('nc') or not auth_map.get('cnonce'):
-                    return
+        if 'qop' in auth_map and ('nc' not in auth_map or 'cnonce' not in auth_map):
+            return
         auth_map['type'] = 'digest'
         return auth_map
     else:
@@ -565,8 +565,12 @@ def make_prefix(api_version, manipulator, auth_type):
 
 
 def split_comma_argument(comma_sep_str):
-    """Split a comma separated option."""
-    return comma_sep_str.split(',')  # FIXME - make more flexible
+    """Split a comma separated option into a list."""
+    terms = []
+    for term in comma_sep_str.split(','):
+        if term:
+            terms.append(term)
+    return terms
 
 
 def add_shared_configs(p, base_dir=''):
@@ -622,7 +626,16 @@ def add_handler(app, config):
         config - Configuration object in which:
             config.prefix - String path prefix for this handler
             config.client_prefix - String path prefix seen by client (which may be different
-                because of reverse proxy or such)
+                because of reverse proxy or such
+            config.klass_name - Manipulator class, e.g. 'pil'
+            config.api_version - e.g. '2.1'
+            config.include_osd - True or False to include OSD
+            config.gauth_client_secret_file - filename if auth_type='gauth'
+            config.access_cookie_lifetime - number of seconds
+            config.access_token_lifetime - number of seconds
+            config.auth_type - Auth type string or 'none'
+
+    Returns True on success, nothing otherwise.
     """
     auth = None
     if (config.auth_type is None or config.auth_type == 'none'):
@@ -643,7 +656,7 @@ def add_handler(app, config):
         from iiif.auth_external import IIIFAuthExternal
         auth = IIIFAuthExternal()
     else:
-        print("Unknown auth type %s, ignoring" % (config.auth_type))
+        logging.error("Unknown auth type %s, ignoring" % (config.auth_type))
         return
     if (auth is not None):
         auth.access_cookie_lifetime = config.access_cookie_lifetime
@@ -662,12 +675,12 @@ def add_handler(app, config):
         from iiif.manipulator_gen import IIIFManipulatorGen
         klass = IIIFManipulatorGen
     else:
-        print("Unknown manipulator type %s, ignoring" % (config.klass_name))
+        logging.error("Unknown manipulator type %s, ignoring" % (config.klass_name))
         return
     base = urljoin('/', config.prefix + '/')  # ensure has trailing slash
     client_base = urljoin('/', config.client_prefix + '/')  # ensure has trailing slash
-    print("Installing %s IIIFManipulator at %s v%s %s" %
-          (config.klass_name, base, config.api_version, config.auth_type))
+    logging.warning("Installing %s IIIFManipulator at %s v%s %s" %
+                    (config.klass_name, base, config.api_version, config.auth_type))
     params = dict(config=config, klass=klass, auth=auth, prefix=config.client_prefix)
     app.add_url_rule(base.rstrip('/'), 'prefix_index_page',
                      prefix_index_page, defaults={'config': config})
@@ -683,7 +696,7 @@ def add_handler(app, config):
     app.add_url_rule(base + '<string(minlength=1):identifier>/<path:path>',
                      'iiif_image_handler', iiif_image_handler, methods=['GET'], defaults=params)
     if (auth):
-        setup_auth_paths(app, auth, server_prefix, params)
+        setup_auth_paths(app, auth, config.client_prefix, params)
     # redirects to info.json must come after auth
     app.add_url_rule(base + '<string(minlength=1):identifier>',
                      'iiif_info_handler',
@@ -691,6 +704,7 @@ def add_handler(app, config):
     app.add_url_rule(base + '<string(minlength=1):identifier>/',
                      'iiif_info_handler',
                      redirect_to=client_base + '<identifier>/info.json')
+    return True
 
 
 def serve_static(filename=None, prefix=None, basedir=''):
@@ -743,7 +757,7 @@ def setup_app(app, cfg):
     # under reverse proxy setup, otherwise they default to
     # config.host and config.port.
     if (cfg.app_host and cfg.app_port):
-        print("Reverse proxy for service at http://%s:%d/ ..." % (cfg.host, cfg.port))
+        logging.warning("Reverse proxy for service at http://%s:%d/ ..." % (cfg.host, cfg.port))
         app.wsgi_app = ReverseProxied(app.wsgi_app, cfg.host)
     elif (cfg.app_host or cfg.app_port):
         logging.critical("Must specify both app-host and app-port for reverse proxy configuration, aborting")
@@ -751,5 +765,5 @@ def setup_app(app, cfg):
     else:
         cfg.app_host = cfg.host
         cfg.app_port = cfg.port
-    print("Setup server on http://%s:%d/ ..." % (cfg.app_host, cfg.app_port))
+    logging.warning("Setup server on http://%s:%d/ ..." % (cfg.app_host, cfg.app_port))
     return(app)
