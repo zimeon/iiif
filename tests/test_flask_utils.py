@@ -6,10 +6,11 @@ import os.path
 import re  # needed because no assertRegexpMatches in 2.6
 import json
 from iiif.flask_utils import (Config, html_page, top_level_index_page, identifiers,
-    prefix_index_page, host_port_prefix,
-    osd_page_handler, IIIFHandler,
-    parse_authorization_header, parse_accept_header, make_prefix,
-    split_comma_argument, add_shared_configs, add_handler)
+                              prefix_index_page, host_port_prefix,
+                              osd_page_handler, IIIFHandler,
+                              parse_authorization_header, parse_accept_header,
+                              make_prefix, split_comma_argument, add_shared_configs,
+                              add_handler)
 from iiif.auth_basic import IIIFAuthBasic
 from iiif.manipulator import IIIFManipulator
 
@@ -117,7 +118,7 @@ class TestAll(unittest.TestCase):
         i = IIIFHandler(prefix='/p', identifier='i', config=c,
                         klass=IIIFManipulator, auth=a)
         self.assertTrue(i.manipulator.api_version, '2.1')
-    
+
     def test22_IIIFHandler_json_mime_type(self):
         """Test IIIFHandler.json_mime_type()."""
         # No auth, no test for API 1.0
@@ -126,7 +127,7 @@ class TestAll(unittest.TestCase):
         i = IIIFHandler(prefix='/p', identifier='i', config=c,
                         klass=IIIFManipulator, auth=None)
         self.assertEqual(i.json_mime_type, "application/json")
-        # No auth, connecg for API 1.1       
+        # No auth, connecg for API 1.1
         c = Config()
         c.api_version = '1.1'
         i = IIIFHandler(prefix='/p', identifier='i', config=c,
@@ -144,10 +145,10 @@ class TestAll(unittest.TestCase):
             self.assertEqual(i.json_mime_type, "application/json")
         environ['HTTP_ACCEPT'] = 'application/ld+json'
         with self.test_app.request_context(environ):
-            self.assertEqual(i.json_mime_type, "application/ld+json")        
+            self.assertEqual(i.json_mime_type, "application/ld+json")
         environ['HTTP_ACCEPT'] = 'text/plain'
         with self.test_app.request_context(environ):
-            self.assertEqual(i.json_mime_type, "application/json")        
+            self.assertEqual(i.json_mime_type, "application/json")
 
     def test51_parse_authorization_header(self):
         """Test parse_authorization_header."""
@@ -181,8 +182,9 @@ class TestAll(unittest.TestCase):
         self.assertEqual(parse_authorization_header('basic ZZZ'), None)
         self.assertEqual(parse_authorization_header('Digest badpair'), None)
         self.assertEqual(parse_authorization_header('Digest badkey="a"'), None)
-        self.assertEqual(parse_authorization_header('Digest username="a", '
-            'realm="r", nonce="n", uri="u", response="rr", qop="no_nc"'), None)
+        self.assertEqual(parse_authorization_header(
+            'Digest username="a", realm="r", nonce="n", uri="u", '
+            'response="rr", qop="no_nc"'), None)
 
     def test52_parse_accept_header(self):
         """Test parse_accept_header."""
@@ -206,8 +208,9 @@ class TestAll(unittest.TestCase):
     def test59_split_comma_argument(self):
         """Test split_comma_argument()."""
         self.assertEqual(split_comma_argument(''), [])
-        self.assertEqual(split_comma_argument('a,b'), ['a','b'])
-        self.assertEqual(split_comma_argument('a,b,cccccccccc,,,'), ['a','b','cccccccccc'])
+        self.assertEqual(split_comma_argument('a,b'), ['a', 'b'])
+        self.assertEqual(split_comma_argument('a,b,cccccccccc,,,'),
+                         ['a', 'b', 'cccccccccc'])
 
     def test60_add_shared_configs(self):
         """Test add_shared_configs() - just check it runs."""
@@ -246,4 +249,3 @@ class TestAll(unittest.TestCase):
         c.auth_type = 'none'
         c.klass_name = 'no-klass'
         self.assertFalse(add_handler(self.test_app, Config(c)))
-
