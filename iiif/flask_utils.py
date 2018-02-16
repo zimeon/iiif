@@ -702,9 +702,15 @@ def add_handler(app, config):
     return True
 
 
-def serve_static(filename=None, prefix=None, basedir=''):
-    """Handler for static files under basedir."""
-    return send_from_directory(os.path.join('third_party', prefix), filename)
+def serve_static(filename=None, prefix='', basedir=None):
+    """Handler for static files: server filename in basedir/prefix.
+
+    If not specified then basedir defaults to the local third_party
+    directory.
+    """
+    if not basedir:
+        basedir = os.path.join(os.path.dirname(__file__), 'third_party')
+    return send_from_directory(os.path.join(basedir, prefix), filename)
 
 
 class ReverseProxied(object):

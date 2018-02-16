@@ -18,7 +18,7 @@ from iiif.flask_utils import (Config, html_page, top_level_index_page, identifie
                               iiif_image_handler, degraded_request, options_handler,
                               parse_authorization_header, parse_accept_header,
                               make_prefix, split_comma_argument, add_shared_configs,
-                              add_handler)
+                              add_handler, serve_static, ReverseProxied)
 
 
 def WSGI_ENVIRON():
@@ -514,3 +514,19 @@ class TestAll(unittest.TestCase):
         c.auth_type = 'none'
         c.klass_name = 'no-klass'
         self.assertFalse(add_handler(self.test_app, Config(c)))
+
+    def test62_serve_static(self):
+        """Test serve_static()."""
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            resp = serve_static('README.md', 'openseadragon200')
+            self.assertTrue(resp.response.file.read().startswith(b'# OpenSeadragon'))
+
+    def test63_ReverseProxied(self):
+        """Test ReverseProxied class."""
+        def myapp(e, s):
+            return e['HTTP_HOST'] + '##' + s
+        rp = ReverseProxied(myapp, 'myhost')
+        self.assertEqual(rp.app, myapp)
+        self.assertEqual(rp.host, 'myhost')
+        self.assertEqual(rp(dict(), 'ss'), 'myhost##ss')

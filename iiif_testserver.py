@@ -122,10 +122,8 @@ def create_testserver_flask_app(cfg):
 
     if cfg.include_osd:
         # OpenSeadragon files
-        # app.add_url_rule('/openseadragon100/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon100','basedir':'third_party'})
-        # app.add_url_rule('/openseadragon121/<path:filename>', 'OSD pages', serve_static, defaults={'prefix':'openseadragon121','basedir':'third_party'})
         app.add_url_rule('/openseadragon200/<path:filename>', 'OSD pages', serve_static,
-                         defaults={'prefix': 'openseadragon200', 'basedir': 'third_party'})
+                         defaults={'prefix': 'openseadragon200'})
 
     return(app)
 
