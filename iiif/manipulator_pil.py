@@ -36,6 +36,7 @@ class IIIFManipulatorPIL(IIIFManipulator):
         super(IIIFManipulatorPIL, self).__init__(**kwargs)
         # Does not support jp2 output
         self.compliance_level = 2
+        self.image = None
         self.outtmp = None
 
     def set_max_image_pixels(self, pixels):
@@ -178,7 +179,12 @@ class IIIFManipulatorPIL(IIIFManipulator):
             self.image.save(self.outfile, format=format)
 
     def cleanup(self):
-        """Cleanup temporary output file."""
+        """Cleanup: ensure image closed and remove temporary output file."""
+        if self.image:
+            try:
+                self.image.close()
+            except Exception:
+                pass
         if (self.outtmp is not None):
             try:
                 os.unlink(self.outtmp)

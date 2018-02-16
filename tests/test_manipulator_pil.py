@@ -154,25 +154,31 @@ class TestAll(unittest.TestCase):
         self.assertEqual(img.format, 'JPEG')
         m.cleanup()
         # request jpeg
+        m.do_first()
         self.assertEqual(m.do_format('jpg'), None)
         img = Image.open(m.outfile)
         self.assertEqual(img.format, 'JPEG')
         m.cleanup()
         # request png
+        m.do_first()
         self.assertEqual(m.do_format('png'), None)
         img = Image.open(m.outfile)
         self.assertEqual(img.format, 'PNG')
         m.cleanup()
         # request webp
+        m.do_first()
         self.assertEqual(m.do_format('webp'), None)
         img = Image.open(m.outfile)
         self.assertEqual(img.format, 'WEBP')
         m.cleanup()
         # request tiff, not supported
+        m.do_first()
         self.assertRaises(IIIFError, m.do_format, 'tif')
         # request jp2, not supported
+        m.do_first()
         self.assertRaises(IIIFError, m.do_format, 'jp2')
         # request other, not supported
+        m.do_first()
         self.assertRaises(IIIFError, m.do_format, 'other')
         # save to specific location
         m.outfile = tempfile.NamedTemporaryFile(delete=True).name
