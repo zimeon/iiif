@@ -5,14 +5,34 @@ import flask
 import os.path
 import re  # needed because no assertRegexpMatches in 2.6
 import json
+
+from iiif.auth_basic import IIIFAuthBasic
+from iiif.error import IIIFError
+from iiif.manipulator import IIIFManipulator
+from iiif.manipulator_pil import IIIFManipulatorPIL
+
 from iiif.flask_utils import (Config, html_page, top_level_index_page, identifiers,
                               prefix_index_page, host_port_prefix,
                               osd_page_handler, IIIFHandler,
                               parse_authorization_header, parse_accept_header,
                               make_prefix, split_comma_argument, add_shared_configs,
                               add_handler)
-from iiif.auth_basic import IIIFAuthBasic
-from iiif.manipulator import IIIFManipulator
+
+
+def WSGI_ENVIRON():
+    """Test WSGI environment dictionary for use with request_context.
+
+    https://www.python.org/dev/peps/pep-0333/#environ-variables
+    """
+    environ = dict()
+    environ['REQUEST_METHOD'] = 'GET'
+    environ['SCRIPT_NAME'] = ''
+    environ['PATH_INFO'] = '/'
+    environ['SERVER_NAME'] = 'ex.org'
+    environ['SERVER_PORT'] = '80'
+    environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
+    environ['wsgi.url_scheme'] = 'http'
+    return environ
 
 
 class TestAll(unittest.TestCase):
@@ -120,7 +140,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue(i.manipulator.api_version, '2.1')
 
     def test22_IIIFHandler_json_mime_type(self):
-        """Test IIIFHandler.json_mime_type()."""
+        """Test IIIFHandler.json_mime_type property."""
         # No auth, no test for API 1.0
         c = Config()
         c.api_version = '1.0'
@@ -132,15 +152,7 @@ class TestAll(unittest.TestCase):
         c.api_version = '1.1'
         i = IIIFHandler(prefix='/p', identifier='i', config=c,
                         klass=IIIFManipulator, auth=None)
-        # https://www.python.org/dev/peps/pep-0333/#environ-variables
-        environ = dict()
-        environ['REQUEST_METHOD'] = 'GET'
-        environ['SCRIPT_NAME'] = ''
-        environ['PATH_INFO'] = '/'
-        environ['SERVER_NAME'] = 'ex.org'
-        environ['SERVER_PORT'] = '80'
-        environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
-        environ['wsgi.url_scheme'] = 'http'
+        environ = WSGI_ENVIRON()
         with self.test_app.request_context(environ):
             self.assertEqual(i.json_mime_type, "application/json")
         environ['HTTP_ACCEPT'] = 'application/ld+json'
@@ -149,6 +161,130 @@ class TestAll(unittest.TestCase):
         environ['HTTP_ACCEPT'] = 'text/plain'
         with self.test_app.request_context(environ):
             self.assertEqual(i.json_mime_type, "application/json")
+
+    def test23_IIIFHandler_file(self):
+        """Test IIIFHandler.file property."""
+        # No auth
+        c = Config()
+        c.api_version = '2.1'
+        # Generator
+        c.klass_name = 'gen'
+        c.generator_dir = os.path.join(os.path.dirname(__file__), '../iiif/generators')
+        i = IIIFHandler(prefix='/p', identifier='sierpinski_carpet', config=c,
+                        klass=IIIFManipulator, auth=None)
+        self.assertEqual(os.path.basename(i.file), 'sierpinski_carpet.py')
+        # Image
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        i = IIIFHandler(prefix='/p', identifier='starfish', config=c,
+                        klass=IIIFManipulator, auth=None)
+        self.assertEqual(os.path.basename(i.file), 'starfish.jpg')
+        # Failure
+        i = IIIFHandler(prefix='/p', identifier='no-image', config=c,
+                        klass=IIIFManipulator, auth=None)
+        self.assertRaises(IIIFError, lambda: i.file)
+
+    def test24_IIIFHandler_add_compliance_header(self):
+        """Test IIIFHandler.add_compliance_header property."""
+        # No auth
+        c = Config()
+        c.api_version = '2.1'
+        i = IIIFHandler(prefix='/p', identifier='iii', config=c,
+                        klass=IIIFManipulator, auth=None)
+        i.add_compliance_header()
+        self.assertTrue('Link' not in i.headers)
+        i = IIIFHandler(prefix='/p', identifier='iii', config=c,
+                        klass=IIIFManipulatorPIL, auth=None)
+        i.add_compliance_header()
+        self.assertTrue('/level2' in i.headers['Link'])
+
+    def test25_IIIFHandler_make_response(self):
+        """Test IIIFHandler.make_response."""
+        c = Config()
+        c.api_version = '2.1'
+        i = IIIFHandler(prefix='/p', identifier='iii', config=c,
+                        klass=IIIFManipulator, auth=None)
+        with self.test_app.app_context():
+            resp = i.make_response('hello1')
+            self.assertEqual(resp.response[0], b'hello1')
+            self.assertEqual(resp.headers['Access-control-allow-origin'], '*')
+        # Add a custom header
+        i = IIIFHandler(prefix='/p', identifier='iii', config=c,
+                        klass=IIIFManipulator, auth=None)
+        with self.test_app.app_context():
+            resp = i.make_response('hello2', headers={'Special-header': 'ba'})
+            self.assertEqual(resp.response[0], b'hello2')
+            self.assertEqual(resp.headers['Special-header'], 'ba')
+            self.assertEqual(resp.headers['Access-control-allow-origin'], '*')
+
+    def test26_IIIFHandler_image_information_response(self):
+        """Test IIIFHandler.image_information_response()."""
+        c = Config()
+        c.api_version = '2.1'
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        c.tile_height = 512
+        c.tile_width = 512
+        c.scale_factors = [1, 2]
+        c.host = 'example.org'
+        c.port = 80
+        i = IIIFHandler(prefix='p', identifier='starfish', config=c,
+                        klass=IIIFManipulator, auth=IIIFAuthBasic())
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            resp = i.image_information_response()
+            jsonb = resp.response[0]
+            self.assertTrue(b'default' in jsonb)
+            self.assertFalse(b'native' in jsonb)
+            self.assertTrue(b'starfish' in jsonb)
+            self.assertTrue(b'scaleFactors' in jsonb)
+            self.assertTrue(b'login' in jsonb)
+        # v1.1, auto scale factors
+        c.api_version = '1.1'
+        c.scale_factors = ['auto']
+        i = IIIFHandler(prefix='p', identifier='starfish', config=c,
+                        klass=IIIFManipulator, auth=None)
+        with self.test_app.request_context(environ):
+            resp = i.image_information_response()
+            jsonb = resp.response[0]
+            self.assertFalse(b'default' in jsonb)
+            self.assertTrue(b'native' in jsonb)
+            self.assertTrue(b'starfish' in jsonb)
+            self.assertFalse(b'scaleFactors' in jsonb)
+        # degraded
+        c.api_version = '2.1'
+        i = IIIFHandler(prefix='p', identifier='starfish-deg', config=c,
+                        klass=IIIFManipulator, auth=None)
+        with self.test_app.request_context(environ):
+            resp = i.image_information_response()
+            jsonb = resp.response[0]
+            self.assertTrue(b'starfish-deg' in jsonb)
+
+    def test26_IIIFHandler_image_request_response(self):
+        """Test IIIFHandler.image_request_response()."""
+        c = Config()
+        c.api_version = '2.1'
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        c.tile_height = 512
+        c.tile_width = 512
+        c.scale_factors = [1, 2]
+        c.host = 'example.org'
+        c.port = 80
+        i = IIIFHandler(prefix='p', identifier='starfish', config=c,
+                        klass=IIIFManipulatorPIL, auth=None)
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            # request too long
+            self.assertRaises(IIIFError, i.image_request_response, 'x' * 2000)
+            # bad path
+            self.assertRaises(IIIFError, i.image_request_response, 'a/b')
+            self.assertRaises(IIIFError, i.image_request_response, '/')
+            self.assertRaises(IIIFError, i.image_request_response, '')
+            # normal
+            resp = i.image_request_response('full/full/0/default.jpg')
+            # degraded
+            i.identifier = 'starfish-deg'
 
     def test51_parse_authorization_header(self):
         """Test parse_authorization_header."""
