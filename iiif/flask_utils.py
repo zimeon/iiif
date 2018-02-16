@@ -333,11 +333,6 @@ class IIIFHandler(object):
             # whether there was an encoded slash in the identifier or
             # whether there was a bad number of path segments.
             raise IIIFError(code=404, text=e.text)
-        except IIIFRequestBaseURI as e:
-            info_uri = self.server_and_prefix + '/' + \
-                urlquote(self.iiif.identifier) + '/info.json'
-            raise IIIFError(code=303,
-                            headers={'Location': info_uri})
         except IIIFError as e:
             # Pass through
             raise e

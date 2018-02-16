@@ -2,6 +2,7 @@
 import unittest
 import argparse
 import flask
+import mock
 import os.path
 import re  # needed because no assertRegexpMatches in 2.6
 import json
@@ -13,7 +14,8 @@ from iiif.manipulator_pil import IIIFManipulatorPIL
 
 from iiif.flask_utils import (Config, html_page, top_level_index_page, identifiers,
                               prefix_index_page, host_port_prefix,
-                              osd_page_handler, IIIFHandler,
+                              osd_page_handler, IIIFHandler, iiif_info_handler,
+                              iiif_image_handler, degraded_request, options_handler,
                               parse_authorization_header, parse_accept_header,
                               make_prefix, split_comma_argument, add_shared_configs,
                               add_handler)
@@ -272,7 +274,7 @@ class TestAll(unittest.TestCase):
         c.host = 'example.org'
         c.port = 80
         i = IIIFHandler(prefix='p', identifier='starfish', config=c,
-                        klass=IIIFManipulatorPIL, auth=None)
+                        klass=IIIFManipulator, auth=None)
         environ = WSGI_ENVIRON()
         with self.test_app.request_context(environ):
             # request too long
@@ -280,13 +282,140 @@ class TestAll(unittest.TestCase):
             # bad path
             self.assertRaises(IIIFError, i.image_request_response, 'a/b')
             self.assertRaises(IIIFError, i.image_request_response, '/')
-            self.assertRaises(IIIFError, i.image_request_response, '')
+            self.assertRaises(IIIFError, i.image_request_response, 'starfish')
             # normal
+            resp = i.image_request_response('full/full/0/default')
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertEqual(len(resp.data), 3523302)
+        # PIL manipularor and degraded
+        i = IIIFHandler(prefix='p', identifier='starfish-deg', config=c,
+                        klass=IIIFManipulatorPIL, auth=None)
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
             resp = i.image_request_response('full/full/0/default.jpg')
-            # degraded
-            i.identifier = 'starfish-deg'
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertTrue(len(resp.data) > 1000000)
+            self.assertTrue(len(resp.data) < 2000000)
+        # Conneg for v1.1
+        c.api_version = '1.1'
+        i = IIIFHandler(prefix='p', identifier='starfish', config=c,
+                        klass=IIIFManipulatorPIL, auth=None)
+        environ = WSGI_ENVIRON()
+        environ['HTTP_ACCEPT'] = 'image/png'
+        with self.test_app.request_context(environ):
+            resp = i.image_request_response('full/full/0/native')
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertTrue(len(resp.data) > 1000000)
+            self.assertEqual(resp.mimetype, 'image/png')
 
-    def test51_parse_authorization_header(self):
+    def test27_IIIFHandler_error_response(self):
+        """Test IIIFHandler.error_response()."""
+        c = Config()
+        c.api_version = '2.1'
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        c.tile_height = 512
+        c.tile_width = 512
+        c.scale_factors = [1, 2]
+        c.host = 'example.org'
+        c.port = 80
+        i = IIIFHandler(prefix='p', identifier='starfish', config=c,
+                        klass=IIIFManipulator, auth=None)
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            resp = i.error_response(IIIFError(999, 'bwaa'))
+            self.assertEqual(resp.status_code, 999)
+
+    def test28_iiif_info_handler(self):
+        """Test iiif_info_handler()."""
+        c = Config()
+        c.api_version = '2.1'
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        c.tile_height = 512
+        c.tile_width = 512
+        c.scale_factors = [1, 2]
+        c.host = 'example.org'
+        c.port = 80
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            resp = iiif_info_handler(prefix='p', identifier='starfish', config=c,
+                                     klass=IIIFManipulator)
+            self.assertEqual(resp.status_code, 200)
+        # Auth and both authn, authz
+        auth = mock.Mock(**{'info_authz.return_value': True,
+                            'info_authn.return_value': True})
+        with self.test_app.request_context(environ):
+            resp = iiif_info_handler(prefix='p', identifier='starfish', config=c,
+                                     klass=IIIFManipulator, auth=auth)
+            self.assertEqual(resp.status_code, 200)
+        # Auth and authn but not authz -> 401
+        auth = mock.Mock(**{'info_authz.return_value': False,
+                            'info_authn.return_value': True})
+        with self.test_app.request_context(environ):
+            # actually werkzeug.exceptions.Unauthorized
+            self.assertRaises(Exception, iiif_info_handler,
+                              prefix='p', identifier='starfish', config=c,
+                              klass=IIIFManipulator, auth=auth)
+        # Auth but not authn -> redirect
+        auth = mock.Mock(**{'info_authz.return_value': False,
+                            'info_authn.return_value': False})
+        with self.test_app.request_context(environ):
+            resp = iiif_info_handler(prefix='p', identifier='starfish', config=c,
+                                     klass=IIIFManipulator, auth=auth)
+            self.assertEqual(resp.status_code, 302)
+
+    def test28_iiif_image_handler(self):
+        """Test iiif_image_handler()."""
+        c = Config()
+        c.api_version = '2.1'
+        c.klass_name = 'dummy'
+        c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
+        c.tile_height = 512
+        c.tile_width = 512
+        c.scale_factors = [1, 2]
+        c.host = 'example.org'
+        c.port = 80
+        environ = WSGI_ENVIRON()
+        with self.test_app.request_context(environ):
+            resp = iiif_image_handler(prefix='p', identifier='starfish',
+                                      path='full/full/0/default',
+                                      config=c, klass=IIIFManipulator)
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertEqual(len(resp.data), 3523302)
+        # Auth and both authz, authn
+        auth = mock.Mock(**{'image_authz.return_value': True,
+                            'image_authn.return_value': True})
+        with self.test_app.request_context(environ):
+            resp = iiif_image_handler(prefix='p', identifier='starfish',
+                                      path='full/full/0/default',
+                                      config=c, klass=IIIFManipulator, auth=auth)
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertEqual(len(resp.data), 3523302)
+        # Auth but not authn -> redirect
+        auth = mock.Mock(**{'image_authz.return_value': False,
+                            'image_authn.return_value': False})
+        with self.test_app.request_context(environ):
+            resp = iiif_image_handler(prefix='p', identifier='starfish',
+                                      path='full/full0/default.jpg', config=c,
+                                      klass=IIIFManipulator, auth=auth)
+            self.assertEqual(resp.status_code, 302)
+            resp.direct_passthrough = False  # avoid Flask complaint when reading .data
+            self.assertTrue(resp.data.startswith(b'<!DOCTYPE HTML'))
+
+    def test29_degraded_request(self):
+        """Test degraded_request()."""
+        self.assertFalse(degraded_request('something'))
+        self.assertEqual(degraded_request('s-deg'), 's')
+
+    def test30_options_handler(self):
+        """Test options_handler()."""
+        with self.test_app.app_context():
+            resp = options_handler()
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.headers['Access-control-allow-origin'], '*')
+
+    def test40_parse_authorization_header(self):
         """Test parse_authorization_header."""
         # Garbage
         self.assertEqual(parse_authorization_header(''), None)
@@ -322,7 +451,7 @@ class TestAll(unittest.TestCase):
             'Digest username="a", realm="r", nonce="n", uri="u", '
             'response="rr", qop="no_nc"'), None)
 
-    def test52_parse_accept_header(self):
+    def test41_parse_accept_header(self):
         """Test parse_accept_header."""
         accepts = parse_accept_header("text/xml")
         self.assertEqual(len(accepts), 1)
@@ -335,26 +464,26 @@ class TestAll(unittest.TestCase):
         self.assertEqual(accepts[0], ('text/html', (), 0.6))
         self.assertEqual(accepts[1], ('text/xml', (), 0.5))
 
-    def test58_make_prefix(self):
+    def test42_make_prefix(self):
         """Test make_prefix."""
         self.assertEqual(make_prefix('vv', 'mm', None), 'vv_mm')
         self.assertEqual(make_prefix('v2', 'm2', 'none'), 'v2_m2')
         self.assertEqual(make_prefix('v3', 'm3', 'a'), 'v3_m3_a')
 
-    def test59_split_comma_argument(self):
+    def test43_split_comma_argument(self):
         """Test split_comma_argument()."""
         self.assertEqual(split_comma_argument(''), [])
         self.assertEqual(split_comma_argument('a,b'), ['a', 'b'])
         self.assertEqual(split_comma_argument('a,b,cccccccccc,,,'),
                          ['a', 'b', 'cccccccccc'])
 
-    def test60_add_shared_configs(self):
+    def test50_add_shared_configs(self):
         """Test add_shared_configs() - just check it runs."""
         p = argparse.ArgumentParser()
         add_shared_configs(p)
         self.assertTrue('--include-osd' in p.format_help())
 
-    def test61_add_handler(self):
+    def test51_add_handler(self):
         """Test add_handler."""
         c = Config()
         c.klass_name = 'pil'
