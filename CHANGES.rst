@@ -1,6 +1,10 @@
 iiif changelog
 ==============
 
+????-??-?? v1.0.6
+
+- ???
+
 2018-02-16 v1.0.5
 
 - Refactor most of Flask code from iiif_testserver.py into iiif.flask_utils
