@@ -10,8 +10,8 @@ iiif
   :target: https://coveralls.io/r/zimeon/iiif?branch=master
   :alt: Test coverage
 
-*iiif* - A Python library providing a reference implementation
-of the `International Image Interoperability Framework
+*iiif* - IIIF Image API reference implementation and Python library.
+Supports the `International Image Interoperability Framework
 <http://iiif.io/>`_: Image API
 `2.1
 <http://iiif.io/api/image/2.1/>`_ (and versions

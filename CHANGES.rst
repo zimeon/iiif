@@ -1,10 +1,11 @@
 iiif changelog
 ==============
 
-2018-02-11 v1.0.5
+2018-02-16 v1.0.5
 
-- Allow use of config file for iiif_testserver.py through change to ConfigArgParser
-- Move WSGI app creation from iiif_testserver.py to iiif_testserver.wsgi
+- Refactor most of Flask code from iiif_testserver.py into iiif.flask_utils
+- Create iiif_reference_server.py for use with http://iiif.io/ website
+- Allow use of config files for iiif_testserver.py, iiif_reference_server.py through change from argparse to ConfigArgParser
 
 2017-04-20 v1.0.4
 
