@@ -13,11 +13,11 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         # ?? should this empty case raise and error instead?
         ir = IIIFInfo(identifier="http://example.com/i1", api_version='3.0')
         self.assertJSONEqual(ir.as_json(validate=False),
-                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "@id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image"\n}')
+                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image", "type": "ImageService3"\n}')
         ir.width = 100
         ir.height = 200
         self.assertJSONEqual(ir.as_json(),
-                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image", \n  "width": 100\n}')
+                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "height": 200, \n  "id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image",  \n"type": "ImageService3",\n  "width": 100\n}')
 
     def test04_conf(self):
         """Tile parameter configuration."""

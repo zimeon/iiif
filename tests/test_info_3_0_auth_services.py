@@ -18,7 +18,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         auth = IIIFAuth()
         auth.add_services(info)
         self.assertJSONEqual(info.as_json(
-            validate=False), '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "@id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image"\n}')
+            validate=False), '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "id": "http://example.com/i1", \n  "profile": [\n    "http://iiif.io/api/image/3/level1.json"\n  ], \n  "protocol": "http://iiif.io/api/image", "type": "ImageService3"\n}')
         self.assertEqual(info.service, None)
 
     def test02_just_login(self):

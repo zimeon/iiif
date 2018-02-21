@@ -1,6 +1,6 @@
 {
   "@context" : "http://iiif.io/api/image/3/context.json",
-  "@id" : "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "id" : "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
   "protocol" : "http://iiif.io/api/image",
   "width" : 4000,
   "height" : 3000,

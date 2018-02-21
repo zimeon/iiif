@@ -102,6 +102,8 @@ CONF = {
         'compliance_suffix': "",
         'protocol': None,
         'required_params': ['identifier', 'width', 'height', 'profile'],
+        'property_to_json':
+            {'identifier': '@id'}
     },
     '2.0': {
         'params':
@@ -122,6 +124,8 @@ CONF = {
         'protocol': "http://iiif.io/api/image",
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
+        'property_to_json':
+            {'identifier': '@id'}
     },
     '2.1': {
         'params':
@@ -143,10 +147,12 @@ CONF = {
         'protocol': "http://iiif.io/api/image",
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
+        'property_to_json':
+            {'identifier': '@id'}
     },
     '3.0': {
         'params':
-            ['identifier', 'protocol', 'width', 'height',
+            ['identifier', 'resource_type', 'protocol', 'width', 'height',
              'profile', 'sizes', 'tiles', 'service',
              'attribution', 'logo', 'license'],
         # scale_factors isn't in API but used internally
@@ -164,6 +170,11 @@ CONF = {
         'protocol': "http://iiif.io/api/image",
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
+        'property_to_json':
+            {'identifier': 'id',
+             'resource_type': 'type'},
+        'fixed_values':
+            {'resource_type': 'ImageService3'}
     }
 }
 
@@ -203,8 +214,7 @@ class IIIFInfo(object):
         if (api_version not in CONF):
             raise IIIFInfoError(
                 "Unknown IIIF Image API version '%s', versions supported are ('%s')" %
-                (api_version, sorted(
-                    CONF.keys())))
+                (api_version, sorted(CONF.keys())))
         self.api_version = api_version
         self.set_version_info()
         if (profile is not None):
@@ -270,22 +280,44 @@ class IIIFInfo(object):
             self.identifier = value
 
     def set_version_info(self, api_version=None):
-        """Set up normal values for given api_version.
+        """Set version and load configuration for given api_version.
 
         Will use current value of self.api_version if a version number
-        is not specified in the call. Will raise an IIIFInfoError
+        is not specified in the call. Will raise IIIFInfoError if an
+        unknown API version is supplied.
+
+        Sets a number of configuration properties from the content
+        of CONF[api_version] which then control much of the rest of
+        the behavior of this object.
         """
         if (api_version is None):
             api_version = self.api_version
         if (api_version not in CONF):
             raise IIIFInfoError("Unknown API version %s" % (api_version))
+        # Load configuration for version
         self.params = CONF[api_version]['params']
         self.array_params = CONF[api_version]['array_params']
         self.complex_params = CONF[api_version]['complex_params']
         for a in ('context', 'compliance_prefix', 'compliance_suffix',
-                  'protocol', 'required_params'):
+                  'protocol', 'required_params', 'property_to_json',
+                  'fixed_values'):
             if (a in CONF[api_version]):
                 self._setattr(a, CONF[api_version][a])
+        # Set any fixed values
+        if hasattr(self, 'fixed_values'):
+            for p, v in self.fixed_values.items():
+                self._setattr(p, v)
+
+    def json_key(self, property):
+        """JSON key for given object property name.
+
+        If no mapping is specified then the JSON key is assumed to be
+        the property name.
+        """
+        try:
+            return self.property_to_json[property]
+        except (AttributeError, KeyError):
+            return property
 
     @property
     def compliance(self):
@@ -465,7 +497,7 @@ class IIIFInfo(object):
             if (self.api_version == '1.0'):
                 json_dict['identifier'] = self.identifier  # local id
             else:
-                json_dict['@id'] = self.id  # URI
+                json_dict[self.json_key('identifier')] = self.id  # URI
         params_to_write.discard('profile')
         if (self.compliance):
             if (self.api_version < '2.0'):
@@ -488,7 +520,7 @@ class IIIFInfo(object):
         for param in params_to_write:
             if (hasattr(self, param) and
                     getattr(self, param) is not None):
-                json_dict[param] = getattr(self, param)
+                json_dict[self.json_key(param)] = getattr(self, param)
         return(json.dumps(json_dict, sort_keys=True, indent=2))
 
     def read(self, fh, api_version=None):
@@ -547,10 +579,11 @@ class IIIFInfo(object):
             else:
                 raise IIIFInfoError("Missing identifier in info.json")
         else:
-            if ('@id' in j):
-                self.id = j['@id']
+            id_key = self.json_key('identifier')
+            if (id_key in j):
+                self.id = j[id_key]
             else:
-                raise IIIFInfoError("Missing @id in info.json")
+                raise IIIFInfoError("Missing %s in info.json" % (id_key))
         #
         # other params
         for param in self.params:

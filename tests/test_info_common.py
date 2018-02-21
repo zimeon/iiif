@@ -43,11 +43,9 @@ class TestAll(unittest.TestCase):
         i.id = '/d'
         self.assertEqual(i.server_and_prefix, '')
         self.assertEqual(i.identifier, 'd')
-
-        def xx(value):  # FIXME - better way to test setter?
-            i.id = value
-        self.assertRaises(AttributeError, xx, None)
-        self.assertRaises(AttributeError, xx, 123)
+        # id setter
+        self.assertRaises(AttributeError, setattr, i, 'id', None)
+        self.assertRaises(AttributeError, setattr, i, 'id', 123)
         # property
         i.server_and_prefix = ''
         i.identifier = ''
@@ -58,6 +56,23 @@ class TestAll(unittest.TestCase):
         self.assertEqual(i.id, 'def/abc')
         i.identifier = ''
         self.assertEqual(i.id, 'def/')
+
+    def test03_set_version_info(self):
+        """Test setting of version information."""
+        i = IIIFInfo()
+        self.assertRaises(IIIFInfoError, i.set_version_info, api_version='9.9')
+
+    def test04_json_key(self):
+        """Test json_key()."""
+        i = IIIFInfo()
+        self.assertEqual(i.json_key(None), None)
+        self.assertEqual(i.json_key(''), '')
+        self.assertEqual(i.json_key('abc'), 'abc')
+        i.set_version_info('3.0')
+        self.assertEqual(i.json_key(None), None)
+        self.assertEqual(i.json_key(''), '')
+        self.assertEqual(i.json_key('abc'), 'abc')
+        self.assertEqual(i.json_key('identifier'), 'id')
 
     def test03_level(self):
         """Test level handling."""
@@ -154,11 +169,6 @@ class TestAll(unittest.TestCase):
             'iiif/image-api/1.1/context.json", "@id": "a" }')
         i.read(fh)
         self.assertEqual(i.api_version, '1.1')
-
-    def test08_set_version_info(self):
-        """Test setting of version information."""
-        i = IIIFInfo()
-        self.assertRaises(IIIFInfoError, i.set_version_info, api_version='9.9')
 
     def test09_parse_tiles(self):
         """Test _parse_tiles function."""
