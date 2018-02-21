@@ -1,0 +1,34 @@
+{
+  "@context" : "http://iiif.io/api/image/3/context.json",
+  "@id" : "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "EXTRA1": "SOME EXTRA HERE",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 6000,
+  "height" : 4000,
+  "sizes" : [
+    {"width" : 150, "height" : 100},
+    {"width" : 600, "height" : 400},
+    {"width" : 3000, "height": 2000}
+  ],
+  "tiles": [
+    {"width" : 512, "scaleFactors" : [1,2,4,8,16]}
+  ],
+  "profile" : [
+    "http://iiif.io/api/image/3/level2.json",
+    {
+      "formats" : [ "gif", "pdf" ],
+      "qualities" : [ "color", "gray" ],
+      "EXTRA2" : [ "SOME", "EXTRA", { "HERE": "AND HERE" } ],
+      "supports" : [
+          "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
+      ]
+    }
+  ],
+  "service" : {
+    "@context": "http://iiif.io/api/annex/service/physdim/1/context.json",
+    "profile": "http://iiif.io/api/annex/service/physdim",
+    "physicalScale": 0.0025,
+    "physicalUnits": "in"
+  },
+  "EXTRA3": { "SOME": "EXTRA", "HERE": "TOO" } 
+}

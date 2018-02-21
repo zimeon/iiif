@@ -18,7 +18,7 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='0.9')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='1')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='2.9')
-        self.assertRaises(IIIFInfoError, IIIFInfo, api_version='3.0')
+        self.assertRaises(IIIFInfoError, IIIFInfo, api_version='4.0')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='goofy')
 
     def test02_id(self):

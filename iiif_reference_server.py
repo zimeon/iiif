@@ -33,7 +33,7 @@ def get_config(base_dir=''):
     p.add('--scale-factors', default='auto',
           help="Set of tile scale factors or 'auto' to calculate for each image "
                "such that there are tiles up to the full image")
-    p.add('--api-versions', default='1.0,1.1,2.0,2.1',
+    p.add('--api-versions', default='1.0,1.1,2.0,2.1,3.0',
           help="Set of API versions to support")
     args = p.parse_args()
 

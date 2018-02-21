@@ -1,0 +1,58 @@
+{
+  "@context" : "http://iiif.io/api/image/3/context.json",
+  "@id" : "http://www.example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 6000,
+  "height" : 4000,
+  "sizes" : [
+    {"width" : 150, "height" : 100},
+    {"width" : 600, "height" : 400},
+    {"width" : 3000, "height": 2000}
+  ],
+  "tiles": [
+    {"width" : 512, "scaleFactors" : [1,2,4]},
+    {"width" : 1024, "height" : 2048, "scaleFactors" : [8,16]}
+  ],
+  "attribution" : [
+    {
+      "@value" : "<span>Provided by Example Organization</span>",
+      "@language" : "en"
+    },{
+      "@value" : "<span>Darparwyd gan Enghraifft Sefydliad</span>",
+      "@language" : "cy"
+    }
+  ],
+  "logo" : {
+      "@id" : "http://example.org/image-service/logo/full/200,/0/default.png",
+      "service" : {
+        "@context" : "http://iiif.io/api/image/3/context.json",
+        "@id" : "http://example.org/image-service/logo",
+        "profile" : "http://iiif.io/api/image/3/level2.json"
+      }
+  },
+  "license" : [
+    "http://example.org/rights/license1.html",
+    "https://creativecommons.org/licenses/by/4.0/"
+  ],
+  "profile" : [
+    "http://iiif.io/api/image/3/level2.json",
+    {
+      "formats" : [ "gif", "pdf" ],
+      "qualities" : [ "color", "gray" ],
+      "supports" : [
+        "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
+      ]
+    }
+  ],
+  "service" : [
+    {
+      "@context": "http://iiif.io/api/annex/service/physdim/1/context.json",
+      "profile": "http://iiif.io/api/annex/service/physdim",
+      "physicalScale": 0.0025,
+      "physicalUnits": "in"
+    },{
+      "@context" : "http://geojson.org/contexts/geojson-base.jsonld",
+      "@id" : "http://www.example.org/geojson/paris.json"
+    }
+  ]
+}

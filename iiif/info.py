@@ -1,7 +1,7 @@
 """IIIF Image Information Response.
 
 Model for IIIF Image API 'Image Information Response'.
-Default version is 2.1 but also supports 2.0, 1.1 and 1.0.
+Default version is 2.1 but also supports 3.0, 2.0, 1.1 and 1.0.
 
 Philisophy is to migrate this code forward with new versions
 of the specification but to keep support for all published
@@ -139,6 +139,27 @@ CONF = {
             'service': _parse_service},
         'context': "http://iiif.io/api/image/2/context.json",
         'compliance_prefix': "http://iiif.io/api/image/2/level",
+        'compliance_suffix': ".json",
+        'protocol': "http://iiif.io/api/image",
+        'required_params':
+            ['identifier', 'protocol', 'width', 'height', 'profile'],
+    },
+    '3.0': {
+        'params':
+            ['identifier', 'protocol', 'width', 'height',
+             'profile', 'sizes', 'tiles', 'service',
+             'attribution', 'logo', 'license'],
+        # scale_factors isn't in API but used internally
+        'array_params': set(
+            ['sizes', 'tiles', 'service', 'scale_factors', 'formats',
+             'maxArea', 'maxHeight', 'maxWidth', 'qualities', 'supports']),
+        'complex_params': {
+            'sizes': _parse_noop,
+            'tiles': _parse_tiles,
+            'profile': _parse_profile,
+            'service': _parse_service},
+        'context': "http://iiif.io/api/image/3/context.json",
+        'compliance_prefix': "http://iiif.io/api/image/3/level",
         'compliance_suffix': ".json",
         'protocol': "http://iiif.io/api/image",
         'required_params':
