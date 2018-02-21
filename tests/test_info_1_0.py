@@ -1,7 +1,6 @@
 """Test code for iiif/info.py for Image API version 1.0."""
 import unittest
 from .testlib.assert_json_equal_mixin import AssertJSONEqual
-import re  # needed because no assertRegexpMatches in 2.6
 from iiif.info import IIIFInfo
 
 
@@ -22,11 +21,8 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Test scale factor."""
         ir = IIIFInfo(width=1, height=2, scale_factors=[
                       1, 2], api_version='1.0')
-        # self.assertRegexpMatches( ir.as_json(validate=False),
-        # r'"scale_factors": \[\s*1' ) #,\s*2\s*]' ) #no assertRegexpMatches in
-        # 2.6
         json = ir.as_json(validate=False)
-        self.assertTrue(re.search(r'"scale_factors": \[\s*1', json))
+        self.assertRegexpMatches(json, r'"scale_factors": \[\s*1')
 
     def test03_array_vals(self):
         """Test array values."""

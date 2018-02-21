@@ -4,7 +4,6 @@ import argparse
 import flask
 import mock
 import os.path
-import re  # needed because no assertRegexpMatches in 2.6
 import json
 
 from iiif.auth_basic import IIIFAuthBasic
@@ -56,8 +55,8 @@ class TestAll(unittest.TestCase):
     def test11_html_page(self):
         """Test HTML page wrapper."""
         html = html_page('TITLE', 'BODY')
-        self.assertTrue('<h1>TITLE</h1>' in html)  # FIXME - use assertIn when 2.6 dropped
-        self.assertTrue('BODY</body>' in html)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('<h1>TITLE</h1>', html)
+        self.assertIn('BODY</body>', html)
 
     def test12_top_level_index_page(self):
         """Test top_level_index_page()."""
@@ -65,8 +64,8 @@ class TestAll(unittest.TestCase):
         c.host = 'ex.org'
         c.prefixes = {'pa1a': 'pa1b', 'pa2a': 'pa2b'}
         html = top_level_index_page(c)
-        self.assertTrue('ex.org' in html)  # FIXME - use assertIn when 2.6 dropped
-        self.assertTrue('pa1a'in html)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('ex.org', html)
+        self.assertIn('pa1a', html)
 
     def test13_identifiers(self):
         """Test identifiers()."""
@@ -75,15 +74,15 @@ class TestAll(unittest.TestCase):
         c.klass_name = 'gen'
         c.generator_dir = os.path.join(os.path.dirname(__file__), '../iiif/generators')
         ids = identifiers(c)
-        self.assertTrue('sierpinski_carpet' in ids)  # FIXME - use assertIn when 2.6 dropped
-        self.assertFalse('red-19000x19000' in ids)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('sierpinski_carpet', ids)
+        self.assertNotIn('red-19000x19000', ids)
         # Non-gerenator case
         c = Config()
         c.klass_name = 'anything-not-gen'
         c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
         ids = identifiers(c)
-        self.assertFalse('sierpinski_carpet' in ids)  # FIXME - use assertIn when 2.6 dropped
-        self.assertTrue('red-19000x19000' in ids)  # FIXME - use assertIn when 2.6 dropped
+        self.assertNotIn('sierpinski_carpet', ids)
+        self.assertIn('red-19000x19000', ids)
 
     def test14_prefix_index_page(self):
         """Test prefix_index_page()."""
@@ -97,13 +96,13 @@ class TestAll(unittest.TestCase):
         c.klass_name = 'pil'
         c.image_dir = os.path.join(os.path.dirname(__file__), '../testimages')
         html = prefix_index_page(c)
-        self.assertTrue('/pfx/' in html)  # FIXME - use assertIn when 2.6 dropped
-        self.assertTrue('osd.html' in html)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('/pfx/', html)
+        self.assertIn('osd.html', html)
         # No OSD
         c.include_osd = False
         html = prefix_index_page(c)
-        self.assertTrue('/pfx/' in html)  # FIXME - use assertIn when 2.6 dropped
-        self.assertFalse('osd.html' in html)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('/pfx/', html)
+        self.assertNotIn('osd.html', html)
 
     def test15_host_port_prefix(self):
         """Test host_port_prefix()."""
@@ -121,8 +120,8 @@ class TestAll(unittest.TestCase):
             resp = osd_page_handler(c, 'an-unusual-id', 'a-prefix')
             html = resp.response[0]
             # Trivial tests on content...
-            self.assertTrue(b'openseadragon.min.js' in html)
-            self.assertTrue(b'an-unusual-id' in html)
+            self.assertIn(b'openseadragon.min.js', html)
+            self.assertIn(b'an-unusual-id', html)
 
     def test21_IIIFHandler_init(self):
         """Test IIIFHandler class init."""
@@ -194,11 +193,11 @@ class TestAll(unittest.TestCase):
         i = IIIFHandler(prefix='/p', identifier='iii', config=c,
                         klass=IIIFManipulator, auth=None)
         i.add_compliance_header()
-        self.assertTrue('Link' not in i.headers)
+        self.assertNotIn('Link', i.headers)
         i = IIIFHandler(prefix='/p', identifier='iii', config=c,
                         klass=IIIFManipulatorPIL, auth=None)
         i.add_compliance_header()
-        self.assertTrue('/level2' in i.headers['Link'])
+        self.assertIn('/level2', i.headers['Link'])
 
     def test25_IIIFHandler_make_response(self):
         """Test IIIFHandler.make_response."""
@@ -236,11 +235,11 @@ class TestAll(unittest.TestCase):
         with self.test_app.request_context(environ):
             resp = i.image_information_response()
             jsonb = resp.response[0]
-            self.assertTrue(b'default' in jsonb)
-            self.assertFalse(b'native' in jsonb)
-            self.assertTrue(b'starfish' in jsonb)
-            self.assertTrue(b'scaleFactors' in jsonb)
-            self.assertTrue(b'login' in jsonb)
+            self.assertIn(b'default', jsonb)
+            self.assertNotIn(b'native', jsonb)
+            self.assertIn(b'starfish', jsonb)
+            self.assertIn(b'scaleFactors', jsonb)
+            self.assertIn(b'login', jsonb)
         # v1.1, auto scale factors
         c.api_version = '1.1'
         c.scale_factors = ['auto']
@@ -249,10 +248,10 @@ class TestAll(unittest.TestCase):
         with self.test_app.request_context(environ):
             resp = i.image_information_response()
             jsonb = resp.response[0]
-            self.assertFalse(b'default' in jsonb)
-            self.assertTrue(b'native' in jsonb)
-            self.assertTrue(b'starfish' in jsonb)
-            self.assertFalse(b'scaleFactors' in jsonb)
+            self.assertNotIn(b'default', jsonb)
+            self.assertIn(b'native', jsonb)
+            self.assertIn(b'starfish', jsonb)
+            self.assertNotIn(b'scaleFactors', jsonb)
         # degraded
         c.api_version = '2.1'
         i = IIIFHandler(prefix='p', identifier='starfish-deg', config=c,
@@ -260,7 +259,7 @@ class TestAll(unittest.TestCase):
         with self.test_app.request_context(environ):
             resp = i.image_information_response()
             jsonb = resp.response[0]
-            self.assertTrue(b'starfish-deg' in jsonb)
+            self.assertIn(b'starfish-deg', jsonb)
 
     def test26_IIIFHandler_image_request_response(self):
         """Test IIIFHandler.image_request_response()."""
@@ -481,7 +480,7 @@ class TestAll(unittest.TestCase):
         """Test add_shared_configs() - just check it runs."""
         p = argparse.ArgumentParser()
         add_shared_configs(p)
-        self.assertTrue('--include-osd' in p.format_help())
+        self.assertIn('--include-osd', p.format_help())
 
     def test51_add_handler(self):
         """Test add_handler."""

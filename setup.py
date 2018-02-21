@@ -63,7 +63,6 @@ setup(
                  "GNU General Public License v3 (GPLv3)",
                  "Operating System :: OS Independent",
                  "Programming Language :: Python",
-                 "Programming Language :: Python :: 2.6",
                  "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
@@ -78,7 +77,7 @@ setup(
     description='IIIF Image API reference implementation',
     long_description=open('README').read(),
     install_requires=[
-        "Pillow>=3.2.0,<4.0.0",  # Pillow 4.0.0 drops python 2.6 support
+        "Pillow",
         "python-magic",
         "Flask",
         "ConfigArgParse>=0.13.0"

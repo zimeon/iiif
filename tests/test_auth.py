@@ -1,7 +1,6 @@
 """Test code for iiif.auth."""
 import json
 import mock
-import re
 import time
 import unittest
 
@@ -24,9 +23,9 @@ class TestAll(unittest.TestCase):
     def test02_set_cookie_prefix(self):
         """Test set_cookie_prefix."""
         auth = IIIFAuth()
-        self.assertTrue(re.match(r'\d{6}_$', auth.cookie_prefix))
+        self.assertRegexpMatches(auth.cookie_prefix, r'\d{6}_$')
         auth.set_cookie_prefix()
-        self.assertTrue(re.match(r'\d{6}_$', auth.cookie_prefix))
+        self.assertRegexpMatches(auth.cookie_prefix, r'\d{6}_$')
         auth.set_cookie_prefix('ghi')
         self.assertEqual(auth.cookie_prefix, 'ghi')
 
@@ -75,7 +74,7 @@ class TestAll(unittest.TestCase):
         # Addition of auth_type in label
         auth.auth_type = "my-auth"
         lsd = auth.login_service_description()
-        self.assertTrue('(my-auth)' in lsd['label'])  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn('(my-auth)', lsd['label'])
 
     def test05_logout_service_description(self):
         """Test logout_service_description."""
@@ -140,12 +139,12 @@ class TestAll(unittest.TestCase):
         # no token
         err_response = IIIFAuth().access_token_response(None)
         self.assertEqual(err_response['error'], 'client_unauthorized')
-        self.assertFalse('access_token' in err_response)
+        self.assertNotIn('access_token', err_response)
         # token
         good_response = IIIFAuth().access_token_response('TOKEN_HERE')
         self.assertEqual(good_response['accessToken'], 'TOKEN_HERE')
         self.assertTrue(int(good_response['expiresIn']) > 10)
-        self.assertFalse('error' in good_response)
+        self.assertNotIn('error', good_response)
 
     def test12_null_authn_authz(self):
         """Test null authn and auth.
@@ -163,7 +162,7 @@ class TestAll(unittest.TestCase):
         auth.account_allowed = mock.Mock(return_value=True)
         cookie = auth.access_cookie('abc')
         self.assertTrue(cookie)
-        self.assertTrue(cookie in auth.access_cookies)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn(cookie, auth.access_cookies)
         auth.account_allowed = mock.Mock(return_value=False)
         cookie = auth.access_cookie('abc')
         self.assertEqual(cookie, None)
@@ -195,7 +194,7 @@ class TestAll(unittest.TestCase):
         # Success
         token = auth.access_token('cookie1')
         self.assertTrue(token)
-        self.assertTrue(token in auth.access_tokens)  # FIXME - use assertIn when 2.6 dropped
+        self.assertIn(token, auth.access_tokens)
         self.assertEqual(len(auth.access_tokens), 1)
         # Failure
         self.assertFalse(auth.access_token(None))

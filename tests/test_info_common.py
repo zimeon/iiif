@@ -1,6 +1,5 @@
 """Test code for iiif/info.py common code and IIIFInfoErrors."""
 import unittest
-import re  # needed because no assertRegexpMatches in 2.6
 try:  # python2
     # Must try this first as io also exists in python2
     # but in the wrong one!
@@ -127,7 +126,7 @@ class TestAll(unittest.TestCase):
         try:
             i.validate()
         except IIIFInfoError as e:
-            self.assertTrue(re.search(r'missing c parameter', str(e)))
+            self.assertRegexpMatches(str(e), r'missing c parameter')
         i.d = 4
         self.assertRaises(IIIFInfoError, i.validate)
         i.c = 3

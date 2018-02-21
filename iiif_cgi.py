@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.6
+#!/usr/bin/env python
 """Crude CGI implementation for IIIF service.
 
 Relies upon IIIFManupulator object to do the image

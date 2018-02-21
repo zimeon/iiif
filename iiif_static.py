@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """iiif_static: Generate static images implementing the IIIF Image API level 0.
 
-Copyright 2014--2016 Simeon Warner
+Copyright 2014--2018 Simeon Warner
 """
 
 import logging
@@ -16,8 +16,8 @@ from iiif.static import IIIFStatic, IIIFStaticError
 
 def main():
     """Parse arguments, instantiate IIIFStatic, run."""
-    if (sys.version_info < (2, 6)):
-        sys.exit("This program requires python version 2.6 or later")
+    if (sys.version_info < (2, 7)):
+        sys.exit("This program requires python version 2.7 or later")
 
     # Options and arguments
     p = optparse.OptionParser(description='IIIF Image API static file generator',
