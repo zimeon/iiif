@@ -11,17 +11,16 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Trivial JSON test."""
         ir = IIIFInfo(server_and_prefix="http://example.com",
                       identifier="i1", api_version='1.1')
-        self.assertJSONEqual(ir.as_json(
-            validate=False), '{\n  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1"\n}')
+        self.assertJSONEqual(ir.as_json(validate=False),
+                             '{\n  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", \n  "@id": "http://example.com/i1", \n  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1"\n}')
         ir.width = 100
         ir.height = 200
-        self.assertJSONEqual(ir.as_json(
-        ), '{\n  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1", \n  "width": 100\n}')
+        self.assertJSONEqual(ir.as_json(),
+                             '{\n  "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", \n  "@id": "http://example.com/i1", \n  "height": 200, \n  "profile": "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1", \n  "width": 100\n}')
 
     def test02_scale_factor(self):
         """Test scale factor."""
-        ir = IIIFInfo(width=1, height=2, scale_factors=[
-                      1, 2], api_version='1.1')
+        ir = IIIFInfo(width=1, height=2, scale_factors=[1, 2], api_version='1.1')
         json = ir.as_json(validate=False)
         self.assertRegexpMatches(json, r'"scale_factors": \[\s*1')
 
@@ -45,12 +44,12 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         i = IIIFInfo(api_version='1.1')
         i.level = 0
         self.assertEqual(i.level, 0)
-        self.assertEqual(
-            i.profile, "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0")
+        self.assertEqual(i.profile,
+                         "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0")
         i.level = 2
         self.assertEqual(i.level, 2)
-        self.assertEqual(
-            i.profile, "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2")
+        self.assertEqual(i.profile,
+                         "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level2")
         i.profile = "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level1"
         self.assertEqual(i.level, 1)
 
@@ -68,12 +67,12 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         i = IIIFInfo(api_version='1.1')
         fh = open('tests/testdata/info_json_1_1/info_from_spec.json')
         i.read(fh)
-        self.assertEqual(
-            i.context, "http://library.stanford.edu/iiif/image-api/1.1/context.json")
-        self.assertEqual(
-            i.id, "http://iiif.example.com/prefix/1E34750D-38DB-4825-A38A-B60A345E591C")
-        self.assertEqual(
-            i.profile, "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0")
+        self.assertEqual(i.context,
+                         "http://library.stanford.edu/iiif/image-api/1.1/context.json")
+        self.assertEqual(i.id,
+                         "http://iiif.example.com/prefix/1E34750D-38DB-4825-A38A-B60A345E591C")
+        self.assertEqual(i.profile,
+                         "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level0")
         self.assertEqual(i.width, 6000)
         self.assertEqual(i.height, 4000)
         self.assertEqual(i.scale_factors, [1, 2, 4])
