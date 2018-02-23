@@ -77,28 +77,38 @@ def _parse_profile(json_data):
 
 CONF = {
     '1.0': {
-        'params':
-            ['identifier', 'protocol', 'width', 'height', 'scale_factors',
-             'tile_width', 'tile_height', 'formats', 'qualities', 'profile'],
-        'array_params': set(
-            ['scale_factors', 'formats', 'qualities']),
+        'params': [
+            'at_contexts', 'identifier', 'protocol', 'width', 'height',
+            'scale_factors', 'tile_width', 'tile_height', 'formats',
+            'qualities', 'profile'
+        ],
+        'array_params': set([
+            'scale_factors', 'formats', 'qualities'
+        ]),
         'complex_params': {
+            'at_contexts': _parse_string_or_array,
             'scale_factors': _parse_int_array,
             'formats': _parse_noop,  # array of str
-            'qualities': _parse_noop},  # array of str
+            'qualities': _parse_noop  # array of str
+        },
         'compliance_prefix':
             "http://library.stanford.edu/iiif/image-api/compliance.html#level",
         'compliance_suffix': "",
         'protocol': None,
         'required_params': ['identifier', 'width', 'height', 'profile'],
+        'property_to_json': {
+            'at_contexts': '@context'
+        }
     },
     '1.1': {
         'params':
-            ['identifier', 'protocol', 'width', 'height', 'scale_factors',
-             'tile_width', 'tile_height', 'formats', 'qualities', 'profile'],
+            ['at_contexts', 'identifier', 'protocol', 'width', 'height',
+             'scale_factors', 'tile_width', 'tile_height', 'formats',
+             'qualities', 'profile'],
         'array_params': set(
             ['scale_factors', 'formats', 'qualities']),
         'complex_params': {
+            'at_contexts': _parse_string_or_array,
             'scale_factors': _parse_int_array,
             'formats': _parse_noop,  # array of str
             'qualities': _parse_noop},  # array of str
@@ -110,17 +120,19 @@ CONF = {
         'protocol': None,
         'required_params': ['identifier', 'width', 'height', 'profile'],
         'property_to_json':
-            {'identifier': '@id'}
+            {'at_contexts': '@context',
+             'identifier': '@id'}
     },
     '2.0': {
         'params':
-            ['identifier', 'protocol', 'width', 'height', 'profile',
-             'sizes', 'tiles', 'service'],
+            ['at_contexts', 'identifier', 'protocol', 'width', 'height',
+             'profile', 'sizes', 'tiles', 'service'],
         # scale_factors isn't in API but used internally
         'array_params': set(
             ['sizes', 'tiles', 'service', 'scale_factors', 'formats',
              'qualities', 'supports']),
         'complex_params': {
+            'at_contexts': _parse_string_or_array,
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
             'profile': _parse_profile,
@@ -132,11 +144,12 @@ CONF = {
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
         'property_to_json':
-            {'identifier': '@id'}
+            {'at_contexts': '@context',
+             'identifier': '@id'}
     },
     '2.1': {
         'params':
-            ['identifier', 'protocol', 'width', 'height',
+            ['at_contexts', 'identifier', 'protocol', 'width', 'height',
              'profile', 'sizes', 'tiles', 'service',
              'attribution', 'logo', 'license'],
         # scale_factors isn't in API but used internally
@@ -144,6 +157,7 @@ CONF = {
             ['sizes', 'tiles', 'service', 'scale_factors', 'formats',
              'maxArea', 'maxHeight', 'maxWidth', 'qualities', 'supports']),
         'complex_params': {
+            'at_contexts': _parse_string_or_array,
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
             'profile': _parse_profile,
@@ -155,18 +169,20 @@ CONF = {
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
         'property_to_json':
-            {'identifier': '@id'}
+            {'at_contexts': '@context',
+             'identifier': '@id'}
     },
     '3.0': {
         'params':
-            ['identifier', 'resource_type', 'protocol', 'width', 'height',
-             'profile', 'sizes', 'tiles', 'service',
+            ['at_contexts', 'identifier', 'resource_type', 'protocol',
+             'width', 'height', 'profile', 'sizes', 'tiles', 'service',
              'attribution', 'logo', 'license'],
         # scale_factors isn't in API but used internally
         'array_params': set(
             ['sizes', 'tiles', 'service', 'scale_factors', 'formats',
              'maxArea', 'maxHeight', 'maxWidth', 'qualities', 'supports']),
         'complex_params': {
+            'at_contexts': _parse_string_or_array,
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
             'profile': _parse_profile,
@@ -178,7 +194,8 @@ CONF = {
         'required_params':
             ['identifier', 'protocol', 'width', 'height', 'profile'],
         'property_to_json':
-            {'identifier': 'id',
+            {'at_contexts': '@context',
+             'identifier': 'id',
              'resource_type': 'type'},
         'fixed_values':
             {'resource_type': 'ImageService3'}
@@ -204,7 +221,7 @@ class IIIFInfo(object):
     def __init__(self, api_version='2.1', profile=None, level=1, conf=None,
                  server_and_prefix='',
                  identifier=None, width=None, height=None, tiles=None,
-                 sizes=None, service=None, id=None,
+                 sizes=None, service=None, id=None, at_contexts=None,
                  # legacy params from 1.1
                  scale_factors=None, tile_width=None, tile_height=None,
                  # 1.1 and 2.0
@@ -260,6 +277,7 @@ class IIIFInfo(object):
         self.attribution = attribution
         self.logo = logo
         self.license = license
+        self.at_contexts = at_contexts
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
@@ -536,6 +554,19 @@ class IIIFInfo(object):
                 json_dict[self.json_key(param)] = getattr(self, param)
         return(json.dumps(json_dict, sort_keys=True, indent=2))
 
+    def read_property(self, j, param):
+        """Read one property param from JSON j."""
+        key = self.json_key(param)
+        print("param=%s key=%s" % (param, key))
+        if (key in j):
+            value = j[key]
+            print("got %s %s" % (param, str(value)))
+            if (param in self.complex_params):
+                # use function ref in self.complex_params to parse
+                value = self.complex_params[param](value)
+            print("set %s %s" % (param, str(value)))
+            self._setattr(param, value)
+
     def read(self, fh, api_version=None):
         """Read info.json from file like object.
 
@@ -552,37 +583,34 @@ class IIIFInfo(object):
         @context is present and no api_version set then an IIIFInfoContextError
         will be raised.
         """
+        # load and parse JSON
         j = json.load(fh)
-        #
-        # @context and API version
+        # must work out API version in order to know how to parse JSON
+        # extract image API specific @context and API version
         self.context = None
-        self.contexts = None
+        self.read_property(j, 'at_contexts')
         if (api_version == '1.0'):
-            # v1.0 did not have a @context so we simply take the
-            # version passed in
+            # v1.0 did not have a @context so take the version passed in
             self.api_version = api_version
-        elif ('@context' in j):
-            # determine API version from context
-            self.contexts = _parse_string_or_array(j['@context'])
-            self.context = self.contexts[-1]
+        elif self.at_contexts is not None:
+            # determine API version from last context
+            self.context = self.at_contexts[-1]
             api_version_read = None
             for v in CONF:
                 if (v > '1.0' and self.context == CONF[v]['context']):
                     api_version_read = v
                     break
-            if (api_version_read is None):
+            if api_version_read is None:
                 raise IIIFInfoContextError(
                     "Unknown @context, cannot determine API version (%s)" %
                     (self.context))
-            else:
-                if (api_version is not None and
-                        api_version != api_version_read):
-                    raise IIIFInfoContextError(
-                        "Expected API version '%s' but got @context for API version '%s'" %
-                        (api_version, api_version_read))
-                else:
-                    self.api_version = api_version_read
-            if self.api_version < '3.0' and len(self.contexts) > 1:
+            elif api_version is None:
+                self.api_version = api_version_read
+            elif api_version != api_version_read:
+                raise IIIFInfoContextError(
+                    "Expected API version '%s' but got @context for API version '%s'" %
+                    (api_version, api_version_read))
+            if self.api_version < '3.0' and len(self.at_contexts) > 1:
                 raise IIIFInfoContextError("Multiple @contexts not allowed in versions prior to v3.0")
         else:  # no @context and not 1.0
             if (api_version is None):
@@ -590,7 +618,12 @@ class IIIFInfo(object):
             self.api_version = api_version
         self.set_version_info()
         #
-        # @id or identifier
+        # parse remaining JSON top-level keys
+        for param in self.params:
+            if param != 'at_contexts':
+                self.read_property(j, param)
+        #
+        # @id or identifier (1.0 only)
         if (self.api_version == '1.0'):
             if ('identifier' in j):
                 self.id = j['identifier']
@@ -603,16 +636,4 @@ class IIIFInfo(object):
             else:
                 raise IIIFInfoError("Missing %s in info.json" % (id_key))
         #
-        # other params
-        for param in self.params:
-            if (param == 'identifier'):
-                continue  # dealt with above
-            if (param in j):
-                if (param in self.complex_params):
-                    # use function ref in complex_params to parse, optional
-                    # dst to map to a different property name
-                    self._setattr(param,
-                                  self.complex_params[param](j[param]))
-                else:
-                    self._setattr(param, j[param])
         return True

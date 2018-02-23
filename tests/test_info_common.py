@@ -163,10 +163,9 @@ class TestAll(unittest.TestCase):
         # bad @context
         fh = io.StringIO('{ "@context": "oops" }')
         self.assertRaises(IIIFInfoError, i.read, fh)
-        #
+        # minimal 1.1 -- @context and @id
         fh = io.StringIO(
-            '{ "@context": "http://library.stanford.edu/'
-            'iiif/image-api/1.1/context.json", "@id": "a" }')
+            '{ "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", "@id": "a" }')
         i.read(fh)
         self.assertEqual(i.api_version, '1.1')
 
