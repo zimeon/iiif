@@ -1,7 +1,7 @@
 """Test code for iiif/info.py for Image API version 1.0."""
 import unittest
 from .testlib.assert_json_equal_mixin import AssertJSONEqual
-from iiif.info import IIIFInfo
+from iiif.info import IIIFInfo, IIIFInfoError
 
 
 class TestAll(unittest.TestCase, AssertJSONEqual):
@@ -56,9 +56,9 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test06_validate(self):
         """Test validate method."""
         i = IIIFInfo(api_version='1.0')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate
         i = IIIFInfo(identifier='a')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate
         i = IIIFInfo(identifier='a', width=1, height=2)
         self.assertTrue(i.validate())
 
@@ -82,4 +82,4 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Test attempt to read document with bad/unknown @context."""
         i = IIIFInfo()
         fh = open('tests/testdata/info_json_1_0/info_bad_context.json')
-        self.assertRaises(Exception, i.read, fh)
+        self.assertRaises(IIIFInfoError, i.read, fh)

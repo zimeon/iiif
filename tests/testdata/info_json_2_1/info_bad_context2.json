@@ -1,0 +1,20 @@
+{
+  "@context" : [
+     "http://example.org/array/context/illegal/in/2.1.json",
+     "http://iiif.io/api/image/2/context.json"
+  }
+  "@id" : "http://example.org/imageabcd1234",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 6000,
+  "height" : 4000,
+  "profile" : [
+    "http://iiif.io/api/image/2/level2.json",
+    {
+      "formats" : [ "gif", "pdf" ],
+      "qualities" : [ "color", "gray" ],
+      "supports" : [
+          "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/"
+      ]
+    }
+  ]
+}
