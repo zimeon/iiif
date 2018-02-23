@@ -52,9 +52,9 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test06_validate(self):
         """Test validate method."""
         i = IIIFInfo(api_version='2.1')
-        self.assertRaises(IIIFError, i.validate
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a')
-        self.assertRaises(IIIFError, i.validate
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a', width=1, height=2)
         self.assertTrue(i.validate())
 
@@ -149,7 +149,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
                          'tests/testdata/info_json_2_1/info_bad_context2.json'):
             i = IIIFInfo(api_version='2.1')
             fh = open(ctx_file)
-            self.assertRaises(IIIFError, i.read, fh)
+            self.assertRaises(IIIFInfoError, i.read, fh)
 
     def test20_write_example_in_spec(self):
         """Create example info.json in spec."""

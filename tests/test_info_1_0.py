@@ -56,9 +56,9 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test06_validate(self):
         """Test validate method."""
         i = IIIFInfo(api_version='1.0')
-        self.assertRaises(IIIFInfoError, i.validate
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a')
-        self.assertRaises(IIIFInfoError, i.validate
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a', width=1, height=2)
         self.assertTrue(i.validate())
 

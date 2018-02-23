@@ -2,7 +2,7 @@
   "@context" : [
      "http://example.org/array/context/illegal/in/2.1.json",
      "http://iiif.io/api/image/2/context.json"
-  }
+  ],
   "@id" : "http://example.org/imageabcd1234",
   "protocol" : "http://iiif.io/api/image",
   "width" : 6000,

@@ -13,18 +13,25 @@ import json
 import re
 
 
+def _parse_string_or_array(info, json_data):
+    # Parse either JSON single string or array into array.
+    if (not isinstance(json_data, list)):
+        json_data = [json_data]
+    return json_data
+
+
 def _parse_int_array(info, json_data):
-    # Force simple array of interger values
+    # Force simple array of interger values.
     return [int(x) for x in json_data]
 
 
 def _parse_noop(info, json_data):
-    # Format is already what we want
+    # Format is already what we want.
     return json_data
 
 
 def _parse_tile(info, json_data):
-    # Parse data for a single tile specification
+    # Parse data for a single tile specification.
     tile = {}
     tile['width'] = int(json_data['width'])
     if ('height' in json_data):
@@ -34,7 +41,7 @@ def _parse_tile(info, json_data):
 
 
 def _parse_tiles(info, json_data):
-    # Parse tiles array of tile specifications
+    # Parse tiles array of tile specifications.
     #
     # Expect common case in 2.0 to map to 1.1 idea of tile_width,
     # tile_height and scale_factors. This is the case when len()==1.
@@ -180,7 +187,13 @@ CONF = {
 
 
 class IIIFInfoError(Exception):
-    """IIIFInfoErrors from IIIFInfo."""
+    """IIIFInfoError from IIIFInfo."""
+
+    pass
+
+
+class IIIFInfoContextError(IIIFInfoError):
+    """IIIFInfoContextError for @context issues from IIIFInfo."""
 
     pass
 
@@ -533,42 +546,47 @@ class IIIFInfo(object):
         If api_version is set then the parsing will assume this API version,
         else the version will be determined from the incoming data. NOTE that
         the value of self.api_version is NOT used in this routine.
+
         If an api_version is specified and there is a @context specified then
-        an IIIFInfoError will be raised unless these match. If no known
-        @context is present and no api_version set then an IIIFInfoError
+        an IIIFInfoContextError will be raised unless these match. If no known
+        @context is present and no api_version set then an IIIFInfoContextError
         will be raised.
         """
         j = json.load(fh)
         #
         # @context and API version
         self.context = None
+        self.contexts = None
         if (api_version == '1.0'):
-            # v1.0 did not have a @context so we simply take the version
-            # passed in
+            # v1.0 did not have a @context so we simply take the
+            # version passed in
             self.api_version = api_version
         elif ('@context' in j):
             # determine API version from context
-            self.context = j['@context']
+            self.contexts = _parse_string_or_array(self, j['@context'])
+            self.context = self.contexts[-1]
             api_version_read = None
             for v in CONF:
                 if (v > '1.0' and self.context == CONF[v]['context']):
                     api_version_read = v
                     break
             if (api_version_read is None):
-                raise IIIFInfoError(
+                raise IIIFInfoContextError(
                     "Unknown @context, cannot determine API version (%s)" %
                     (self.context))
             else:
                 if (api_version is not None and
                         api_version != api_version_read):
-                    raise IIIFInfoError(
+                    raise IIIFInfoContextError(
                         "Expected API version '%s' but got @context for API version '%s'" %
                         (api_version, api_version_read))
                 else:
                     self.api_version = api_version_read
+            if self.api_version < '3.0' and len(self.contexts) > 1:
+                raise IIIFInfoContextError("Multiple @contexts not allowed in versions prior to v3.0")
         else:  # no @context and not 1.0
             if (api_version is None):
-                raise IIIFInfoError("No @context (and no default given)")
+                raise IIIFInfoContextError("No @context (and no default given)")
             self.api_version = api_version
         self.set_version_info()
         #

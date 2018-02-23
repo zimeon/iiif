@@ -2,11 +2,16 @@
 import unittest
 from .testlib.assert_json_equal_mixin import AssertJSONEqual
 import json
-from iiif.info import IIIFInfo
+import os.path
+from iiif.info import IIIFInfo, IIIFInfoError, IIIFInfoContextError
 
 
 class TestAll(unittest.TestCase, AssertJSONEqual):
     """Tests."""
+
+    def open_testdata(self, filename):
+        """Open test data file."""
+        return open(os.path.join('tests/testdata/info_json_3_0', filename))
 
     def test01_minmal(self):
         """Trivial JSON test."""
@@ -52,9 +57,9 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test06_validate(self):
         """Test validate method."""
         i = IIIFInfo(api_version='3.0')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a', width=1, height=2)
         self.assertTrue(i.validate())
 
@@ -62,7 +67,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Test reading of examples from spec."""
         # Section 5.2, full example
         i = IIIFInfo(api_version='3.0')
-        fh = open('tests/testdata/info_json_3_0/info_from_spec_section_5_2.json')
+        fh = self.open_testdata('info_from_spec_section_5_2.json')
         i.read(fh)
         self.assertEqual(i.context,
                          "http://iiif.io/api/image/3/context.json")
@@ -88,7 +93,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
 
         # Section 5.3, full example
         i = IIIFInfo(api_version='3.0')
-        fh = open('tests/testdata/info_json_3_0/info_from_spec_section_5_3.json')
+        fh = self.open_testdata('info_from_spec_section_5_3.json')
         i.read(fh)
         self.assertEqual(i.context,
                          "http://iiif.io/api/image/3/context.json")
@@ -111,7 +116,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
 
         # Section 5.6, full example
         i = IIIFInfo(api_version='3.0')
-        fh = open('tests/testdata/info_json_3_0/info_from_spec_section_5_6.json')
+        fh = self.open_testdata('info_from_spec_section_5_6.json')
         i.read(fh)
         self.assertEqual(i.context,
                          "http://iiif.io/api/image/3/context.json")
@@ -127,7 +132,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test11_read_example_with_extra(self):
         """Test read of exampe with extra info."""
         i = IIIFInfo(api_version='3.0')
-        fh = open('tests/testdata/info_json_3_0/info_with_extra.json')
+        fh = self.open_testdata('info_with_extra.json')
         i.read(fh)
         self.assertEqual(i.context,
                          "http://iiif.io/api/image/3/context.json")
@@ -143,11 +148,23 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(i.scale_factors, [1, 2, 4, 8, 16])
         self.assertEqual(i.compliance, "http://iiif.io/api/image/3/level2.json")
 
-    def test12_read_unknown_context(self):
+    def test12_read_bad_context(self):
         """Test bad/unknown context."""
-        i = IIIFInfo(api_version='3.0')
-        fh = open('tests/testdata/info_json_3_0/info_bad_context.json')
-        self.assertRaises(Exception, i.read, fh)
+        for ctx_file in ['info_bad_context1.json',
+                         'info_bad_context2.json',
+                         'info_bad_context3.json']:
+            i = IIIFInfo(api_version='3.0')
+            fh = self.open_testdata(ctx_file)
+            self.assertRaises(IIIFInfoContextError, i.read, fh)
+
+    def test13_read_good_context(self):
+        """Test good context."""
+        for ctx_file in ['info_good_context1.json',
+                         'info_good_context2.json',
+                         'info_good_context3.json']:
+            i = IIIFInfo(api_version='3.0')
+            i.read(self.open_testdata(ctx_file))
+            self.assertEqual(i.api_version, '3.0')
 
     def test20_write_example_in_spec(self):
         """Create example info.json in spec."""
@@ -191,8 +208,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
                  "@id": "http://www.example.org/geojson/paris.json"}]
         )
         reparsed_json = json.loads(i.as_json())
-        example_json = json.load(
-            open('tests/testdata/info_json_3_0/info_from_spec_section_5_6.json'))
+        example_json = json.load(self.open_testdata('info_from_spec_section_5_6.json'))
         self.maxDiff = 4000
         self.assertEqual(reparsed_json, example_json)
 
