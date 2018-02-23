@@ -13,34 +13,34 @@ import json
 import re
 
 
-def _parse_string_or_array(info, json_data):
+def _parse_string_or_array(json_data):
     # Parse either JSON single string or array into array.
     if (not isinstance(json_data, list)):
         json_data = [json_data]
     return json_data
 
 
-def _parse_int_array(info, json_data):
+def _parse_int_array(json_data):
     # Force simple array of interger values.
     return [int(x) for x in json_data]
 
 
-def _parse_noop(info, json_data):
+def _parse_noop(json_data):
     # Format is already what we want.
     return json_data
 
 
-def _parse_tile(info, json_data):
+def _parse_tile(json_data):
     # Parse data for a single tile specification.
     tile = {}
     tile['width'] = int(json_data['width'])
     if ('height' in json_data):
         tile['height'] = int(json_data['height'])
-    tile['scaleFactors'] = _parse_int_array(info, json_data['scaleFactors'])
+    tile['scaleFactors'] = _parse_int_array(json_data['scaleFactors'])
     return tile
 
 
-def _parse_tiles(info, json_data):
+def _parse_tiles(json_data):
     # Parse tiles array of tile specifications.
     #
     # Expect common case in 2.0 to map to 1.1 idea of tile_width,
@@ -49,15 +49,15 @@ def _parse_tiles(info, json_data):
     if (len(json_data) == 0):
         raise IIIFInfoError("Empty tiles array property not allowed.")
     for tile_spec in json_data:
-        tiles.append(_parse_tile(info, tile_spec))
+        tiles.append(_parse_tile(tile_spec))
     return tiles
 
 
-def _parse_service(info, json_data):
+def _parse_service(json_data):
     return json_data
 
 
-def _parse_profile(info, json_data):
+def _parse_profile(json_data):
     # 2.1 spec: "A list of profiles, indicated by either a URI or an
     # object describing the features supported. The first entry
     # in the list must be a compliance level URI."
@@ -563,7 +563,7 @@ class IIIFInfo(object):
             self.api_version = api_version
         elif ('@context' in j):
             # determine API version from context
-            self.contexts = _parse_string_or_array(self, j['@context'])
+            self.contexts = _parse_string_or_array(j['@context'])
             self.context = self.contexts[-1]
             api_version_read = None
             for v in CONF:
@@ -611,8 +611,8 @@ class IIIFInfo(object):
                 if (param in self.complex_params):
                     # use function ref in complex_params to parse, optional
                     # dst to map to a different property name
-                    self._setattr(param, self.complex_params[
-                                  param](self, j[param]))
+                    self._setattr(param,
+                                  self.complex_params[param](j[param]))
                 else:
                     self._setattr(param, j[param])
         return True

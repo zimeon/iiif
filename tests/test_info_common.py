@@ -172,16 +172,13 @@ class TestAll(unittest.TestCase):
 
     def test09_parse_tiles(self):
         """Test _parse_tiles function."""
-        i = IIIFInfo()
         jd = [{'width': 512, 'scaleFactors': [1, 2, 4]}]
-        self.assertEqual(_parse_tiles(i, jd), jd)
-        i = IIIFInfo()
+        self.assertEqual(_parse_tiles(jd), jd)
         jd = [{'width': 256, 'height': 200, 'scaleFactors': [1]}]
-        self.assertEqual(_parse_tiles(i, jd), jd)
+        self.assertEqual(_parse_tiles(jd), jd)
         # error case - empty tiles
-        i = IIIFInfo()
         jd = []
-        self.assertRaises(IIIFInfoError, _parse_tiles, i, jd)
+        self.assertRaises(IIIFInfoError, _parse_tiles, jd)
 
     def test20_scale_factors(self):
         """Test getter/setter for scale_factors property."""
