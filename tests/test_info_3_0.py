@@ -162,7 +162,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         for ctx_file in ['info_good_context1.json',
                          'info_good_context2.json',
                          'info_good_context3.json']:
-            i = IIIFInfo(api_version='3.0')
+            i = IIIFInfo()
             i.read(self.open_testdata(ctx_file))
             self.assertEqual(i.api_version, '3.0')
 

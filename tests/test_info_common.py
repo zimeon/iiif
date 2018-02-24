@@ -72,7 +72,7 @@ class TestAll(unittest.TestCase):
         self.assertEqual(i.json_key(None), None)
         self.assertEqual(i.json_key(''), '')
         self.assertEqual(i.json_key('abc'), 'abc')
-        self.assertEqual(i.json_key('identifier'), 'id')
+        self.assertEqual(i.json_key('resource_type'), 'type')
 
     def test03_level(self):
         """Test level handling."""
