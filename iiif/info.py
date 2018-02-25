@@ -179,7 +179,7 @@ CONF = {
             'extra_qualities', 'supports'
         ]),
         'complex_params': {
-            'sizes': _parse_noop,
+            'sizes': _parse_sizes,
             'tiles': _parse_tiles,
             'profile': _parse_profile_2_x,
             'service': _parse_service
@@ -209,7 +209,7 @@ CONF = {
             'maxArea', 'maxHeight', 'maxWidth', 'extra_qualities', 'supports'
         ]),
         'complex_params': {
-            'sizes': _parse_noop,
+            'sizes': _parse_sizes,
             'tiles': _parse_tiles,
             'profile': _parse_profile_2_x,
             'service': _parse_service
@@ -241,7 +241,7 @@ CONF = {
             'maxArea', 'maxHeight', 'maxWidth'
         ]),
         'complex_params': {
-            'sizes': _parse_noop,
+            'sizes': _parse_sizes,
             'tiles': _parse_tiles,
             'profile': _parse_profile_3_x,
             'service': _parse_service

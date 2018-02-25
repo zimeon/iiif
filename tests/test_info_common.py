@@ -21,6 +21,14 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='4.0')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='goofy')
 
+    def test02_context(self):
+        """Test context method."""
+        i = IIIFInfo()
+        i.contexts = []
+        self.assertEqual(i.context, None)
+        i.contexts = ['first', 'last']
+        self.assertEqual(i.context, 'last')
+
     def test02_id(self):
         """Test identifier handling."""
         i = IIIFInfo()

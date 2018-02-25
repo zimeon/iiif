@@ -192,7 +192,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(i.compliance, "level2")
 
     def test12_read_bad_context(self):
-        """Test bad/unknown context."""
+        """Test bad/unknown info data."""
         for ctx_file in ['info_bad_context1.json',
                          'info_bad_context2.json',
                          'info_bad_context3.json']:
@@ -200,7 +200,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
             fh = self.open_testdata(ctx_file)
             self.assertRaises(IIIFInfoContextError, i.read, fh)
 
-    def test13_read_good_context(self):
+    def test13_read_good_info_json(self):
         """Test good context."""
         for ctx_file in ['info_good_context1.json',
                          'info_good_context2.json',
@@ -208,6 +208,18 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
             i = IIIFInfo()
             i.read(self.open_testdata(ctx_file))
             self.assertEqual(i.api_version, '3.0')
+
+    def test14_read_info_json(self):
+        """Test bad/unknown info data."""
+        for ctx_file in ['info_bad_sizes1.json',
+                         'info_bad_sizes2.json',
+                         'info_bad_sizes3.json',
+                         'info_bad_sizes4.json',
+                         'info_bad_profile1.json',
+                         'info_bad_profile2.json']:
+            i = IIIFInfo(api_version='3.0')
+            fh = self.open_testdata(ctx_file)
+            self.assertRaises(IIIFInfoError, i.read, fh)
 
     def test20_write_full_example_in_spec(self):
         """Create example info.json in spec."""
