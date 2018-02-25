@@ -79,16 +79,16 @@ CONF = {
     '1.0': {
         'params': [
             'id', 'protocol', 'width', 'height',
-            'scale_factors', 'tile_width', 'tile_height', 'formats',
-            'qualities', 'profile'
+            'scale_factors', 'tile_width', 'tile_height', 'extra_formats',
+            'extra_qualities', 'profile'
         ],
         'array_params': set([
-            'scale_factors', 'formats', 'qualities'
+            'scale_factors', 'extra_formats', 'extra_qualities'
         ]),
         'complex_params': {
             'scale_factors': _parse_int_array,
-            'formats': _parse_noop,  # array of str
-            'qualities': _parse_noop  # array of str
+            'extra_formats': _parse_noop,  # array of str
+            'extra_qualities': _parse_noop  # array of str
         },
         'compliance_prefix':
             "http://library.stanford.edu/iiif/image-api/compliance.html#level",
@@ -96,22 +96,24 @@ CONF = {
         'protocol': None,
         'required_params': ['id', 'width', 'height', 'profile'],
         'property_to_json': {
-            'id': 'identifier'
+            'id': 'identifier',
+            'extra_formats': 'formats',
+            'extra_qualities': 'qualities'
         }
     },
     '1.1': {
         'params': [
             'id', 'protocol', 'width', 'height',
-            'scale_factors', 'tile_width', 'tile_height', 'formats',
-            'qualities', 'profile'
+            'scale_factors', 'tile_width', 'tile_height', 'extra_formats',
+            'extra_qualities', 'profile'
         ],
         'array_params': set([
-            'scale_factors', 'formats', 'qualities'
+            'scale_factors', 'extra_formats', 'extra_qualities'
         ]),
         'complex_params': {
             'scale_factors': _parse_int_array,
-            'formats': _parse_noop,  # array of str
-            'qualities': _parse_noop  # array of str
+            'extra_formats': _parse_noop,  # array of str
+            'extra_qualities': _parse_noop  # array of str
         },
         'api_context':
             "http://library.stanford.edu/iiif/image-api/1.1/context.json",
@@ -123,7 +125,9 @@ CONF = {
             'id', 'width', 'height', 'profile'
         ],
         'property_to_json': {
-            'id': '@id'
+            'id': '@id',
+            'extra_formats': 'formats',
+            'extra_qualities': 'qualities'
         }
     },
     '2.0': {
@@ -133,8 +137,8 @@ CONF = {
         ],
         # scale_factors isn't in API but used internally
         'array_params': set([
-            'sizes', 'tiles', 'service', 'scale_factors', 'formats',
-            'qualities', 'supports'
+            'sizes', 'tiles', 'service', 'scale_factors', 'extra_formats',
+            'extra_qualities', 'supports'
         ]),
         'complex_params': {
             'sizes': _parse_noop,
@@ -150,7 +154,9 @@ CONF = {
             'id', 'protocol', 'width', 'height', 'profile'
         ],
         'property_to_json': {
-            'id': '@id'
+            'id': '@id',
+            'extra_formats': 'formats',
+            'extra_qualities': 'qualities'
         }
     },
     '2.1': {
@@ -161,8 +167,8 @@ CONF = {
         ],
         # scale_factors isn't in API but used internally
         'array_params': set([
-            'sizes', 'tiles', 'service', 'scale_factors', 'formats',
-            'maxArea', 'maxHeight', 'maxWidth', 'qualities', 'supports'
+            'sizes', 'tiles', 'service', 'scale_factors', 'extra_formats',
+            'maxArea', 'maxHeight', 'maxWidth', 'extra_qualities', 'supports'
         ]),
         'complex_params': {
             'sizes': _parse_noop,
@@ -178,19 +184,24 @@ CONF = {
             'id', 'protocol', 'width', 'height', 'profile'
         ],
         'property_to_json': {
-            'id': '@id'
+            'id': '@id',
+            'extra_formats': 'formats',
+            'extra_qualities': 'qualities'
         }
     },
     '3.0': {
         'params': [
             'id', 'resource_type', 'protocol',
-            'width', 'height', 'profile', 'sizes', 'tiles', 'service',
+            'width', 'height', 'profile', 'sizes', 'tiles', 
+            'extra_formats',  'extra_qualities', 'extra_features',
+            'service',
             'attribution', 'logo', 'license'
         ],
         # scale_factors isn't in API but used internally
         'array_params': set([
-            'sizes', 'tiles', 'service', 'scale_factors', 'formats',
-            'maxArea', 'maxHeight', 'maxWidth', 'qualities', 'supports'
+            'sizes', 'tiles', 'service', 'scale_factors',
+            'extra_formats',  'extra_qualities', 'extra_features',
+            'maxArea', 'maxHeight', 'maxWidth',
         ]),
         'complex_params': {
             'sizes': _parse_noop,
@@ -199,14 +210,17 @@ CONF = {
             'service': _parse_service
         },
         'api_context': "http://iiif.io/api/image/3/context.json",
-        'compliance_prefix': "http://iiif.io/api/image/3/level",
-        'compliance_suffix': ".json",
+        'compliance_prefix': "level",
+        'compliance_suffix': "",
         'protocol': "http://iiif.io/api/image",
         'required_params': [
             'id', 'protocol', 'width', 'height', 'profile'
         ],
         'property_to_json': {
-            'resource_type': 'type'
+            'resource_type': 'type',
+            'extra_formats': 'extraFormats',
+            'extra_qualities': 'extraQualities',
+            'extra_features': 'extraFeatures'
         },
         'fixed_values': {
             'resource_type': 'ImageService3'
@@ -236,12 +250,15 @@ class IIIFInfo(object):
                  sizes=None, service=None, id=None,
                  # legacy params from 1.1
                  scale_factors=None, tile_width=None, tile_height=None,
-                 # 1.1 and 2.0
+                 # 1.1, 2.0, 2.1
                  formats=None, qualities=None,
-                 # 2.0 only
+                 # 2.0 and 2.1 only
                  supports=None,
                  # 2.1 only
-                 attribution=None, logo=None, license=None
+                 attribution=None, logo=None, license=None,
+                 # 3.0 only
+                 extra_formats=None, extra_qualities=None,
+                 extra_features=None,
                  ):
         """Initialize an IIIFInfo object.
 
@@ -281,14 +298,21 @@ class IIIFInfo(object):
         if (tile_height is not None):
             self.tile_height = tile_height
         # 1.1+
-        self.formats = formats
-        self.qualities = qualities
+        self.extra_formats = formats
+        self.extra_qualities = qualities
         # 2.0+ only
         self.supports = supports
         # 2.1+ only
         self.attribution = attribution
         self.logo = logo
         self.license = license
+        # 3.0 only
+        if extra_formats:
+            self.extra_formats = extra_formats
+        if extra_qualities:
+            self.extra_qualities = extra_qualities
+        if extra_features:
+            self.extra_features = extra_features
         # defaults from conf dict if provided
         if (conf):
             for option in conf:
@@ -307,6 +331,11 @@ class IIIFInfo(object):
             return self.contexts[-1]
         except:
             return None
+
+    def add_context(self, context):
+        """Add context to the set of contexts if not already present."""
+        if context not in self.contexts:
+            self.contexts.insert(0, context)
 
     @property
     def id(self):
@@ -379,27 +408,36 @@ class IIIFInfo(object):
     def compliance(self):
         """Compliance profile URI.
 
+        In IIIF Image API v3.x the profile information is a JSON-LD
+        aliased string representing the compliance level URI. 
+
         In IIIF Image API v2.x the profile information is an array
         of values and objects, the first of which must be the
-        compliance level URI. In v1.x the profile information is
-        just this URI.
+        compliance level URI.
+
+        In IIIF Image API v1.x the profile information is
+        just a single profile URI.
         """
-        if (self.api_version < '2.0'):
+        if self.api_version < '2.0':
             return self.profile
-        else:
+        elif self.api_version < '3.0':
             return self.profile[0]
+        else:
+            return self.profile
 
     @compliance.setter
     def compliance(self, value):
         """Set the compliance profile URI."""
         if (self.api_version < '2.0'):
             self.profile = value
-        else:
+        elif self.api_version < '3.0':
             try:
                 self.profile[0] = value
             except AttributeError:
                 # handle case where profile not initialized as array
                 self.profile = [value]
+        else:
+            self.profile = value
 
     @property
     def level(self):
@@ -561,21 +599,23 @@ class IIIFInfo(object):
         if (self.compliance):
             if (self.api_version < '2.0'):
                 json_dict['profile'] = self.compliance
-            else:
+            elif (self.api_version < '3.0'):
                 # FIXME - need to support extra profile features
                 json_dict['profile'] = [self.compliance]
                 d = {}
-                if (self.formats is not None):
-                    d['formats'] = self.formats
-                if (self.qualities is not None):
-                    d['qualities'] = self.qualities
+                if (self.extra_formats is not None):
+                    d['formats'] = self.extra_formats
+                if (self.extra_qualities is not None):
+                    d['qualities'] = self.extra_qualities
                 if (self.supports is not None):
-                    d['supports'] = self.supports
+                    d['supports'] = self.extra_features
                 if (len(d) > 0):
                     json_dict['profile'].append(d)
-                params_to_write.discard('formats')
-                params_to_write.discard('qualities')
-                params_to_write.discard('supports')
+                params_to_write.discard('extra_formats')
+                params_to_write.discard('extra_qualities')
+                params_to_write.discard('extra_features')
+            else:
+                json_dict['profile'] = self.profile
         for param in params_to_write:
             if (hasattr(self, param) and
                     getattr(self, param) is not None):
@@ -585,14 +625,11 @@ class IIIFInfo(object):
     def read_property(self, j, param):
         """Read one property param from JSON j."""
         key = self.json_key(param)
-        print("param=%s key=%s" % (param, key))
         if (key in j):
             value = j[key]
-            print("got %s %s" % (param, str(value)))
             if (param in self.complex_params):
                 # use function ref in self.complex_params to parse
                 value = self.complex_params[param](value)
-            print("set %s %s" % (param, str(value)))
             self._setattr(param, value)
 
     def read(self, fh, api_version=None):
@@ -621,7 +658,6 @@ class IIIFInfo(object):
         else:
             try:
                 self.contexts = _parse_string_or_array(j['@context'])
-                print("contexts = %s" % (self.contexts))
             except KeyError:
                 # no @context and not 1.0
                 if (api_version is None):
@@ -659,3 +695,33 @@ class IIIFInfo(object):
         if id_key not in j:
             raise IIIFInfoError("Missing %s in info.json" % (id_key))
         return True
+
+    @property
+    def formats(self):
+        "The pre 3.0 formats property tied to extra_formats."
+        return self.extra_formats
+
+    @formats.setter
+    def formats(self, value):
+        "Set pre 3.0 formats by writing to alias extra_formats."""
+        self.extra_formats = value
+
+    @property
+    def qualities(self):
+        "The pre 3.0 qualities property tied to extra_qualities."
+        return self.extra_qualities
+
+    @qualities.setter
+    def qualities(self, value):
+        "Set pre 3.0 qualitiess by writing to alias extra_qualities."""
+        self.extra_qualities = value
+
+    @property
+    def supports(self):
+        "The pre 3.0 supports property tied to extra_features."
+        return self.extra_features
+
+    @supports.setter
+    def supports(self, value):
+        "Set pre 3.0 supports by writing to alias extra_features."""
+        self.extra_features = value

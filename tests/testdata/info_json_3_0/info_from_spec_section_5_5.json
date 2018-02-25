@@ -6,7 +6,7 @@
   "profile": "level2",
   "width": 6000,
   "height": 4000,
-  "maxHeight": 2000,
-  "maxWidth": 3000,
-  "maxArea": 4000000  
+  "attribution": "Provided by Example Organization",
+  "logo": "https://example.org/images/logo.png",
+  "license": "http://rightsstatements.org/vocab/InC-EDU/1.0/"
 }

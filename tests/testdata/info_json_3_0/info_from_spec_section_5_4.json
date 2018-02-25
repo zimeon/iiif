@@ -6,7 +6,7 @@
   "profile": "level2",
   "width": 6000,
   "height": 4000,
-  "maxHeight": 2000,
-  "maxWidth": 3000,
-  "maxArea": 4000000  
+  "tiles": [
+    { "width": 512, "scaleFactors": [ 1, 2, 4, 8, 16 ] }
+  ]
 }

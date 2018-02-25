@@ -1,0 +1,52 @@
+{
+  "@context": [
+    "http://example.org/extension/context1.json",
+    "http://iiif.io/api/image/3/context.json"
+  ],
+  "id": "https://example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "type": "ImageService3",
+  "protocol": "http://iiif.io/api/image",
+  "profile": "level1",
+  "width": 6000,
+  "height": 4000,
+  "sizes": [
+    { "width": 150, "height": 100 },
+    { "width": 600, "height": 400 },
+    { "width": 3000, "height": 2000 }
+  ],
+  "tiles": [
+    { "width": 512, "scaleFactors": [ 1, 2, 4 ] },
+    { "width": 1024, "height": 2048, "scaleFactors": [ 8, 16 ] }
+  ],
+  "attribution": [
+    {
+      "@value": "<span>Provided by Example Organization</span>",
+      "@language": "en"
+    },{
+      "@value": "<span>Darparwyd gan Enghraifft Sefydliad</span>",
+      "@language": "cy"
+    }
+  ],
+  "logo": {
+      "id": "https://example.org/image-service/logo/square/200,200/0/default.png",
+      "service": [
+        {
+          "id": "https://example.org/image-service/logo",
+          "type": "ImageService3",
+          "profile": "level2"
+        }
+      ]
+  },
+  "license": [
+    "https://example.org/rights/license1.html",
+    "http://rightsstatements.org/vocab/InC-EDU/1.0/"
+  ],
+  "extraFormats": [ "gif", "pdf" ],
+  "extraQualities": [ "color", "gray" ],
+  "extraFeatures": [ "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader" ],
+  "service": [
+    {
+      "id": "http://example.org/fix/me"
+    }
+  ]
+}

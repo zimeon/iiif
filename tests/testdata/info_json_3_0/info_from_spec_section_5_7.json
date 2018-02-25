@@ -6,7 +6,11 @@
   "profile": "level2",
   "width": 6000,
   "height": 4000,
-  "maxHeight": 2000,
-  "maxWidth": 3000,
-  "maxArea": 4000000  
+  "service": [
+    {
+      "@id": "https://example.org/auth/login.html",
+      "@type": "AuthCookieService1",
+      "profile": "http://iiif.io/api/auth/1/login"
+    }
+  ]
 }
