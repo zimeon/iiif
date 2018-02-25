@@ -17,20 +17,30 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Trivial JSON test."""
         # ?? should this empty case raise and error instead?
         ir = IIIFInfo(identifier="https://example.com/i1", api_version='3.0')
-        self.assertJSONEqual(ir.as_json(validate=False),
-                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "id": "https://example.com/i1", \n  "profile": "level1", \n  "protocol": "http://iiif.io/api/image", "type": "ImageService3"\n}')
+        self.assertJSONEqual(
+            ir.as_json(validate=False),
+            '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  '
+            '"id": "https://example.com/i1", \n  "profile": "level1", \n  '
+            '"protocol": "http://iiif.io/api/image", "type": "ImageService3"\n}')
         ir.width = 100
         ir.height = 200
-        self.assertJSONEqual(ir.as_json(),
-                             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "height": 200, \n  "id": "https://example.com/i1", \n  "profile": "level1", \n  "protocol": "http://iiif.io/api/image",  \n"type": "ImageService3",\n  "width": 100\n}')
+        self.assertJSONEqual(
+            ir.as_json(),
+            '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  '
+            '"height": 200, \n  "id": "https://example.com/i1", \n  '
+            '"profile": "level1", \n  "protocol": "http://iiif.io/api/image",  \n'
+            '"type": "ImageService3",\n  "width": 100\n}')
 
     def test04_conf(self):
         """Tile parameter configuration."""
-        conf = {'tiles': [{'width': 999, 'scaleFactors': [9, 8, 7]}]}
+        conf = {'tiles': [{'width': 999, 'scaleFactors': [9, 8, 7]},
+                          {'width': 500, 'height': 600, 'scaleFactors': [1, 2]}]}
         i = IIIFInfo(api_version='3.0', conf=conf)
         self.assertEqual(i.tiles[0]['width'], 999)
         self.assertEqual(i.tiles[0]['scaleFactors'], [9, 8, 7])
-        # 1.1 style values
+        self.assertEqual(i.tiles[1]['width'], 500)
+        self.assertEqual(i.tiles[1]['scaleFactors'], [1, 2])
+        # 1.1 style values look at only first entry
         self.assertEqual(i.tile_width, 999)
         self.assertEqual(i.scale_factors, [9, 8, 7])
 

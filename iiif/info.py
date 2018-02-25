@@ -30,6 +30,20 @@ def _parse_noop(json_data):
     return json_data
 
 
+def _parse_sizes(json_data):
+    # Parse sizes in 2.0 and above.
+    #
+    # 3.0 spec: "A list of JSON objects with the height and width properties.
+    # These sizes specify preferred values to be provided in the w,h syntax of
+    # the size request parameter for scaled versions of the full image."
+    if (not isinstance(json_data, list)):
+        raise IIIFInfoError("The sizes property have a list value")
+    for obj in json_data:
+        if (not isinstance(obj, dict) or "width" not in obj or "height" not in obj):
+            raise IIIFInfoError("Every entry in the sizes property list must have width and height")
+    return json_data
+
+
 def _parse_tile(json_data):
     # Parse data for a single tile specification.
     tile = {}
@@ -43,8 +57,9 @@ def _parse_tile(json_data):
 def _parse_tiles(json_data):
     # Parse tiles array of tile specifications.
     #
-    # Expect common case in 2.0 to map to 1.1 idea of tile_width,
-    # tile_height and scale_factors. This is the case when len()==1.
+    # Expect common case in 2.0 and above to map to 1.1 idea of
+    # tile_width, tile_height and scale_factors. This is the case when
+    # len()==1.
     tiles = []
     if (len(json_data) == 0):
         raise IIIFInfoError("Empty tiles array property not allowed.")
@@ -57,7 +72,16 @@ def _parse_service(json_data):
     return json_data
 
 
-def _parse_profile(json_data):
+def _parse_profile_3_x(json_data):
+    # 3.0 spec: "A string indicating the highest compliance level which is
+    # fully supported by the service. The value must be one of “level0”,
+    # “level1”, or “level2”."
+    if (json_data not in ("level0", "level1", "level2")):
+        raise IIIFInfoError("The value of the profile property must be a level string")
+    return json_data
+
+
+def _parse_profile_2_x(json_data):
     # 2.1 spec: "A list of profiles, indicated by either a URI or an
     # object describing the features supported. The first entry
     # in the list must be a compliance level URI."
@@ -65,11 +89,26 @@ def _parse_profile(json_data):
     # 2.0 spec: "An array of profiles, indicated by either a URI or
     # an object describing the features supported. The first entry in
     # the array must be a compliance level URI, as defined below."
-    #
+    if (not isinstance(json_data, list)):
+        raise IIIFInfoError("The profile property have a list value")
+    if (not re.match(r'''http://iiif.io/api/image/2/level[012]\.json''', json_data[0])):
+        raise IIIFInfoError("The first entry in the profile list must be a compliance level URI.")
+    return json_data
+
+
+def _parse_profile_1_1(json_data):
     # 1.1 & 1.0 spec: "URI indicating the compliance level supported.
     # Values as described in Section 8. Compliance Levels"
-    #
-    # FIXME - add some validation!
+    if (not re.match(r'''http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level[012]''', json_data)):
+        raise IIIFInfoError("The profile property value must be a compliance level URI.")
+    return json_data
+
+
+def _parse_profile_1_0(json_data):
+    # 1.1 & 1.0 spec: "URI indicating the compliance level supported.
+    # Values as described in Section 8. Compliance Levels"
+    if (not re.match(r'''http://library.stanford.edu/iiif/image-api/compliance.html#level[012]''', json_data)):
+        raise IIIFInfoError("The profile property value must be a compliance level URI.")
     return json_data
 
 
@@ -79,19 +118,19 @@ CONF = {
     '1.0': {
         'params': [
             'id', 'protocol', 'width', 'height',
-            'scale_factors', 'tile_width', 'tile_height', 'extra_formats',
-            'extra_qualities', 'profile'
+            'scale_factors', 'tile_width', 'tile_height',
+            'extra_formats', 'extra_qualities', 'profile'
         ],
         'array_params': set([
             'scale_factors', 'extra_formats', 'extra_qualities'
         ]),
         'complex_params': {
+            'profile': _parse_profile_1_0,
             'scale_factors': _parse_int_array,
             'extra_formats': _parse_noop,  # array of str
             'extra_qualities': _parse_noop  # array of str
         },
-        'compliance_prefix':
-            "http://library.stanford.edu/iiif/image-api/compliance.html#level",
+        'compliance_prefix': "http://library.stanford.edu/iiif/image-api/compliance.html#level",
         'compliance_suffix': "",
         'protocol': None,
         'required_params': ['id', 'width', 'height', 'profile'],
@@ -104,21 +143,20 @@ CONF = {
     '1.1': {
         'params': [
             'id', 'protocol', 'width', 'height',
-            'scale_factors', 'tile_width', 'tile_height', 'extra_formats',
-            'extra_qualities', 'profile'
+            'scale_factors', 'tile_width', 'tile_height',
+            'extra_formats', 'extra_qualities', 'profile'
         ],
         'array_params': set([
             'scale_factors', 'extra_formats', 'extra_qualities'
         ]),
         'complex_params': {
+            'profile': _parse_profile_1_1,
             'scale_factors': _parse_int_array,
             'extra_formats': _parse_noop,  # array of str
             'extra_qualities': _parse_noop  # array of str
         },
-        'api_context':
-            "http://library.stanford.edu/iiif/image-api/1.1/context.json",
-        'compliance_prefix':
-            "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level",
+        'api_context': "http://library.stanford.edu/iiif/image-api/1.1/context.json",
+        'compliance_prefix': "http://library.stanford.edu/iiif/image-api/1.1/compliance.html#level",
         'compliance_suffix': "",
         'protocol': None,
         'required_params': [
@@ -143,7 +181,7 @@ CONF = {
         'complex_params': {
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
-            'profile': _parse_profile,
+            'profile': _parse_profile_2_x,
             'service': _parse_service
         },
         'api_context': "http://iiif.io/api/image/2/context.json",
@@ -173,7 +211,7 @@ CONF = {
         'complex_params': {
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
-            'profile': _parse_profile,
+            'profile': _parse_profile_2_x,
             'service': _parse_service
         },
         'api_context': "http://iiif.io/api/image/2/context.json",
@@ -205,7 +243,7 @@ CONF = {
         'complex_params': {
             'sizes': _parse_noop,
             'tiles': _parse_tiles,
-            'profile': _parse_profile,
+            'profile': _parse_profile_3_x,
             'service': _parse_service
         },
         'api_context': "http://iiif.io/api/image/3/context.json",
@@ -468,27 +506,21 @@ class IIIFInfo(object):
         # Extract param from a single tileset defintion
         if (self.tiles is None or len(self.tiles) == 0):
             return None
-        elif (len(self.tiles) == 1):
-            return self.tiles[0].get(param, None)
         else:
-            raise IIIFInfoError(
-                "No single %s in the case of multiple tile definitions." % (param))
+            return self.tiles[0].get(param, None)
 
     def _single_tile_setter(self, param, value):
         # Set param for a single tileset defintion
         if (self.tiles is None or len(self.tiles) == 0):
             self.tiles = [{}]
-        elif (len(self.tiles) > 1):
-            raise IIIFInfoError(
-                "No single %s in the case of multiple tile definitions." % (param))
         self.tiles[0][param] = value
 
     @property
     def scale_factors(self):
         """Access to scale_factors in 1.x.
 
-        Also provides the scale factors in 2.0 and greater
-        provided there is exactly one tiles definition.
+        Also provides the scale factors in 2.0 and greated for
+        only the first tile definition.
         """
         return self._single_tile_getter('scaleFactors')
 
@@ -506,8 +538,8 @@ class IIIFInfo(object):
     def tile_width(self):
         """Access to tile_width in 1.x.
 
-        Also provides the tile_width in 2.0 and greater
-        provided there is exactly one tiles definition.
+        Also provides the tile_width in 2.0 and greater for
+        only the first tile definition.
         """
         return self._single_tile_getter('width')
 
@@ -520,9 +552,9 @@ class IIIFInfo(object):
     def tile_height(self):
         """Access to tile_height in 1.x.
 
-        Also provides the tile_height in 2.0 and greater
-        provided there is exactly one tiles definition. If
-        width is set but not height then return that instead.
+        Also provides the tile_height in 2.0 and greaterfor
+        only the first tile definition. If width is set but not
+        height then return that instead.
         """
         h = self._single_tile_getter('height')
         if (h is None):
@@ -682,7 +714,7 @@ class IIIFInfo(object):
                         "Expected API version '%s' but got @context for API version '%s'" %
                         (api_version, api_version_read))
                 if self.api_version < '3.0' and len(self.contexts) > 1:
-                    raise IIIFInfoContextError("Multiple @contexts not allowed in versions prior to v3.0")
+                    raise IIIFInfoContextError("Multiple top-level @contexts not allowed in versions prior to v3.0")
         self.set_version_info()
         #
         # parse remaining JSON top-level keys
