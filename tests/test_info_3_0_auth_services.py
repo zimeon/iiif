@@ -17,7 +17,8 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         info = IIIFInfo(identifier="http://example.com/i1", api_version='3.0')
         auth = IIIFAuth()
         auth.add_services(info)
-        self.assertJSONEqual(info.as_json(validate=False),
+        self.assertJSONEqual(
+            info.as_json(validate=False),
             '{\n  "@context": "http://iiif.io/api/image/3/context.json", \n  "id": "http://example.com/i1", \n  "profile": "level1",\n  "protocol": "http://iiif.io/api/image", "type": "ImageService3"\n}')
         self.assertEqual(info.service, None)
 

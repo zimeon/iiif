@@ -249,12 +249,27 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         self.assertEqual(j['profile'], 'pfl')
 
     def test22_write_extra_info(self):
+        """Test writing of extraQualities, extraFormats, extraFeatures."""
+        i = IIIFInfo(api_version='3.0',
+                     id="https://example.org/svc/a", width=1, height=2,
+                     extra_formats=['fmt1', 'fmt2'])
+        j = json.loads(i.as_json())
+        self.assertEqual(j['extraFormats'], ['fmt1', 'fmt2'])
+        self.assertNotIn('extraQualities', j)
+        self.assertNotIn('extraFeatures', j)
+        #
         i = IIIFInfo(api_version='3.0',
                      id="https://example.org/svc/a", width=1, height=2,
                      extra_qualities=['aaa1', 'aaa2'])
         j = json.loads(i.as_json())
-        self.assertEqual(j['profile'], 'level1')
         self.assertNotIn('extraFormats', j)
         self.assertEqual(j['extraQualities'], ['aaa1', 'aaa2'])
         self.assertNotIn('extraFeatures', j)
-
+        #
+        i = IIIFInfo(api_version='3.0',
+                     id="https://example.org/svc/a", width=1, height=2,
+                     extra_features=['feat1', 'http://example.org/feat2'])
+        j = json.loads(i.as_json())
+        self.assertNotIn('extraFormats', j)
+        self.assertNotIn('extraQualities', j)
+        self.assertEqual(j['extraFeatures'], ['feat1', 'http://example.org/feat2'])

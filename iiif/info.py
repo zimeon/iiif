@@ -192,16 +192,15 @@ CONF = {
     '3.0': {
         'params': [
             'id', 'resource_type', 'protocol',
-            'width', 'height', 'profile', 'sizes', 'tiles', 
-            'extra_formats',  'extra_qualities', 'extra_features',
-            'service',
-            'attribution', 'logo', 'license'
+            'width', 'height', 'profile', 'sizes', 'tiles',
+            'extra_formats', 'extra_qualities', 'extra_features',
+            'service', 'attribution', 'logo', 'license'
         ],
         # scale_factors isn't in API but used internally
         'array_params': set([
             'sizes', 'tiles', 'service', 'scale_factors',
-            'extra_formats',  'extra_qualities', 'extra_features',
-            'maxArea', 'maxHeight', 'maxWidth',
+            'extra_formats', 'extra_qualities', 'extra_features',
+            'maxArea', 'maxHeight', 'maxWidth'
         ]),
         'complex_params': {
             'sizes': _parse_noop,
@@ -409,7 +408,7 @@ class IIIFInfo(object):
         """Compliance profile URI.
 
         In IIIF Image API v3.x the profile information is a JSON-LD
-        aliased string representing the compliance level URI. 
+        aliased string representing the compliance level URI.
 
         In IIIF Image API v2.x the profile information is an array
         of values and objects, the first of which must be the
@@ -698,30 +697,30 @@ class IIIFInfo(object):
 
     @property
     def formats(self):
-        "The pre 3.0 formats property tied to extra_formats."
+        """The pre 3.0 formats property tied to extra_formats."""
         return self.extra_formats
 
     @formats.setter
     def formats(self, value):
-        "Set pre 3.0 formats by writing to alias extra_formats."""
+        """Set pre 3.0 formats by writing to alias extra_formats."""
         self.extra_formats = value
 
     @property
     def qualities(self):
-        "The pre 3.0 qualities property tied to extra_qualities."
+        """The pre 3.0 qualities property tied to extra_qualities."""
         return self.extra_qualities
 
     @qualities.setter
     def qualities(self, value):
-        "Set pre 3.0 qualitiess by writing to alias extra_qualities."""
+        """Set pre 3.0 qualitiess by writing to alias extra_qualities."""
         self.extra_qualities = value
 
     @property
     def supports(self):
-        "The pre 3.0 supports property tied to extra_features."
+        """The pre 3.0 supports property tied to extra_features."""
         return self.extra_features
 
     @supports.setter
     def supports(self, value):
-        "Set pre 3.0 supports by writing to alias extra_features."""
+        """Set pre 3.0 supports by writing to alias extra_features."""
         self.extra_features = value
