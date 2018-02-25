@@ -74,8 +74,8 @@ def _parse_service(json_data):
 
 def _parse_profile_3_x(json_data):
     # 3.0 spec: "A string indicating the highest compliance level which is
-    # fully supported by the service. The value must be one of “level0”,
-    # “level1”, or “level2”."
+    # fully supported by the service. The value must be one of "level0",
+    # "level1", or "level2"."
     if (json_data not in ("level0", "level1", "level2")):
         raise IIIFInfoError("The value of the profile property must be a level string")
     return json_data
