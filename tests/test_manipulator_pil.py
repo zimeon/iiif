@@ -111,7 +111,11 @@ class TestAll(unittest.TestCase):
         # rotate
         m.do_first()
         self.assertEqual(m.do_rotation(False, 30.0), None)
-        self.assertEqual(m.image.size, (218, 202))
+        # there is variability between Pillow 4 & 5 py2/3,
+        # so allow some variation
+        (w, h) = m.image.size
+        self.assertIn(w, (218, 219))
+        self.assertIn(h, (201, 202))
 
     def test07_do_quality(self):
         """Test quality selection."""
