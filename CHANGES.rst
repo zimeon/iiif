@@ -1,9 +1,10 @@
 iiif changelog
 ==============
 
-????-??-?? v1.0.6
+2018-03-05 v1.0.6
 
-- ???
+- Drop support for Python 2.6
+- Use latest version of Pillow (currently 5.0.0)
 
 2018-02-16 v1.0.5
 

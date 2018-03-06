@@ -18,7 +18,7 @@ Supports the `International Image Interoperability Framework
 `2.0
 <http://iiif.io/api/image/2.0/>`_,
 `1.1
-<http://iiif.io/api/image/1.1/>`_, 
+<http://iiif.io/api/image/1.1/>`_,
 `1.0
 <http://iiif.io/api/image/1.0/>`_).
 Also includes a test server using the library to implement the Image
@@ -30,14 +30,14 @@ Installation
 ------------
 
 The library, test server, static file generator are all designed to
-work with Python 2.6, 2.7, 3.4, 3.5 and 3.6. Manual installation is 
+work with Python 2.7, 3.4, 3.5 and 3.6. Manual installation is
 necessary to get the demonstration documentation and examples.
 
 **Automatic installation from PyPI**
 
 The *iiif* library code and scripts are listed in `PyPI
-<http://pypi.python.org/pypi/iiif>`_ and can be installed with 
-``pip`` or ``easy_install``, e.g.:: 
+<http://pypi.python.org/pypi/iiif>`_ and can be installed with
+``pip`` or ``easy_install``, e.g.::
 
     easy_install iiif
 
@@ -55,10 +55,10 @@ First, clone the code and examples from the `Github repository
 
 Second, install ``Pillow`` (a fork of ``PIL``)::
 
-    pip install 'Pillow<4.0.0'
+    pip install Pillow
 
-- Pillow is tied to <4.0.0 to remain compatible with python 2.6. This code may work with later versions but is not being tested with them
-- You may need ``sudo`` if installing system-wide as opposed to in a user-space environment
+You may need ``sudo`` if installing system-wide as opposed to in a user-space
+environment.
 
 After installation of ``Pillow`` there will be be a summary of image formats
 supported. Addition libraries may be require to get all formats depending
@@ -66,7 +66,7 @@ on your platform.
 
 The scripts and demonstrations can then be run from the `iiif` directory.
 
-Finally, you may install the library code and scripts locally in the 
+Finally, you may install the library code and scripts locally in the
 appropriate places within your python setup using::
 
     python setup.py build
@@ -88,7 +88,7 @@ Copyright and License
 ---------------------
 
     iiif library and programs implementing the IIIF API
-    Copyright (C) 2012--2017 Simeon Warner
+    Copyright (C) 2012--2018 Simeon Warner
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -102,6 +102,6 @@ Copyright and License
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-   
+
 See `LICENSE.txt
 <LICENSE.txt>`_
