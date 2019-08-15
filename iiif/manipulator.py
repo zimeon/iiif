@@ -61,6 +61,8 @@ class IIIFManipulator(object):
         elif (self.api_version == '2.0' or
               self.api_version == '2.1'):
             uri_pattern = r'http://iiif.io/api/image/2/level%d.json'
+        elif (self.api_version == '3.0'):
+            uri_pattern = r'http://iiif.io/api/image/3/level%d.json'
         else:
             return
         if (self.compliance_level is None):
