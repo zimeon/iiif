@@ -416,11 +416,10 @@ class IIIFRequest(object):
         self.size_full = False
         self.size_wh = (None, None)
         if self.size.startswith('^'):
-            # gmr
-            # as caret can be used with any combination of features 
+            # as caret can be used with any combination of features
             # set caret to true and then remove it to catch further processing
             self.size_caret = True
-            self.size = self.size[1:]  
+            self.size = self.size[1:]
         if (self.size is None or self.size == 'full' and self.api_version < '3.0'):
             self.size_full = True
             return
