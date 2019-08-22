@@ -18,8 +18,16 @@ class TestAll(unittest.TestCase):
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='0.9')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='1')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='2.9')
-        self.assertRaises(IIIFInfoError, IIIFInfo, api_version='3.0')
+        self.assertRaises(IIIFInfoError, IIIFInfo, api_version='4.0')
         self.assertRaises(IIIFInfoError, IIIFInfo, api_version='goofy')
+
+    def test02_context(self):
+        """Test context method."""
+        i = IIIFInfo()
+        i.contexts = []
+        self.assertEqual(i.context, None)
+        i.contexts = ['first', 'last']
+        self.assertEqual(i.context, 'last')
 
     def test02_id(self):
         """Test identifier handling."""
@@ -43,11 +51,9 @@ class TestAll(unittest.TestCase):
         i.id = '/d'
         self.assertEqual(i.server_and_prefix, '')
         self.assertEqual(i.identifier, 'd')
-
-        def xx(value):  # FIXME - better way to test setter?
-            i.id = value
-        self.assertRaises(AttributeError, xx, None)
-        self.assertRaises(AttributeError, xx, 123)
+        # id setter
+        self.assertRaises(AttributeError, setattr, i, 'id', None)
+        self.assertRaises(AttributeError, setattr, i, 'id', 123)
         # property
         i.server_and_prefix = ''
         i.identifier = ''
@@ -58,6 +64,23 @@ class TestAll(unittest.TestCase):
         self.assertEqual(i.id, 'def/abc')
         i.identifier = ''
         self.assertEqual(i.id, 'def/')
+
+    def test03_set_version_info(self):
+        """Test setting of version information."""
+        i = IIIFInfo()
+        self.assertRaises(IIIFInfoError, i.set_version_info, api_version='9.9')
+
+    def test04_json_key(self):
+        """Test json_key()."""
+        i = IIIFInfo()
+        self.assertEqual(i.json_key(None), None)
+        self.assertEqual(i.json_key(''), '')
+        self.assertEqual(i.json_key('abc'), 'abc')
+        i.set_version_info('3.0')
+        self.assertEqual(i.json_key(None), None)
+        self.assertEqual(i.json_key(''), '')
+        self.assertEqual(i.json_key('abc'), 'abc')
+        self.assertEqual(i.json_key('resource_type'), 'type')
 
     def test03_level(self):
         """Test level handling."""
@@ -148,30 +171,21 @@ class TestAll(unittest.TestCase):
         # bad @context
         fh = io.StringIO('{ "@context": "oops" }')
         self.assertRaises(IIIFInfoError, i.read, fh)
-        #
+        # minimal 1.1 -- @context and @id
         fh = io.StringIO(
-            '{ "@context": "http://library.stanford.edu/'
-            'iiif/image-api/1.1/context.json", "@id": "a" }')
+            '{ "@context": "http://library.stanford.edu/iiif/image-api/1.1/context.json", "@id": "a" }')
         i.read(fh)
         self.assertEqual(i.api_version, '1.1')
 
-    def test08_set_version_info(self):
-        """Test setting of version information."""
-        i = IIIFInfo()
-        self.assertRaises(IIIFInfoError, i.set_version_info, api_version='9.9')
-
     def test09_parse_tiles(self):
         """Test _parse_tiles function."""
-        i = IIIFInfo()
         jd = [{'width': 512, 'scaleFactors': [1, 2, 4]}]
-        self.assertEqual(_parse_tiles(i, jd), jd)
-        i = IIIFInfo()
+        self.assertEqual(_parse_tiles(jd), jd)
         jd = [{'width': 256, 'height': 200, 'scaleFactors': [1]}]
-        self.assertEqual(_parse_tiles(i, jd), jd)
+        self.assertEqual(_parse_tiles(jd), jd)
         # error case - empty tiles
-        i = IIIFInfo()
         jd = []
-        self.assertRaises(IIIFInfoError, _parse_tiles, i, jd)
+        self.assertRaises(IIIFInfoError, _parse_tiles, jd)
 
     def test20_scale_factors(self):
         """Test getter/setter for scale_factors property."""

@@ -1,0 +1,12 @@
+{
+  "@context": "http://iiif.io/api/image/3/context.json",
+  "id": "https://example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "type": "ImageService3",
+  "protocol": "http://iiif.io/api/image",
+  "profile": "level2",
+  "width": 6000,
+  "height": 4000,
+  "tiles": [
+    { "width": 512, "scaleFactors": [ 1, 2, 4, 8, 16 ] }
+  ]
+}

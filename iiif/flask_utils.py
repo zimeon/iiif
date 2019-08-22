@@ -133,12 +133,13 @@ def prefix_index_page(config):
         if (config.include_osd):
             body += '<th> </th>'
     body += "</tr>\n"
+    max = 'max' if api_version >= '3.0' else 'full'
     for identifier in sorted(ids):
         base = urljoin('/', config.client_prefix + '/' + identifier)
         body += '<tr><th align="left">%s</th>' % (identifier)
         info = base + "/info.json"
         body += '<td><a href="%s">%s</a></td>' % (info, 'info')
-        suffix = "full/full/0/%s" % (default)
+        suffix = "full/%s/0/%s" % (max, default)
         body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
         if (config.klass_name != 'dummy'):
             suffix = "full/256,256/0/%s" % (default)
@@ -316,6 +317,7 @@ class IIIFHandler(object):
         i.formats = ["jpg", "png"]  # FIXME - should come from manipulator
         if (self.auth):
             self.auth.add_services(i)
+
         return self.make_response(i.as_json(),
                                   headers={"Content-Type": self.json_mime_type})
 
@@ -369,8 +371,10 @@ class IIIFHandler(object):
                 self.iiif.format = formats[accept]
         (outfile, mime_type) = self.manipulator.derive(file, self.iiif)
         # FIXME - find efficient way to serve file with headers
+        # could this be the answer: https://stackoverflow.com/questions/31554680/how-to-send-header-in-flask-send-file
+        # currently no headers are sent with the file
         self.add_compliance_header()
-        return send_file(outfile, mimetype=mime_type)
+        return self.make_response(send_file(outfile, mimetype=mime_type))
 
     def error_response(self, e):
         """Make response for an IIIFError e.

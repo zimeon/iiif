@@ -1,7 +1,7 @@
 """Test code for iiif/info.py for Image API version 1.1."""
 import unittest
 from .testlib.assert_json_equal_mixin import AssertJSONEqual
-from iiif.info import IIIFInfo
+from iiif.info import IIIFInfo, IIIFInfoError
 
 
 class TestAll(unittest.TestCase, AssertJSONEqual):
@@ -56,9 +56,9 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
     def test06_validate(self):
         """Test validate()."""
         i = IIIFInfo(api_version='1.1')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a')
-        self.assertRaises(Exception, i.validate, ())
+        self.assertRaises(IIIFInfoError, i.validate)
         i = IIIFInfo(identifier='a', width=1, height=2)
         self.assertTrue(i.validate())
 
@@ -88,7 +88,7 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         i.read(fh)  # will get 1.1 from @context
         self.assertEqual(i.api_version, '1.1')
         fh = open('tests/testdata/info_json_1_1/info_from_spec.json')
-        self.assertRaises(Exception, i.read, fh, '0.1')  # 0.1 bad
+        self.assertRaises(IIIFInfoError, i.read, fh, '0.1')  # 0.1 bad
         fh = open('tests/testdata/info_json_1_1/info_from_spec.json')
         i.read(fh, '1.1')
         self.assertEqual(i.api_version, '1.1')
@@ -97,4 +97,4 @@ class TestAll(unittest.TestCase, AssertJSONEqual):
         """Test read with unknown/bad context."""
         i = IIIFInfo()
         fh = open('tests/testdata/info_json_1_1/info_bad_context.json')
-        self.assertRaises(Exception, i.read, fh)
+        self.assertRaises(IIIFInfoError, i.read, fh)
