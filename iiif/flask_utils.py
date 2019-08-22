@@ -133,12 +133,13 @@ def prefix_index_page(config):
         if (config.include_osd):
             body += '<th> </th>'
     body += "</tr>\n"
+    max = 'max' if api_version >= '3.0' else 'full'
     for identifier in sorted(ids):
         base = urljoin('/', config.client_prefix + '/' + identifier)
         body += '<tr><th align="left">%s</th>' % (identifier)
         info = base + "/info.json"
         body += '<td><a href="%s">%s</a></td>' % (info, 'info')
-        suffix = "full/full/0/%s" % (default)
+        suffix = "full/%s/0/%s" % (max, default)
         body += '<td><a href="%s">%s</a></td>' % (base + '/' + suffix, suffix)
         if (config.klass_name != 'dummy'):
             suffix = "full/256,256/0/%s" % (default)
