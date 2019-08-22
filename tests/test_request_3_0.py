@@ -168,14 +168,6 @@ class TestAll(TestRequests):
         self.assertFalse(r.size_pct)
         self.assertTrue(r.size_bang)
         self.assertEqual(r.size_wh, (5, 6))
-        # 'full'
-        r = IIIFRequest(api_version='3.0')
-        r.parse_size('full')
-        self.assertTrue(r.size_full)
-        self.assertFalse(r.size_max)
-        self.assertFalse(r.size_pct)
-        self.assertFalse(r.size_bang)
-        self.assertEqual(r.size_wh, (None, None))
         # 'max' is new in 3.0
         r = IIIFRequest(api_version='3.0')
         r.parse_size('max')

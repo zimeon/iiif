@@ -61,6 +61,8 @@ class IIIFManipulator(object):
         elif (self.api_version == '2.0' or
               self.api_version == '2.1'):
             uri_pattern = r'http://iiif.io/api/image/2/level%d.json'
+        elif (self.api_version == '3.0'):
+            uri_pattern = r'http://iiif.io/api/image/3/level%d.json'
         else:
             return
         if (self.compliance_level is None):
@@ -248,7 +250,7 @@ class IIIFManipulator(object):
         Assumes current image width and height are available in self.width and
         self.height, and self.request is IIIFRequest object.
 
-        Formats are: w, ,h w,h pct:p !w,h full max
+        Formats are: w, ,h w,h pct:p !w,h full max ^w, ^,h ^w,h
 
         Returns (None,None) if no scaling is required.
 
@@ -305,9 +307,9 @@ class IIIFManipulator(object):
                 code=400, parameter='size',
                 text="Size parameter would result in zero size result image (%d,%d)." % (w, h))
         # Below would be test for scaling up image size, this is allowed by spec
-        # if ( w>self.width or h>self.height ):
-        #      raise IIIFError(code=400,parameter='size',
-        # text="Size requests scaling up image to larger than orginal.")
+        if ((w > self.width or h > self.height) and self.api_version >= '3.0' and not self.request.size_caret):
+            raise IIIFError(code=400, parameter='size',
+                            text="Size requests scaling up image to larger than orginal.")
         if (w == self.width and h == self.height):
             return(None, None)
         return(w, h)

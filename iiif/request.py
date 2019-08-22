@@ -103,6 +103,7 @@ class IIIFRequest(object):
         self.size_max = False  # new in 2.1
         self.size_pct = None
         self.size_bang = None
+        self.size_caret = None
         self.size_wh = None     # (w,h)
         self.rotation_mirror = False
         self.rotation_deg = 0.0
@@ -395,6 +396,9 @@ class IIIFRequest(object):
         /w,h/ -> self.size_wh = (w,h)
         /pct:p/ -> self.size_pct = p
         /!w,h/ -> self.size_wh = (w,h), self.size_bang = True
+        /^w,h/ -> self.size_wh = (w,h), self.size_caret = True
+        /^w,/ -> self.size_wh = (w,None), self.size_caret = True
+        /^,h/ -> self.size_wh = (None,h), self.size_caret = True
 
         Expected use:
           (w,h) = iiif.size_to_apply(region_w,region_h)
@@ -408,9 +412,15 @@ class IIIFRequest(object):
             self.size = size
         self.size_pct = None
         self.size_bang = False
+        self.size_caret = False
         self.size_full = False
         self.size_wh = (None, None)
-        if (self.size is None or self.size == 'full'):
+        if self.size.startswith('^'):
+            # as caret can be used with any combination of features
+            # set caret to true and then remove it to catch further processing
+            self.size_caret = True
+            self.size = self.size[1:]
+        if (self.size is None or self.size == 'full' and self.api_version < '3.0'):
             self.size_full = True
             return
         elif (self.size == 'max' and self.api_version >= '2.1'):

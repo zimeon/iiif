@@ -316,6 +316,7 @@ class IIIFHandler(object):
         i.formats = ["jpg", "png"]  # FIXME - should come from manipulator
         if (self.auth):
             self.auth.add_services(i)
+
         return self.make_response(i.as_json(),
                                   headers={"Content-Type": self.json_mime_type})
 
@@ -369,8 +370,10 @@ class IIIFHandler(object):
                 self.iiif.format = formats[accept]
         (outfile, mime_type) = self.manipulator.derive(file, self.iiif)
         # FIXME - find efficient way to serve file with headers
+        # could this be the answer: https://stackoverflow.com/questions/31554680/how-to-send-header-in-flask-send-file
+        # currently no headers are sent with the file
         self.add_compliance_header()
-        return send_file(outfile, mimetype=mime_type)
+        return self.make_response(send_file(outfile, mimetype=mime_type))
 
     def error_response(self, e):
         """Make response for an IIIFError e.

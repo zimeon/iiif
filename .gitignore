@@ -1,6 +1,7 @@
 .coverage
 htmlcov
 *.pyc
+*.swp
 *~
 .DS_store
 .cache
