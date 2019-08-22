@@ -1,9 +1,14 @@
 iiif changelog
 ==============
 
+2019-08... v1.0.7
+
+- Add support for IIIF Image API v3.0
+- Drop support for python 3.4
+
 2018-03-05 v1.0.6
 
-- Drop support for Python 2.6
+- Drop support for python 2.6
 - Use latest version of Pillow (currently 5.0.0)
 
 2018-02-16 v1.0.5
