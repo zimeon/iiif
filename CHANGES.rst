@@ -1,6 +1,10 @@
 iiif changelog
 ==============
 
+?????????? v1.0.8
+
+- ...
+
 2019-08-21 v1.0.7
 
 - Add preliminary support for IIIF Image API v3.0 in iiif_testserver.py
