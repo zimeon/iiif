@@ -16,7 +16,7 @@ Supports the `International Image Interoperability Framework
 `2.1
 <http://iiif.io/api/image/2.1/>`_ (and versions
 `3.0
-<http://iiif.io/api/image/2.3/>`_ PRELIMINARY, 
+<http://iiif.io/api/image/3.0/>`_ BETA,
 `2.0
 <http://iiif.io/api/image/2.0/>`_,
 `1.1
@@ -39,9 +39,9 @@ necessary to get the demonstration documentation and examples.
 
 The *iiif* library code and scripts are listed in `PyPI
 <http://pypi.python.org/pypi/iiif>`_ and can be installed with
-``pip`` or ``easy_install``, e.g.::
+``pip``, e.g.::
 
-    easy_install iiif
+    pip install iiif
 
 The PyPI version does not include all demonstration documentation and
 examples.

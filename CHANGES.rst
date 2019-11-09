@@ -1,10 +1,11 @@
 iiif changelog
 ==============
 
-?????????? v1.0.8
+2019-11-09 v1.0.8
 
 - Removed test image `testimages/test1_224x167.png` (#45)
-- Added helpful error messages from wrong use of size full in 3.0, max in pre 2.1 (#43)
+- Add helpful error message from wrong use of size full in 3.0, max in pre 2.1 (#43)
+- Add check and helpful error message for use of size with caret pre 3.0 (#48)
 
 2019-08-21 v1.0.7
 
