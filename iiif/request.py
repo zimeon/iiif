@@ -9,7 +9,7 @@ import string
 try:  # python3
     from urllib.parse import quote as urlquote
     from urllib.parse import unquote as urlunquote
-except ImportError:  # python2
+except ImportError:  # pragma: no cover # python2
     from urllib import quote as urlquote
     from urllib import unquote as urlunquote
 
@@ -416,6 +416,10 @@ class IIIFRequest(object):
         self.size_full = False
         self.size_wh = (None, None)
         if self.size.startswith('^'):
+            if self.api_version < '3.0':
+                raise IIIFRequestError(
+                    code=400, parameter="size",
+                    text="Use of caret (^) for upscaling is not supported before API version 3.0")
             # as caret can be used with any combination of features
             # set caret to true and then remove it to catch further processing
             self.size_caret = True

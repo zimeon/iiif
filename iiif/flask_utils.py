@@ -20,7 +20,7 @@ import sys
 try:  # python3
     from urllib.parse import urljoin, quote as urlquote
     from urllib.request import parse_keqv_list, parse_http_list
-except ImportError:  # python2
+except ImportError:  # pragma: no cover # python2
     from urlparse import urljoin
     from urllib import quote as urlquote
     from urllib2 import parse_keqv_list, parse_http_list

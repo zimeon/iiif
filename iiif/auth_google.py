@@ -6,12 +6,10 @@ This code is specifc to the Flask webapp framework.
 
 import json
 try:
-    # python3
     from urllib.request import urlopen
     from urllib.request import Request
     from urllib.parse import urlencode
-except ImportError:
-    # fall back to python2
+except ImportError:  # pragma: no cover #  python2
     from urllib2 import urlopen
     from urllib2 import Request
     from urllib import urlencode

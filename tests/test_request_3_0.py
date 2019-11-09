@@ -176,6 +176,14 @@ class TestAll(TestRequests):
         self.assertFalse(r.size_pct)
         self.assertFalse(r.size_bang)
         self.assertEqual(r.size_wh, (None, None))
+        # '^' prefix is new in 3.0
+        r = IIIFRequest(api_version='3.0')
+        r.parse_size('^5000,')
+        self.assertTrue(r.size_caret)
+        self.assertFalse(r.size_max)
+        self.assertFalse(r.size_pct)
+        self.assertFalse(r.size_bang)
+        self.assertEqual(r.size_wh, (5000, None))
 
     def test04_parse_size_bad(self):
         """Parse size - bad requests."""
@@ -193,6 +201,8 @@ class TestAll(TestRequests):
         self.assertRaises(IIIFError, r.parse_size, '!,1')
         self.assertRaises(IIIFError, r.parse_size, '0,1')
         self.assertRaises(IIIFError, r.parse_size, '2,0')
+        # full no longer allowed in 3.0
+        self.assertRaises(IIIFError, r.parse_size, 'full')
 
     def test05_parse_rotation(self):
         """Parse rotation."""
