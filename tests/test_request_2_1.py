@@ -394,3 +394,8 @@ class TestAll(TestRequests):
             self.assertEqual(got_code, code,
                              "Bad code %s, expected %d, for path %s" %
                              (str(got_code), code, path))
+
+    def test21_caret_not_allowed(self):
+        """Caret for upscaling not allowed in 2.1."""
+        r = IIIFRequest(api_version='2.1')
+        self.assertRaises(IIIFError, r.parse_size, '^100,100')
