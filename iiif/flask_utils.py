@@ -3,7 +3,7 @@
 Based around IIIFManipulator objects for any manipulations
 requested and is thus very slow.
 
-Simeon Warner - 2014--2018
+Simeon Warner - 2014--2019
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory
@@ -48,7 +48,8 @@ class Config(object):
 
 def html_page(title="Page Title", body=""):
     """Create HTML page as string."""
-    html = "<html>\n<head><title>%s</title></head>\n<body>\n" % (title)
+    html = "<html>\n<head><title>%s</title></head>\n" % (title)
+    html += "<body style=\"font-family: Verdana, sans-serif\">\n"
     html += "<h1>%s</h1>\n" % (title)
     html += body
     html += "</body>\n</html>\n"

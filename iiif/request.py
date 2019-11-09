@@ -426,6 +426,14 @@ class IIIFRequest(object):
         elif (self.size == 'max' and self.api_version >= '2.1'):
             self.size_max = True
             return
+        elif (self.size == 'max' and self.api_version < '2.1'):
+            raise IIIFRequestError(
+                code=400, parameter="size",
+                text="Size value max is not valid with API versions before 2.1")
+        elif (self.size == 'full' and self.api_version > '2.1'):
+            raise IIIFRequestError(
+                code=400, parameter="size",
+                text="Size value full is not valid with API versions after 2.1")
         pct_match = re.match('pct:(.*)$', self.size)
         if (pct_match is not None):
             pct_str = pct_match.group(1)

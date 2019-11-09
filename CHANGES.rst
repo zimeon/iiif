@@ -3,11 +3,12 @@ iiif changelog
 
 ?????????? v1.0.8
 
-- ...
+- Removed test image `testimages/test1_224x167.png` (#45)
+- Added helpful error messages from wrong use of size full in 3.0, max in pre 2.1 (#43)
 
 2019-08-21 v1.0.7
 
-- Add preliminary support for IIIF Image API v3.0 in iiif_testserver.py
+- Add preliminary support for IIIF Image API v3.0 in iiif_testserver.py (#38)
 - Drop support for python 3.4
 
 2018-03-05 v1.0.6
