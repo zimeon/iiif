@@ -32,7 +32,7 @@ Installation
 ------------
 
 The library, test server, static file generator are all designed to
-work with Python 2.7, 3.5 and 3.6. Manual installation is
+work with Python 2.7 and recent versions of Python 3. Manual installation is
 necessary to get the demonstration documentation and examples.
 
 **Automatic installation from PyPI**
