@@ -10,7 +10,7 @@ python:
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
-  - pip install Flask==1.0.4
+  - pip install Flask==1.1.0
   - pip install iiif_validator coveralls pep8 pep257 testfixtures
   - python setup.py install
 script:
