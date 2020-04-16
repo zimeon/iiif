@@ -81,7 +81,7 @@ setup(
     install_requires=[
         "Pillow",
         "python-magic",
-        "Flask",
+        "Flask==1.1.0",  # Travis on Python2.7 isn't happy with 1.1.1 -- FIXME
         "ConfigArgParse>=0.13.0"
     ],
     test_suite="tests",
