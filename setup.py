@@ -57,7 +57,7 @@ setup(
                            'third_party/openseadragon200/*.js',
                            'third_party/openseadragon200/images/*']},
     scripts=['iiif_static.py', 'iiif_testserver.py'],
-    classifiers=["Development Status :: 4 - Beta",
+    classifiers=["Development Status :: 5 - Production/Stable",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: "
                  "GNU General Public License v3 (GPLv3)",

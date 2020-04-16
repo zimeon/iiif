@@ -32,12 +32,12 @@ Installation
 ------------
 
 The library, test server, static file generator are all designed to
-work with Python 2.7 and recent versions of Python 3. Manual installation is
-necessary to get the demonstration documentation and examples.
+work with recent versions of Python 3 and Python 2.7. Manual installation
+is necessary to get the demonstration documentation and examples.
 
 **Automatic installation from PyPI**
 
-The *iiif* library code and scripts are listed in `PyPI
+The *iiif* library code and scripts are available from `PyPI
 <http://pypi.python.org/pypi/iiif>`_ and can be installed with
 ``pip``, e.g.::
 
@@ -90,7 +90,7 @@ Copyright and License
 ---------------------
 
     iiif library and programs implementing the IIIF API
-    Copyright (C) 2012--2019 Simeon Warner
+    Copyright (C) 2012--2020 Simeon Warner
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

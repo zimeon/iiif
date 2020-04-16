@@ -1,9 +1,11 @@
 iiif changelog
 ==============
 
-?????????? v1.0.9
+2020-04-16 v1.0.9
 
-- ???
+- No code changes
+- Drop testing support for python 3.4, add python 3.7 and 3.8
+- Tweak Travis build to keep python 2.7 tests happy
 
 2019-11-09 v1.0.8
 

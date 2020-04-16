@@ -3,7 +3,7 @@
 Based around IIIFManipulator objects for any manipulations
 requested and is thus very slow.
 
-Simeon Warner - 2014--2019
+Simeon Warner - 2014--2020
 """
 
 from flask import Flask, request, make_response, redirect, abort, send_file, url_for, send_from_directory
