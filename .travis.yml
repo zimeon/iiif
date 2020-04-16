@@ -1,4 +1,5 @@
 language: python
+dist: xenial
 python:
   - 2.7
   - 3.6
@@ -9,7 +10,7 @@ python:
 install:
   - sudo apt-get update
   - sudo apt-get install libmagic-dev libwebp-dev
-  - pip install setuptools==44
+  - pip install Flask==1.0.4
   - pip install iiif_validator coveralls pep8 pep257 testfixtures
   - python setup.py install
 script:
