@@ -61,6 +61,7 @@ class TestAll(unittest.TestCase):
     def test12_top_level_index_page(self):
         """Test top_level_index_page()."""
         c = Config()
+        c.scheme = 'http'
         c.host = 'ex.org'
         c.prefixes = {'pa1a': 'pa1b', 'pa2a': 'pa2b'}
         html = top_level_index_page(c)
@@ -88,6 +89,7 @@ class TestAll(unittest.TestCase):
         """Test prefix_index_page()."""
         c = Config()
         c.client_prefix = 'pfx'
+        c.scheme = 'http'
         c.host = 'ex.org'
         c.api_version = '2.1'
         c.manipulator = 'pil'
@@ -106,9 +108,10 @@ class TestAll(unittest.TestCase):
 
     def test15_host_port_prefix(self):
         """Test host_port_prefix()."""
-        self.assertEqual(host_port_prefix('ex.org', 80, 'a'), 'http://ex.org/a')
-        self.assertEqual(host_port_prefix('ex.org', 8888, 'a'), 'http://ex.org:8888/a')
-        self.assertEqual(host_port_prefix('ex.org', 80, None), 'http://ex.org')
+        self.assertEqual(host_port_prefix('http','ex.org', 80, 'a'), 'http://ex.org/a')
+        self.assertEqual(host_port_prefix('http','ex.org', 8888, 'a'), 'http://ex.org:8888/a')
+        self.assertEqual(host_port_prefix('http','ex.org', 80, None), 'http://ex.org')
+        self.assertEqual(host_port_prefix('https','ex.org', 443, None), 'https://ex.org')
 
 # Test Flask handlers
 
@@ -133,6 +136,7 @@ class TestAll(unittest.TestCase):
         self.assertTrue(i.manipulator.api_version, '2.1')
         # Basic auth
         a = IIIFAuthBasic()
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         c.prefix = '/p'
@@ -227,6 +231,7 @@ class TestAll(unittest.TestCase):
         c.tile_height = 512
         c.tile_width = 512
         c.scale_factors = [1, 2]
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         i = IIIFHandler(prefix='p', identifier='starfish', config=c,
@@ -270,6 +275,7 @@ class TestAll(unittest.TestCase):
         c.tile_height = 512
         c.tile_width = 512
         c.scale_factors = [1, 2]
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         i = IIIFHandler(prefix='p', identifier='starfish', config=c,
@@ -316,6 +322,7 @@ class TestAll(unittest.TestCase):
         c.tile_height = 512
         c.tile_width = 512
         c.scale_factors = [1, 2]
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         i = IIIFHandler(prefix='p', identifier='starfish', config=c,
@@ -334,6 +341,7 @@ class TestAll(unittest.TestCase):
         c.tile_height = 512
         c.tile_width = 512
         c.scale_factors = [1, 2]
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         environ = WSGI_ENVIRON()
@@ -373,6 +381,7 @@ class TestAll(unittest.TestCase):
         c.tile_height = 512
         c.tile_width = 512
         c.scale_factors = [1, 2]
+        c.scheme = 'http'
         c.host = 'example.org'
         c.port = 80
         environ = WSGI_ENVIRON()

@@ -117,6 +117,7 @@ def prefix_index_page(config):
     title = "IIIF Image API services under %s" % (config.client_prefix)
     # details of this prefix handler
     body = '<p>\n'
+    body += 'scheme = %s<br/>\n' % (config.scheme)
     body += 'host = %s<br/>\n' % (config.host)
     body += 'api_version = %s<br/>\n' % (config.api_version)
     body += 'manipulator = %s<br/>\n' % (config.klass_name)
@@ -152,13 +153,14 @@ def prefix_index_page(config):
     return html_page(title, body)
 
 
-def host_port_prefix(host, port, prefix):
+def host_port_prefix(scheme, host, port, prefix):
     """Return URI composed of scheme, server, port, and prefix."""
-    uri = "http://" + host
-    if (port != 80):
+    uri = scheme + "://" + host
+    if port != 80 and port != 443:
         uri += ':' + str(port)
-    if (prefix):
+    if prefix:    
         uri += '/' + prefix
+
     return uri
 
 
@@ -230,7 +232,7 @@ class IIIFHandler(object):
     @property
     def server_and_prefix(self):
         """Server and prefix from config."""
-        return(host_port_prefix(self.config.host, self.config.port, self.prefix))
+        return(host_port_prefix(self.config.scheme, self.config.host, self.config.port, self.prefix))
 
     @property
     def json_mime_type(self):
@@ -398,7 +400,7 @@ def iiif_info_handler(prefix=None, identifier=None,
         abort(401)
     else:
         # redirect to degraded
-        response = redirect(host_port_prefix(
+        response = redirect(host_port_prefix(config.scheme,
             config.host, config.port, prefix) + '/' + identifier + '-deg/info.json')
         response.headers['Access-control-allow-origin'] = '*'
         return response
@@ -423,7 +425,7 @@ def iiif_image_handler(prefix=None, identifier=None,
             return i.error_response(e)
     else:
         # redirect to degraded (for not authz and for authn but not authz too)
-        degraded_uri = host_port_prefix(
+        degraded_uri = host_port_prefix(config.scheme,
             config.host, config.port, prefix) + '/' + identifier + '-deg/' + path
         logging.info("Redirection to degraded: %s" % degraded_uri)
         response = redirect(degraded_uri)
@@ -575,6 +577,8 @@ def add_shared_configs(p, base_dir=''):
         p - configargparse.ArgParser object
         base_dir - base directory for file/path defaults.
     """
+    p.add('--scheme', default='http',
+          help="Service scheme (http|https)")
     p.add('--host', default='localhost',
           help="Service host")
     p.add('--port', '-p', type=int, default=8000,
