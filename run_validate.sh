@@ -51,6 +51,12 @@ if $show_test_name; then
 fi
 iiif-validate.py -s localhost:8000 -p 2.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=2.0 --level 2 $verbosity
 ((errors+=$?))
+if $show_test_name; then
+  echo "Testing PIL manipulator, API version 3.0 "
+fi
+iiif-validate.py -s localhost:8000 -p 3.0_pil -i 67352ccc-d1b0-11e1-89ae-279075081939 --version=3.0 --level 2 $verbosity
+((errors+=$?))
+
 if $test_netpbm; then
   if $show_test_name; then
     echo "Testing netpbm manipulator, API version 1.1"

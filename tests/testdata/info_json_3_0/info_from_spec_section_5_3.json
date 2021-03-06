@@ -1,0 +1,14 @@
+{
+  "@context": "http://iiif.io/api/image/3/context.json",
+  "id": "https://example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "type": "ImageService3",
+  "protocol": "http://iiif.io/api/image",
+  "profile": "level2",
+  "width": 6000,
+  "height": 4000,
+  "sizes": [
+    { "width": 150, "height": 100 },
+    { "width": 600, "height": 400 },
+    { "width": 3000, "height": 2000 }
+  ]
+}

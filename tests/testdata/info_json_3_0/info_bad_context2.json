@@ -1,0 +1,14 @@
+{
+  "@context": [
+    "http://example.org/some/context.json",
+    "http://iiif.io/BAD_CONTEXT.json"
+  ],
+  "id" : "http://example.org/image-service/abcd1234/1E34750D-38DB-4825-A38A-B60A345E591C",
+  "protocol" : "http://iiif.io/api/image",
+  "width" : 6000,
+  "height" : 4000,
+  "profile" : "level2",
+  "extraFormats": [ "gif", "pdf" ],
+  "extraQualities": [ "color", "gray" ],
+  "extraFeatures": [ "canonicalLinkHeader", "rotationArbitrary", "profileLinkHeader", "http://example.com/feature/" ]
+}

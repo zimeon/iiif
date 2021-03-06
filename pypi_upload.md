@@ -2,34 +2,35 @@
 Updating iiif on pypi
 =====================
 
-Notes to remind @zimeon...
+  Notes to remind @zimeon...
 
-iiif is at <https://pypi.python.org/pypi/iiif>
+    * master copy of code is https://github.com/zimeon/iiif
+    * on PyPi iiif is at <https://pypi.org/project/iiif>
 
 Putting up a new version
 ------------------------
 
-  0. Bump version number working branch in iiif/_version.py and check CHANGES.md is up to date
-  1. Check format of README: `rst-lint README`
-  2. Check all tests good (python setup.py test; py.test)
-  3. Check code is up-to-date with github version
-  4. Check out master and merge in working branch
-  5. Check all tests good (python setup.py test; py.test)
-  6. Make sure master README has correct travis-ci and coveralls icon links for master branch (?branch=master)
-  7. Check branches are as expected (git branch -a)
-  8. Check local build and version reported OK (python setup.py build; sudo python setup.py install)
-  9. Check iiif_testserver.py correctly starts server and is accessible from <http://localhost:8000>
-  10. If all checks out OK, tag and push the new version to github with something like:
+    0. Check version number working branch in `iiif/_version.py`
+    1. Check all tests good (`python setup.py test; ./run_validate.sh -n`)
+    2. Check code is up-to-date with master github version
+    3. Check out master and merge in working branch
+    4. Check all tests good (`python setup.py test; ./run_validate.sh -n`)
+    5. Check branches are as expected (`git branch -a`)
+    6. Check local build and version reported OK (`python setup.py build; python setup.py install`)
+    7. Check iiif_testserver.py correctly starts server and is accessible from <http://localhost:8000>
+    8. Tag and then upload new version to pypi using Python 3.x:
 
-    ```
-    git tag -n1
-    #...current tags
-    git tag -a -m "IIIF API v2.0 and v1.1 at level 2" v0.5.1
-    git push --tags
+      ```
+      git tag -n1
+      #...current tags
+      git tag -a -m "IIIF Image API reference implementation, 2019-11-09" v1.0.8
+      git push --tags
 
-    python setup.py sdist upload
-    ```
+      pip install --upgrade setuptools wheel twine
+      python setup.py sdist bdist_wheel
+      ls dist
+      twine upload dist/*
+      ```
 
-  11. Then check on PyPI at <https://pypi.python.org/pypi/iiif>
-  12. Finally, back on working branch start new version number by editing `iiif/_version.py` and `CHANGES.md`
-
+    9. Check on PyPI at <https://pypi.org/project/iiif>
+    10. Finally, back on `develop branch start new version number by editing `iiif/_version.py` and `CHANGES.md`

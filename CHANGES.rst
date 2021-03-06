@@ -1,10 +1,27 @@
 iiif changelog
 ==============
 
+2020-04-16 v1.0.9
+
+- No code changes
+- Drop testing support for python 3.4, add python 3.7 and 3.8
+- Tweak Travis build to keep python 2.7 tests happy
+
+2019-11-09 v1.0.8
+
+- Removed test image `testimages/test1_224x167.png` (#45)
+- Add helpful error message from wrong use of size full in 3.0, max in pre 2.1 (#43)
+- Add check and helpful error message for use of size with caret pre 3.0 (#48)
+
+2019-08-21 v1.0.7
+
+- Add preliminary support for IIIF Image API v3.0 in iiif_testserver.py (#38)
+- Drop support for python 3.4
+
 2018-03-05 v1.0.6
 
-- Drop support for Python 2.6
 - Use latest version of Pillow (currently 5.0.0)
+- Drop support for python 2.6
 
 2018-02-16 v1.0.5
 

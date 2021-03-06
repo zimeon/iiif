@@ -1,10 +1,10 @@
 """Test encoding and decoding of IIIF request URLs.
 
-Follows http://iiif.io/api/image/2.1/
+Follows http://iiif.io/api/image/3.0/
 
 This test includes a number of test cases beyond those given
 as examples in the table in section 7 of the spec. See
-test_request_spec_2_1.py for the set given in the spec.
+test_request_spec_3_0.py for the set given in the spec.
 
 Simeon Warner, 2015-05...
 """
@@ -89,7 +89,7 @@ class TestAll(TestRequests):
 
     def test01_parse_region(self):
         """Parse region."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.region = None
         r.parse_region()
         self.assertTrue(r.region_full)
@@ -124,7 +124,7 @@ class TestAll(TestRequests):
 
     def test02_parse_region_bad(self):
         """Parse region."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.region = 'pct:0,0,50,1000'
         self.assertRaises(IIIFError, r.parse_region)
         r.region = 'pct:-10,0,50,100'
@@ -148,7 +148,7 @@ class TestAll(TestRequests):
 
     def test03_parse_size(self):
         """Parse size."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.parse_size('pct:100')
         self.assertEqual(r.size_pct, 100.0)
         self.assertFalse(r.size_bang)
@@ -168,26 +168,26 @@ class TestAll(TestRequests):
         self.assertFalse(r.size_pct)
         self.assertTrue(r.size_bang)
         self.assertEqual(r.size_wh, (5, 6))
-        # 'full'
-        r = IIIFRequest(api_version='2.1')
-        r.parse_size('full')
-        self.assertTrue(r.size_full)
-        self.assertFalse(r.size_max)
-        self.assertFalse(r.size_pct)
-        self.assertFalse(r.size_bang)
-        self.assertEqual(r.size_wh, (None, None))
-        # 'max' is new in 2.1
-        r = IIIFRequest(api_version='2.1')
+        # 'max' is new in 3.0
+        r = IIIFRequest(api_version='3.0')
         r.parse_size('max')
         self.assertFalse(r.size_full)
         self.assertTrue(r.size_max)
         self.assertFalse(r.size_pct)
         self.assertFalse(r.size_bang)
         self.assertEqual(r.size_wh, (None, None))
+        # '^' prefix is new in 3.0
+        r = IIIFRequest(api_version='3.0')
+        r.parse_size('^5000,')
+        self.assertTrue(r.size_caret)
+        self.assertFalse(r.size_max)
+        self.assertFalse(r.size_pct)
+        self.assertFalse(r.size_bang)
+        self.assertEqual(r.size_wh, (5000, None))
 
     def test04_parse_size_bad(self):
         """Parse size - bad requests."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         self.assertRaises(IIIFError, r.parse_size, ',0.0')
         self.assertRaises(IIIFError, r.parse_size, '0.0,')
         self.assertRaises(IIIFError, r.parse_size, '1.0,1.0')
@@ -201,10 +201,12 @@ class TestAll(TestRequests):
         self.assertRaises(IIIFError, r.parse_size, '!,1')
         self.assertRaises(IIIFError, r.parse_size, '0,1')
         self.assertRaises(IIIFError, r.parse_size, '2,0')
+        # full no longer allowed in 3.0
+        self.assertRaises(IIIFError, r.parse_size, 'full')
 
     def test05_parse_rotation(self):
         """Parse rotation."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.parse_rotation('0')
         self.assertEqual(r.rotation_mirror, False)
         self.assertEqual(r.rotation_deg, 0.0)
@@ -237,7 +239,7 @@ class TestAll(TestRequests):
 
     def test06_parse_rotation_bad(self):
         """Parse rotation - bad requests."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.rotation = '-1'
         self.assertRaises(IIIFError, r.parse_rotation)
         r.rotation = '-0.0000001'
@@ -253,7 +255,7 @@ class TestAll(TestRequests):
 
     def test07_parse_quality(self):
         """Parse rotation."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.quality = None
         r.parse_quality()
         self.assertEqual(r.quality_val, 'default')
@@ -269,7 +271,7 @@ class TestAll(TestRequests):
 
     def test08_parse_quality_bad(self):
         """Parse quality - bad requests."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.quality = 'does_not_exist'
         self.assertRaises(IIIFError, r.parse_quality)
         # bad ones
@@ -278,7 +280,7 @@ class TestAll(TestRequests):
 
     def test09_parse_format(self):
         """Test parse_format."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.format = 'jpg'
         r.parse_format()
         r.format = 'something_else_Z134'
@@ -293,23 +295,23 @@ class TestAll(TestRequests):
 
     def test10_encode(self):
         """Encoding."""
-        self.check_encoding(data, '2.1')
+        self.check_encoding(data, '3.0')
 
     def test11_decode(self):
         """Decoding."""
-        self.check_decoding(data, '2.1')
+        self.check_decoding(data, '3.0')
 
     def test12_decode_good(self):
         """Decoding examples that should work."""
-        r = IIIFRequest(api_version='2.1', baseurl='1.1_netpbm/a/')
+        r = IIIFRequest(api_version='3.0', baseurl='1.1_netpbm/a/')
         r.split_url('1.1_netpbm/a/b/full/full/0/default')
         self.assertEqual(r.identifier, 'b')
         # id with slashes in it
-        r = IIIFRequest(api_version='2.1', allow_slashes_in_identifier=True)
+        r = IIIFRequest(api_version='3.0', allow_slashes_in_identifier=True)
         r.split_url('a/b/c/full/full/0/default')
         self.assertFalse(r.info)
         self.assertEqual(r.identifier, 'a/b/c')
-        r = IIIFRequest(api_version='2.1', allow_slashes_in_identifier=True)
+        r = IIIFRequest(api_version='3.0', allow_slashes_in_identifier=True)
         r.split_url('a/b/info.json')
         self.assertTrue(r.info)
         self.assertEqual(r.identifier, 'a/b')
@@ -317,24 +319,24 @@ class TestAll(TestRequests):
     def test13_decode_except(self):
         """Decoding exceptions."""
         self.assertRaises(IIIFRequestBaseURI,
-                          IIIFRequest(api_version='2.1').split_url,
+                          IIIFRequest(api_version='3.0').split_url,
                           ("id"))
         self.assertRaises(IIIFRequestBaseURI,
-                          IIIFRequest(api_version='2.1').split_url,
+                          IIIFRequest(api_version='3.0').split_url,
                           ("id%2Ffsdjkh"))
         self.assertRaises(IIIFError,
-                          IIIFRequest(api_version='2.1').split_url,
+                          IIIFRequest(api_version='3.0').split_url,
                           ("id/"))
         self.assertRaises(IIIFError,
-                          IIIFRequest(api_version='2.1').split_url,
+                          IIIFRequest(api_version='3.0').split_url,
                           ("id/bogus"))
         self.assertRaises(IIIFError,
-                          IIIFRequest(api_version='2.1').split_url,
+                          IIIFRequest(api_version='3.0').split_url,
                           ("id1/all/270/!pct%3A75.23.jpg"))
 
     def test18_url(self):
         """Test url() method."""
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.size = None
         r.size_wh = [11, 22]
         self.assertEqual(r.url(identifier='abc1'),
@@ -348,11 +350,11 @@ class TestAll(TestRequests):
         r.size_wh = None
         self.assertEqual(r.url(identifier='abc4'),
                          'abc4/full/full/0/default')
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.size_full = True
         self.assertEqual(r.url(identifier='abc5'),
                          'abc5/full/full/0/default')
-        r = IIIFRequest(api_version='2.1')
+        r = IIIFRequest(api_version='3.0')
         r.size_max = True
         self.assertEqual(r.url(identifier='abc5'),
                          'abc5/full/max/0/default')
@@ -368,13 +370,13 @@ class TestAll(TestRequests):
         r.baseurl = 'http://ex.org/a/'
         self.assertRaises(IIIFError, r.split_url,
                           'http://ex.org/a/b/info.xyz')
-        # api_version=2.1, format=xml -> bad
-        r = IIIFRequest(api_version='2.1')
+        # api_version=3.0, format=xml -> bad
+        r = IIIFRequest(api_version='3.0')
         r.baseurl = 'http://ex.org/a/'
         self.assertRaises(IIIFError, r.split_url,
                           'http://ex.org/a/b/info.xml')
-        # api_version=2.1, format=xyz -> bad
-        r = IIIFRequest(api_version='2.1')
+        # api_version=3.0, format=xyz -> bad
+        r = IIIFRequest(api_version='3.0')
         r.baseurl = 'http://ex.org/a/'
         self.assertRaises(IIIFError, r.split_url,
                           'http://ex.org/a/b/info.xyz')
@@ -388,14 +390,9 @@ class TestAll(TestRequests):
                              ("id/full/full/0/default.jpg/extra", 400)]:
             got_code = None
             try:
-                IIIFRequest(api_version='2.1').split_url(path)
+                IIIFRequest(api_version='3.0').split_url(path)
             except IIIFError as e:
                 got_code = e.code
             self.assertEqual(got_code, code,
                              "Bad code %s, expected %d, for path %s" %
                              (str(got_code), code, path))
-
-    def test21_caret_not_allowed(self):
-        """Caret for upscaling not allowed in 2.1."""
-        r = IIIFRequest(api_version='2.1')
-        self.assertRaises(IIIFError, r.parse_size, '^100,100')

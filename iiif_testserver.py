@@ -5,7 +5,7 @@ Relies upon IIIFManipulator objects to do any manipulations
 requested and is thus very slow. Supports a number of different
 versions of the specification via different base URIs (prefixes).
 
-Simeon Warner - 2014--2018
+Simeon Warner - 2014--2020
 """
 
 from flask import Flask
@@ -36,7 +36,7 @@ def get_config(base_dir=''):
     p.add('--scale-factors', default='auto',
           help="Set of tile scale factors or 'auto' to calculate for each image "
                "such that there are tiles up to the full image")
-    p.add('--api-versions', default='1.0,1.1,2.0,2.1',
+    p.add('--api-versions', default='1.0,1.1,2.0,2.1,3.0',
           help="Set of API versions to support")
     p.add('--manipulators', default='pil',
           help="Set of manipuators to instantiate. May be dummy,netpbm,pil "

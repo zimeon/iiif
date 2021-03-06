@@ -57,7 +57,7 @@ setup(
                            'third_party/openseadragon200/*.js',
                            'third_party/openseadragon200/images/*']},
     scripts=['iiif_static.py', 'iiif_testserver.py'],
-    classifiers=["Development Status :: 4 - Beta",
+    classifiers=["Development Status :: 5 - Production/Stable",
                  "Intended Audience :: Developers",
                  "License :: OSI Approved :: "
                  "GNU General Public License v3 (GPLv3)",
@@ -66,9 +66,9 @@ setup(
                  "Programming Language :: Python :: 2",
                  "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3",
-                 "Programming Language :: Python :: 3.4",
-                 "Programming Language :: Python :: 3.5",
                  "Programming Language :: Python :: 3.6",
+                 "Programming Language :: Python :: 3.7",
+                 "Programming Language :: Python :: 3.8",
                  "Topic :: Internet :: WWW/HTTP",
                  "Topic :: Multimedia :: Graphics :: Graphics Conversion",
                  "Topic :: Software Development :: "

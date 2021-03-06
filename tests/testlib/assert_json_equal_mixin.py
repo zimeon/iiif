@@ -12,6 +12,9 @@ class AssertJSONEqual(object):
         but before newline, this is not included in python3.x. Strip such
         spaces before doing the comparison.
         """
-        a = re.sub(r',\s+', ',', stra)
-        b = re.sub(r',\s+', ',', strb)
-        self.assertEqual(a, b)
+        def normalize(json_str):
+            s = re.sub(r'\s*,\s+', ',\n', json_str)
+            s = re.sub(r'\s+$', '', s)
+            return s
+        self.maxDiff = None
+        self.assertEqual(normalize(stra), normalize(strb))
