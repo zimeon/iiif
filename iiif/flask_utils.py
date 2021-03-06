@@ -160,7 +160,7 @@ def host_port_prefix(scheme, host, port, prefix):
     uri = scheme + "://" + host
     if port != 80 and port != 443:
         uri += ':' + str(port)
-    if prefix:    
+    if prefix:
         uri += '/' + prefix
 
     return uri
@@ -406,7 +406,7 @@ def iiif_info_handler(prefix=None, identifier=None,
     else:
         # redirect to degraded
         response = redirect(host_port_prefix(config.scheme,
-            config.host, config.port, prefix) + '/' + identifier + '-deg/info.json')
+                                             config.host, config.port, prefix) + '/' + identifier + '-deg/info.json')
         response.headers['Access-control-allow-origin'] = '*'
         return response
 iiif_info_handler.provide_automatic_options = False
@@ -431,7 +431,7 @@ def iiif_image_handler(prefix=None, identifier=None,
     else:
         # redirect to degraded (for not authz and for authn but not authz too)
         degraded_uri = host_port_prefix(config.scheme,
-            config.host, config.port, prefix) + '/' + identifier + '-deg/' + path
+                                        config.host, config.port, prefix) + '/' + identifier + '-deg/' + path
         logging.info("Redirection to degraded: %s" % degraded_uri)
         response = redirect(degraded_uri)
         response.headers['Access-control-allow-origin'] = '*'

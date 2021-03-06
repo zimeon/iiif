@@ -108,10 +108,10 @@ class TestAll(unittest.TestCase):
 
     def test15_host_port_prefix(self):
         """Test host_port_prefix()."""
-        self.assertEqual(host_port_prefix('http','ex.org', 80, 'a'), 'http://ex.org/a')
-        self.assertEqual(host_port_prefix('http','ex.org', 8888, 'a'), 'http://ex.org:8888/a')
-        self.assertEqual(host_port_prefix('http','ex.org', 80, None), 'http://ex.org')
-        self.assertEqual(host_port_prefix('https','ex.org', 443, None), 'https://ex.org')
+        self.assertEqual(host_port_prefix('http', 'ex.org', 80, 'a'), 'http://ex.org/a')
+        self.assertEqual(host_port_prefix('http', 'ex.org', 8888, 'a'), 'http://ex.org:8888/a')
+        self.assertEqual(host_port_prefix('http', 'ex.org', 80, None), 'http://ex.org')
+        self.assertEqual(host_port_prefix('https', 'ex.org', 443, None), 'https://ex.org')
 
 # Test Flask handlers
 
