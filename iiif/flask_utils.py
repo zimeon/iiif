@@ -158,7 +158,7 @@ def prefix_index_page(config):
 def host_port_prefix(scheme, host, port, prefix):
     """Return URI composed of scheme, server, port, and prefix."""
     uri = scheme + "://" + host
-    if port != 80 and port != 443:
+    if not ((port == 80 and scheme == 'http') or (port == 443 and scheme == 'https')):
         uri += ':' + str(port)
     if prefix:
         uri += '/' + prefix
