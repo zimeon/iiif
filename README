@@ -14,9 +14,9 @@ iiif
 Supports the `International Image Interoperability Framework
 <http://iiif.io/>`_: Image API
 `2.1
-<http://iiif.io/api/image/2.1/>`_ (and versions
+<http://iiif.io/api/image/2.1/>`_ and
 `3.0
-<http://iiif.io/api/image/3.0/>`_ BETA,
+<http://iiif.io/api/image/3.0/>`_ (as well as legacy versions
 `2.0
 <http://iiif.io/api/image/2.0/>`_,
 `1.1
@@ -90,7 +90,7 @@ Copyright and License
 ---------------------
 
     iiif library and programs implementing the IIIF API
-    Copyright (C) 2012--2020 Simeon Warner
+    Copyright (C) 2012--2021 Simeon Warner
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
