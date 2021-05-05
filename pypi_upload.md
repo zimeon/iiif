@@ -4,8 +4,8 @@ Updating iiif on pypi
 
   Notes to remind @zimeon...
 
-    * main copy of code is https://github.com/zimeon/iiif
-    * on PyPi iiif is at <https://pypi.org/project/iiif>
+    * Code is https://github.com/zimeon/iiif
+    * On PyPi iiif is at <https://pypi.org/project/iiif>
 
 Putting up a new version
 ------------------------
