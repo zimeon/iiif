@@ -27,10 +27,9 @@ Putting up a new version
       git push --tags
 
       pip install --upgrade setuptools wheel twine
-      python setup.py sdist bdist_wheel
-      ls dist
-      twine upload dist/*
+      python setup.py sdist bdist_wheel; ls dist
+      twine upload dist/*1.X.X*
       ```
 
     9. Check on PyPI at <https://pypi.org/project/iiif>
-    10. Finally, back on `develop branch start new version number by editing `iiif/_version.py` and `CHANGES.md`
+    10. Finally, back on `develop` branch start new version number by editing `iiif/_version.py` and `CHANGES.md`
