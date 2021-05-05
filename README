@@ -2,12 +2,12 @@
 iiif
 ====
 
-.. image:: https://travis-ci.org/zimeon/iiif.png?branch=master
-  :target: https://travis-ci.org/zimeon/iiif?branch=master
+.. image:: https://travis-ci.org/zimeon/iiif.png?branch=main
+  :target: https://travis-ci.org/zimeon/iiif?branch=main
   :alt: Build status
 
-.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=master
-  :target: https://coveralls.io/r/zimeon/iiif?branch=master
+.. image:: https://coveralls.io/repos/zimeon/iiif/badge.png?branch=main
+  :target: https://coveralls.io/r/zimeon/iiif?branch=main
   :alt: Test coverage
 
 *iiif* - IIIF Image API reference implementation and Python library.
@@ -79,12 +79,23 @@ appropriate places within your python setup using::
 The source code is maintained on `Github
 <https://github.com/zimeon/iiif>`_
 
+Contributing
+------------
+
+Bug reports welcome as `github issues
+<https://github.com/zimeon/iiif/issues>`_.
+
+See `CONTRIBUTING.md
+<https://github.com/zimeon/iiif/blob/main/CONTRIBUTING.md>`_
+for guidelines for contributing, and the `list of contributors
+<https://github.com/zimeon/iiif/graphs/contributors>`_
+
 See also
 --------
 
 - https://github.com/zimeon/iiif -- git repository
-- https://github.com/zimeon/iiif/tree/master/demo-static -- Static File Demo with OpenSeadragon
-- https://github.com/zimeon/iiif/tree/master/demo-auth -- IIIF Authentication API Demo
+- https://github.com/zimeon/iiif/tree/main/demo-static -- Static File Demo with OpenSeadragon
+- https://github.com/zimeon/iiif/tree/main/demo-auth -- IIIF Authentication API Demo
 
 Copyright and License
 ---------------------
