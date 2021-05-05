@@ -1,4 +1,4 @@
-# Contributing to resync
+# Contributing to iiif
 
 Issues and pull requests are appreciated.
 
