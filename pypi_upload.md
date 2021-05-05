@@ -4,7 +4,7 @@ Updating iiif on pypi
 
   Notes to remind @zimeon...
 
-    * master copy of code is https://github.com/zimeon/iiif
+    * main copy of code is https://github.com/zimeon/iiif
     * on PyPi iiif is at <https://pypi.org/project/iiif>
 
 Putting up a new version
@@ -12,8 +12,8 @@ Putting up a new version
 
     0. Check version number working branch in `iiif/_version.py`
     1. Check all tests good (`python setup.py test; ./run_validate.sh -n`)
-    2. Check code is up-to-date with master github version
-    3. Check out master and merge in working branch
+    2. Check code is up-to-date with main github version
+    3. Check out `main` and merge in working branch
     4. Check all tests good (`python setup.py test; ./run_validate.sh -n`)
     5. Check branches are as expected (`git branch -a`)
     6. Check local build and version reported OK (`python setup.py build; python setup.py install`)
